@@ -1,5 +1,7 @@
 # Bambu Companion
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Knartzpirat&repository=ha-bambu-companion&category=integration)
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/Knartzpirat/ha-bambu-companion/releases)
 [![license](https://img.shields.io/github/license/Knartzpirat/ha-bambu-companion)](LICENSE)
@@ -164,7 +166,7 @@ Prefix: `sensor.bpt_{serial}_*`
 
 ### Manual
 
-1. Copy the contents of this repository to `config/custom_components/bambu_print_tracker/`.
+1. Copy the contents of this repository to `config/custom_components/bambu_companion/`.
 2. Restart Home Assistant.
 3. Add the integration via **Settings → Devices & Services**.
 
