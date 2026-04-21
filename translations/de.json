@@ -1,0 +1,94 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Drucker auswählen",
+                "description": "Wähle einen Bambu Lab Drucker aus, der bereits über die ha-bambulab Integration eingerichtet ist.",
+                "data": {
+                    "device_id": "Drucker"
+                }
+            },
+            "ams": {
+                "title": "AMS-Einheiten",
+                "description": "Wähle die AMS-Einheiten aus, die überwacht werden sollen.",
+                "data": {
+                    "ams_device_ids": "AMS-Einheiten"
+                }
+            },
+            "energy": {
+                "title": "Energie & Kosten",
+                "data": {
+                    "electricity_price": "Strompreis (€/kWh)",
+                    "electricity_sensor": "Dynamischer Strompreissensor (optional)",
+                    "energy_sensor": "Smarte Steckdose kWh-Sensor (optional)",
+                    "filament_cost": "Filamentkosten pro kg (€)",
+                    "currency": "Währungssymbol",
+                    "filament_unit": "Filamenteinheit"
+                }
+            },
+            "notify": {
+                "title": "Benachrichtigungen",
+                "data": {
+                    "notify_targets": "Benachrichtigungsgeräte (notify.*)",
+                    "notify_interval": "Fortschrittsintervall (%)",
+                    "quiet_from": "Ruhige Stunden von",
+                    "quiet_to": "Ruhige Stunden bis",
+                    "printer_display_name": "Druckername (Anzeige)",
+                    "max_history": "Maximale Druckhistorie-Einträge",
+                    "low_filament_threshold": "Filament-Warnschwelle (%)"
+                }
+            }
+        },
+        "abort": {
+            "no_bambu_devices": "Keine Bambu Lab Drucker gefunden. Bitte zuerst die ha-bambulab Integration einrichten.",
+            "already_configured": "Dieser Drucker ist bereits konfiguriert."
+        },
+        "error": {
+            "invalid_device": "Ungültiger Drucker ausgewählt."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Einstellungen",
+                "data": {
+                    "tab": "Bereich"
+                }
+            },
+            "energy": {
+                "title": "Kosten & Energie",
+                "data": {
+                    "electricity_price": "Strompreis (€/kWh)",
+                    "electricity_sensor": "Dynamischer Strompreissensor (optional)",
+                    "energy_sensor": "Smarte Steckdose kWh-Sensor (optional)",
+                    "filament_cost": "Filamentkosten pro kg",
+                    "currency": "Währungssymbol",
+                    "filament_unit": "Filamenteinheit"
+                }
+            },
+            "notify": {
+                "title": "Benachrichtigungen",
+                "data": {
+                    "notify_targets": "Benachrichtigungsgeräte",
+                    "notify_interval": "Fortschrittsintervall (%)",
+                    "quiet_from": "Ruhige Stunden von",
+                    "quiet_to": "Ruhige Stunden bis",
+                    "printer_display_name": "Druckername (Anzeige)"
+                }
+            },
+            "texts": {
+                "title": "Texte anpassen"
+            },
+            "maintenance": {
+                "title": "Wartungsintervalle"
+            },
+            "general": {
+                "title": "Allgemein",
+                "data": {
+                    "max_history": "Maximale Druckhistorie-Einträge",
+                    "low_filament_threshold": "Filament-Warnschwelle (%)"
+                }
+            }
+        }
+    }
+}
