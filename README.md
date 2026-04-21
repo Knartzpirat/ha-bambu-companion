@@ -216,6 +216,6 @@ Bug reports and feature requests are welcome — please open an issue in this re
 
 ## Credits
 
-Inspired by the original blueprint [ha-bambu-print-tracker](https://github.com/willhaggan/ha-bambu-print-tracker) by [@willhaggan](https://github.com/willhaggan) and the fork by [@Knartzpirat](https://github.com/Knartzpirat). 🙏
+Inspired by the original blueprint [ha-bambu-print-tracker](https://github.com/willhaggan/ha-bambu-print-tracker) by [@willhaggan](https://github.com/willhaggan). 🙏
 
 Built on top of the excellent [ha-bambulab](https://github.com/greghesp/ha-bambulab) integration by [@greghesp](https://github.com/greghesp).
