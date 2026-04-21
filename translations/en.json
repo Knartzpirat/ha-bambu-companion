@@ -1,0 +1,94 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Select printer",
+                "description": "Select a Bambu Lab printer already set up via the ha-bambulab integration.",
+                "data": {
+                    "device_id": "Printer"
+                }
+            },
+            "ams": {
+                "title": "AMS units",
+                "description": "Select the AMS units to monitor.",
+                "data": {
+                    "ams_device_ids": "AMS units"
+                }
+            },
+            "energy": {
+                "title": "Energy & costs",
+                "data": {
+                    "electricity_price": "Electricity price (€/kWh)",
+                    "electricity_sensor": "Dynamic electricity price sensor (optional)",
+                    "energy_sensor": "Smart plug kWh sensor (optional)",
+                    "filament_cost": "Filament cost per kg (€)",
+                    "currency": "Currency symbol",
+                    "filament_unit": "Filament unit"
+                }
+            },
+            "notify": {
+                "title": "Notifications",
+                "data": {
+                    "notify_targets": "Notification services (notify.*)",
+                    "notify_interval": "Progress interval (%)",
+                    "quiet_from": "Quiet hours from",
+                    "quiet_to": "Quiet hours to",
+                    "printer_display_name": "Printer display name",
+                    "max_history": "Maximum history entries",
+                    "low_filament_threshold": "Low filament threshold (%)"
+                }
+            }
+        },
+        "abort": {
+            "no_bambu_devices": "No Bambu Lab printers found. Please set up the ha-bambulab integration first.",
+            "already_configured": "This printer is already configured."
+        },
+        "error": {
+            "invalid_device": "Invalid printer selected."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Settings",
+                "data": {
+                    "tab": "Section"
+                }
+            },
+            "energy": {
+                "title": "Costs & Energy",
+                "data": {
+                    "electricity_price": "Electricity price (€/kWh)",
+                    "electricity_sensor": "Dynamic electricity price sensor (optional)",
+                    "energy_sensor": "Smart plug kWh sensor (optional)",
+                    "filament_cost": "Filament cost per kg",
+                    "currency": "Currency symbol",
+                    "filament_unit": "Filament unit"
+                }
+            },
+            "notify": {
+                "title": "Notifications",
+                "data": {
+                    "notify_targets": "Notification services",
+                    "notify_interval": "Progress interval (%)",
+                    "quiet_from": "Quiet hours from",
+                    "quiet_to": "Quiet hours to",
+                    "printer_display_name": "Printer display name"
+                }
+            },
+            "texts": {
+                "title": "Customize texts"
+            },
+            "maintenance": {
+                "title": "Maintenance intervals"
+            },
+            "general": {
+                "title": "General",
+                "data": {
+                    "max_history": "Maximum history entries",
+                    "low_filament_threshold": "Low filament threshold (%)"
+                }
+            }
+        }
+    }
+}
