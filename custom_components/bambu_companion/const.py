@@ -214,48 +214,71 @@ PRINTER_FEATURES: dict[str, dict] = {
 
 # Maintenance task definitions
 # trigger types: print_hours, total_hours, print_count, laser_hours, laser_jobs, nozzle_hours
+# wiki: Bambu Lab Wiki link for reference (exposed as sensor attribute)
 MAINTENANCE_TASKS: list[dict] = [
     # Nozzle & Hotend
-    {"key": "nozzle_clean", "name": "Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": None},
-    {"key": "left_nozzle_clean", "name": "Linke Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"]},
-    {"key": "right_nozzle_clean", "name": "Rechte Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"]},
-    {"key": "ptfe_tube", "name": "PTFE-Tube prüfen/wechseln", "default_interval": 500, "trigger": "print_hours", "models": None},
-    {"key": "heatbreak", "name": "Heatbreak reinigen", "default_interval": 500, "trigger": "print_hours", "models": None},
+    {"key": "nozzle_clean", "name": "Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
+    {"key": "left_nozzle_clean", "name": "Linke Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
+    {"key": "right_nozzle_clean", "name": "Rechte Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
+    # Bambu Wiki: blade should be checked every 3-5 rolls (≈ 20 prints); ~5000-7000 cuts before replacement
+    {"key": "filament_cutter", "name": "Schneidmesser prüfen / wechseln", "default_interval": 20, "trigger": "print_count", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#filament-cutter"},
+    {"key": "ptfe_tube", "name": "PTFE-Tube prüfen / wechseln", "default_interval": 500, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#ptfe-tube-coupler"},
+    {"key": "heatbreak", "name": "Hotend / Heatbreak reinigen", "default_interval": 500, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#hotend-cleaning"},
     # Motion
-    {"key": "lube_xy", "name": "X/Y Linearschienen schmieren", "default_interval": 300, "trigger": "print_hours", "models": None},
-    {"key": "lube_z", "name": "Z-Achse schmieren", "default_interval": 500, "trigger": "print_hours", "models": None},
-    {"key": "carbon_rods", "name": "Carbon-Stangen reinigen & ölen", "default_interval": 200, "trigger": "print_hours", "models": ["X1C", "P1S", "H2D"]},
-    {"key": "belt_x", "name": "Riemenspannung prüfen (X)", "default_interval": 500, "trigger": "print_hours", "models": None},
-    {"key": "belt_y", "name": "Riemenspannung prüfen (Y)", "default_interval": 500, "trigger": "print_hours", "models": None},
-    {"key": "extruder_gear", "name": "Extruder-Zahnrad reinigen", "default_interval": 300, "trigger": "print_hours", "models": None},
-    {"key": "toolhead_cable", "name": "Toolhead-Kabel prüfen", "default_interval": 1000, "trigger": "print_hours", "models": None},
+    # Bambu Wiki: Y/Z linear rods – check monthly, anti-rust every 3 months. NOT the X carbon rods (those are separate).
+    {"key": "lube_linear", "name": "Y/Z-Linearschienen reinigen & konservieren", "default_interval": 300, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#y-axis-and-z-axis-linear-rods-and-bearings"},
+    # Bambu Wiki: Z lead screws – grease every 3 months
+    {"key": "lube_z", "name": "Z-Gewindespindeln schmieren", "default_interval": 500, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/general/lead-screws-lubrication"},
+    # Bambu Wiki: X carbon rods – clean with IPA every 5 rolls of ABS/ASA or monthly. NEVER use oil or grease!
+    {"key": "carbon_rods", "name": "Carbon-Stangen reinigen (IPA, kein Öl!)", "default_interval": 200, "trigger": "print_hours", "models": ["X1", "X1C", "X1E", "P1S"],
+     "wiki": "https://wiki.bambulab.com/en/general/carbon-rods-clearance"},
+    {"key": "belt", "name": "Riemenspannung prüfen (X & Y)", "default_interval": 500, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/belt-tension"},
+    {"key": "extruder_gear", "name": "Extruder-Zahnrad reinigen", "default_interval": 300, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#extruder-assembly"},
+    {"key": "toolhead_cable", "name": "Toolhead-Kabel prüfen", "default_interval": 1000, "trigger": "print_hours", "models": None,
+     "wiki": None},
     # Bed
-    {"key": "clean_bed", "name": "Druckbett reinigen (IPA)", "default_interval": 20, "trigger": "print_count", "models": None},
-    {"key": "flip_bed", "name": "Druckbett wenden", "default_interval": 100, "trigger": "print_count", "models": None},
-    {"key": "inspect_bed", "name": "Druckbett auf Verschleiß prüfen", "default_interval": 500, "trigger": "print_count", "models": None},
+    {"key": "clean_bed", "name": "Druckbett reinigen (IPA)", "default_interval": 20, "trigger": "print_count", "models": None,
+     "wiki": None},
+    {"key": "inspect_bed", "name": "Druckbett auf Verschleiß prüfen", "default_interval": 500, "trigger": "print_count", "models": None,
+     "wiki": None},
     # Fans & Filters
-    {"key": "parts_fan", "name": "Teilekühler-Lüfter reinigen", "default_interval": 300, "trigger": "print_hours", "models": None},
-    {"key": "hotend_fan", "name": "Hotend-Lüfter reinigen", "default_interval": 300, "trigger": "print_hours", "models": None},
-    {"key": "hepa_filter", "name": "Kammer-HEPA-Filter wechseln", "default_interval": 250, "trigger": "total_hours", "models": ["X1C", "P1S", "H2D"]},
-    {"key": "carbon_filter", "name": "Aktivkohle-Filter wechseln", "default_interval": 250, "trigger": "total_hours", "models": ["X1C", "P1S", "H2D"]},
-    {"key": "chamber_fan", "name": "Kammerlüfter reinigen", "default_interval": 500, "trigger": "print_hours", "models": ["X1C", "P1S", "H2D"]},
+    # Bambu Wiki: clean hotend fan, part cooling fan, chamber fan, aux fan in one session (weekly check recommended)
+    {"key": "fans_clean", "name": "Alle Lüfter reinigen", "default_interval": 300, "trigger": "print_hours", "models": None,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#part-cooling-fans"},
+    # Bambu Wiki: replace activated carbon air filter every 3 months (8h/day usage)
+    {"key": "hepa_filter", "name": "Kammer-HEPA-Filter wechseln", "default_interval": 250, "trigger": "total_hours", "models": ["X1", "X1C", "X1E", "H2D"],
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/replace-carbon-filter"},
+    {"key": "carbon_filter", "name": "Aktivkohle-Filter wechseln", "default_interval": 250, "trigger": "total_hours", "models": ["X1", "X1C", "X1E", "P1S", "H2D"],
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/replace-carbon-filter"},
     # AMS
-    {"key": "ams_wiper", "name": "Purge Wiper / Schneidklinge reinigen", "default_interval": 50, "trigger": "print_count", "models": None, "requires_ams": True},
-    {"key": "ams_cutter", "name": "AMS Schneidmesser ersetzen", "default_interval": 500, "trigger": "print_count", "models": None, "requires_ams": True},
-    {"key": "ams_gears", "name": "AMS Getriebe/Rollen reinigen", "default_interval": 300, "trigger": "print_hours", "models": None, "requires_ams": True},
+    {"key": "ams_wiper", "name": "Purge Wiper / Schneidklinge reinigen", "default_interval": 50, "trigger": "print_count", "models": None, "requires_ams": True,
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle-wiper"},
+    {"key": "ams_gears", "name": "AMS Getriebe / Rollen reinigen", "default_interval": 300, "trigger": "print_hours", "models": None, "requires_ams": True,
+     "wiki": "https://wiki.bambulab.com/en/ams/maintenance/basic-maintenance"},
     # Calibration
-    {"key": "resonance_cal", "name": "Vibrationskompensation (Resonance)", "default_interval": 300, "trigger": "print_hours", "models": None},
-    {"key": "flow_cal", "name": "Fluss-Kalibrierung", "default_interval": 50, "trigger": "print_hours", "models": None},
-    {"key": "first_layer_cal", "name": "Erst-Schicht-Kalibrierung", "default_interval": 100, "trigger": "print_hours", "models": None},
+    {"key": "resonance_cal", "name": "Vibrationskompensation (Resonance)", "default_interval": 300, "trigger": "print_hours", "models": None,
+     "wiki": None},
+    {"key": "flow_cal", "name": "Fluss-Kalibrierung", "default_interval": 50, "trigger": "print_hours", "models": None,
+     "wiki": None},
     # Laser (H2D)
-    {"key": "laser_lens", "name": "Laserkopf-Linse reinigen", "default_interval": 20, "trigger": "laser_hours", "models": ["H2D"]},
-    {"key": "laser_air", "name": "Lasermodul Luftdüse prüfen", "default_interval": 50, "trigger": "laser_hours", "models": ["H2D"]},
-    {"key": "laser_bed", "name": "Laserbett reinigen (Rückstände)", "default_interval": 10, "trigger": "laser_jobs", "models": ["H2D"]},
-    {"key": "laser_inspect", "name": "Lasermodul auf Beschädigung prüfen", "default_interval": 200, "trigger": "laser_hours", "models": ["H2D"]},
-    {"key": "laser_safety", "name": "Lasersicherheitsscheibe prüfen", "default_interval": 100, "trigger": "laser_hours", "models": ["H2D"]},
+    {"key": "laser_lens", "name": "Laserkopf-Linse reinigen", "default_interval": 20, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
+    {"key": "laser_air", "name": "Lasermodul Luftdüse prüfen", "default_interval": 50, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
+    {"key": "laser_bed", "name": "Laserbett reinigen (Rückstände)", "default_interval": 10, "trigger": "laser_jobs", "models": ["H2D"], "wiki": None},
+    {"key": "laser_inspect", "name": "Lasermodul auf Beschädigung prüfen", "default_interval": 200, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
+    {"key": "laser_safety", "name": "Lasersicherheitsscheibe prüfen", "default_interval": 100, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
     # H2C Vortek
-    {"key": "vortek_lube", "name": "Rack-Führungen schmieren", "default_interval": 500, "trigger": "total_hours", "models": ["H2C"]},
-    {"key": "vortek_wear", "name": "Hotend-Slots auf Verschleiß prüfen", "default_interval": 200, "trigger": "total_hours", "models": ["H2C"]},
+    {"key": "vortek_lube", "name": "Rack-Führungen schmieren", "default_interval": 500, "trigger": "total_hours", "models": ["H2C"], "wiki": None},
+    {"key": "vortek_wear", "name": "Hotend-Slots auf Verschleiß prüfen", "default_interval": 200, "trigger": "total_hours", "models": ["H2C"], "wiki": None},
 ]
 
 # Nozzle temperature threshold for nozzle_hours tracking
