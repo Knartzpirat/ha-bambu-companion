@@ -46,24 +46,26 @@ async def _setup_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
     serial: str = entry.data.get("serial", "unknown")
     model: str = entry.data.get("model", "")
     has_ams: bool = bool(entry.data.get("ams_device_ids", []))
+    ams_device_ids: list[str] = entry.data.get("ams_device_ids", [])
+    printer_device_id: str = entry.data.get("device_id", "")
     printer_name: str = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
     currency: str = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
 
     try:
-        url_path = await async_setup_lovelace_dashboard(
-            hass, serial, model, has_ams, printer_name, currency
+        file_path = await async_setup_lovelace_dashboard(
+            hass, serial, model, has_ams, printer_name, currency, ams_device_ids, printer_device_id
         )
-        _LOGGER.info("Bambu Companion: Lovelace dashboard written to storage (/%s)", url_path)
+        _LOGGER.info("Bambu Companion: Lovelace card YAML written to %s", file_path)
 
         async_create(
             hass,
             (
-                f"Das **{printer_name}** Dashboard wurde automatisch angelegt.\n\n"
-                "Starte Home Assistant einmal neu – danach erscheint es mit 3 Reiter "
-                "(**Übersicht · Wartung · Historie**) automatisch in der Seitenleiste. "
-                "Kein Kopieren, kein Einfügen."
+                f"Die Kacheln für **{printer_name}** wurden als YAML-Datei gespeichert:\n\n"
+                f"`{file_path}`\n\n"
+                "Öffne dein Dashboard im UI-Editor, wechsle in den **Raw-Konfigurationsmodus** "
+                "und füge die gewünschten Karten aus der Datei ein."
             ),
-            title="Bambu Companion – Dashboard bereit",
+            title="Bambu Companion – Kacheln bereit",
             notification_id=f"bambu_companion_dashboard_{serial}",
         )
     except Exception as err:  # noqa: BLE001
