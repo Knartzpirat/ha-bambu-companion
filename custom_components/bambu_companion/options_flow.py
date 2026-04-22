@@ -12,11 +12,9 @@ from .const import (
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
-    CONF_LOW_FILAMENT_THRESHOLD,
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_ON_DONE,
     CONF_NOTIFY_ON_ERROR,
-    CONF_NOTIFY_ON_LOW_FILAMENT,
     CONF_NOTIFY_ON_MAINTENANCE,
     CONF_NOTIFY_ON_PROGRESS,
     CONF_NOTIFY_ON_START,
@@ -28,11 +26,9 @@ from .const import (
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
     DEFAULT_FILAMENT_UNIT,
-    DEFAULT_LOW_FILAMENT_THRESHOLD,
     DEFAULT_NOTIFY_INTERVAL,
     DEFAULT_NOTIFY_ON_DONE,
     DEFAULT_NOTIFY_ON_ERROR,
-    DEFAULT_NOTIFY_ON_LOW_FILAMENT,
     DEFAULT_NOTIFY_ON_MAINTENANCE,
     DEFAULT_NOTIFY_ON_PROGRESS,
     DEFAULT_NOTIFY_ON_START,
@@ -63,8 +59,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_notify()
             if tab == "maintenance":
                 return await self.async_step_maintenance()
-            if tab == "general":
-                return await self.async_step_general()
 
         schema = vol.Schema(
             {
@@ -74,7 +68,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                             {"value": "energy", "label": "Kosten & Energie"},
                             {"value": "notify", "label": "Benachrichtigungen"},
                             {"value": "maintenance", "label": "Wartungspläne"},
-                            {"value": "general", "label": "Allgemein"},
                         ],
                         mode=selector.SelectSelectorMode.LIST,
                     )
@@ -183,10 +176,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     CONF_NOTIFY_ON_MAINTENANCE,
                     default=current.get(CONF_NOTIFY_ON_MAINTENANCE, DEFAULT_NOTIFY_ON_MAINTENANCE),
                 ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_NOTIFY_ON_LOW_FILAMENT,
-                    default=current.get(CONF_NOTIFY_ON_LOW_FILAMENT, DEFAULT_NOTIFY_ON_LOW_FILAMENT),
-                ): selector.BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="notify", data_schema=schema)
@@ -215,25 +204,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema(fields),
             description_placeholders=placeholders,
         )
-
-    async def async_step_general(self, user_input=None):
-        current = self._current()
-        if user_input is not None:
-            self._combined.update(user_input)
-            return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
-
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_LOW_FILAMENT_THRESHOLD,
-                    default=current.get(CONF_LOW_FILAMENT_THRESHOLD, DEFAULT_LOW_FILAMENT_THRESHOLD),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=50, step=1, mode=selector.NumberSelectorMode.BOX)
-                ),
-            }
-        )
-        return self.async_show_form(step_id="general", data_schema=schema)
-
 
 
 class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
@@ -413,12 +383,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     default=current.get(CONF_MAX_HISTORY, DEFAULT_MAX_HISTORY),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(min=10, max=500, step=10, mode=selector.NumberSelectorMode.BOX)
-                ),
-                vol.Required(
-                    CONF_LOW_FILAMENT_THRESHOLD,
-                    default=current.get(CONF_LOW_FILAMENT_THRESHOLD, DEFAULT_LOW_FILAMENT_THRESHOLD),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=50, step=1, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
         )
