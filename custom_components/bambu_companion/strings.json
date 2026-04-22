@@ -33,9 +33,12 @@
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
-                    "printer_display_name": "Druckername (Anzeige)",
-                    "max_history": "Maximale Druckhistorie-Einträge",
-                    "low_filament_threshold": "Filament-Warnschwelle (%)"
+                    "notify_on_start": "Benachrichtigung: Druck gestartet",
+                    "notify_on_progress": "Benachrichtigung: Fortschrittsupdate",
+                    "notify_on_done": "Benachrichtigung: Druck abgeschlossen",
+                    "notify_on_error": "Benachrichtigung: Druckfehler",
+                    "notify_on_maintenance": "Benachrichtigung: Wartung fällig",
+                    "notify_on_low_filament": "Benachrichtigung: Filament fast leer"
                 }
             }
         },
@@ -70,22 +73,95 @@
                 "title": "Benachrichtigungen",
                 "data": {
                     "notify_targets": "Benachrichtigungsgeräte",
+                    "printer_display_name": "Druckername (Anzeige)",
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
-                    "printer_display_name": "Druckername (Anzeige)"
+                    "notify_on_start": "Druck gestartet",
+                    "notify_on_progress": "Fortschrittsupdate",
+                    "notify_on_done": "Druck abgeschlossen",
+                    "notify_on_error": "Druckfehler",
+                    "notify_on_maintenance": "Wartung fällig",
+                    "notify_on_low_filament": "Filament fast leer"
                 }
             },
-            "texts": {
-                "title": "Texte anpassen"
-            },
             "maintenance": {
-                "title": "Wartungsintervalle"
+                "title": "Wartungsintervalle",
+                "description": "Intervalle in Stunden bzw. Druckanzahl. Die Aufgaben werden jeweils nach Erreichen des Intervalls gemeldet.",
+                "data": {
+                    "nozzle_clean": "Düse reinigen / wechseln",
+                    "left_nozzle_clean": "Linke Düse reinigen / wechseln (H2D)",
+                    "right_nozzle_clean": "Rechte Düse reinigen / wechseln (H2D)",
+                    "ptfe_tube": "PTFE-Tube prüfen/wechseln",
+                    "heatbreak": "Heatbreak reinigen",
+                    "lube_xy": "X/Y Linearschienen schmieren",
+                    "lube_z": "Z-Achse schmieren",
+                    "carbon_rods": "Carbon-Stangen reinigen & ölen (X1C/P1S/H2D)",
+                    "belt_x": "Riemenspannung prüfen (X)",
+                    "belt_y": "Riemenspannung prüfen (Y)",
+                    "extruder_gear": "Extruder-Zahnrad reinigen",
+                    "toolhead_cable": "Toolhead-Kabel prüfen",
+                    "clean_bed": "Druckbett reinigen (IPA)",
+                    "flip_bed": "Druckbett wenden",
+                    "inspect_bed": "Druckbett auf Verschleiß prüfen",
+                    "parts_fan": "Teilekühler-Lüfter reinigen",
+                    "hotend_fan": "Hotend-Lüfter reinigen",
+                    "hepa_filter": "Kammer-HEPA-Filter wechseln (X1C/P1S/H2D)",
+                    "carbon_filter": "Aktivkohle-Filter wechseln (X1C/P1S/H2D)",
+                    "chamber_fan": "Kammerlüfter reinigen (X1C/P1S/H2D)",
+                    "ams_wiper": "Purge Wiper / Schneidklinge reinigen (AMS)",
+                    "ams_cutter": "AMS Schneidmesser ersetzen (AMS)",
+                    "ams_gears": "AMS Getriebe/Rollen reinigen (AMS)",
+                    "resonance_cal": "Vibrationskompensation (Resonance)",
+                    "flow_cal": "Fluss-Kalibrierung",
+                    "first_layer_cal": "Erst-Schicht-Kalibrierung",
+                    "laser_lens": "Laserkopf-Linse reinigen (H2D)",
+                    "laser_air": "Lasermodul Luftdüse prüfen (H2D)",
+                    "laser_bed": "Laserbett reinigen (H2D)",
+                    "laser_inspect": "Lasermodul auf Beschädigung prüfen (H2D)",
+                    "laser_safety": "Lasersicherheitsscheibe prüfen (H2D)",
+                    "vortek_lube": "Rack-Führungen schmieren (H2C)",
+                    "vortek_wear": "Hotend-Slots auf Verschleiß prüfen (H2C)"
+                },
+                "data_description": {
+                    "nozzle_clean": "Trigger: Düsen-Druckstunden",
+                    "left_nozzle_clean": "Trigger: Düsen-Druckstunden",
+                    "right_nozzle_clean": "Trigger: Düsen-Druckstunden",
+                    "ptfe_tube": "Trigger: Druckstunden",
+                    "heatbreak": "Trigger: Druckstunden",
+                    "lube_xy": "Trigger: Druckstunden",
+                    "lube_z": "Trigger: Druckstunden",
+                    "carbon_rods": "Trigger: Druckstunden",
+                    "belt_x": "Trigger: Druckstunden",
+                    "belt_y": "Trigger: Druckstunden",
+                    "extruder_gear": "Trigger: Druckstunden",
+                    "toolhead_cable": "Trigger: Druckstunden",
+                    "clean_bed": "Trigger: Anzahl Drucke",
+                    "flip_bed": "Trigger: Anzahl Drucke",
+                    "inspect_bed": "Trigger: Anzahl Drucke",
+                    "parts_fan": "Trigger: Druckstunden",
+                    "hotend_fan": "Trigger: Druckstunden",
+                    "hepa_filter": "Trigger: Gesamtstunden",
+                    "carbon_filter": "Trigger: Gesamtstunden",
+                    "chamber_fan": "Trigger: Druckstunden",
+                    "ams_wiper": "Trigger: Anzahl Drucke",
+                    "ams_cutter": "Trigger: Anzahl Drucke",
+                    "ams_gears": "Trigger: Druckstunden",
+                    "resonance_cal": "Trigger: Druckstunden",
+                    "flow_cal": "Trigger: Druckstunden",
+                    "first_layer_cal": "Trigger: Druckstunden",
+                    "laser_lens": "Trigger: Laserstunden",
+                    "laser_air": "Trigger: Laserstunden",
+                    "laser_bed": "Trigger: Laseraufträge",
+                    "laser_inspect": "Trigger: Laserstunden",
+                    "laser_safety": "Trigger: Laserstunden",
+                    "vortek_lube": "Trigger: Gesamtstunden",
+                    "vortek_wear": "Trigger: Gesamtstunden"
+                }
             },
             "general": {
                 "title": "Allgemein",
                 "data": {
-                    "max_history": "Maximale Druckhistorie-Einträge",
                     "low_filament_threshold": "Filament-Warnschwelle (%)"
                 }
             }
