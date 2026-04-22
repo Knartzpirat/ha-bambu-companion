@@ -33,9 +33,12 @@
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
                     "quiet_to": "Quiet hours to",
-                    "printer_display_name": "Printer display name",
-                    "max_history": "Maximum history entries",
-                    "low_filament_threshold": "Low filament threshold (%)"
+                    "notify_on_start": "Notify: Print started",
+                    "notify_on_progress": "Notify: Progress update",
+                    "notify_on_done": "Notify: Print finished",
+                    "notify_on_error": "Notify: Print error",
+                    "notify_on_maintenance": "Notify: Maintenance due",
+                    "notify_on_low_filament": "Notify: Low filament"
                 }
             }
         },
@@ -70,22 +73,95 @@
                 "title": "Notifications",
                 "data": {
                     "notify_targets": "Notification services",
+                    "printer_display_name": "Printer display name",
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
                     "quiet_to": "Quiet hours to",
-                    "printer_display_name": "Printer display name"
+                    "notify_on_start": "Print started",
+                    "notify_on_progress": "Progress update",
+                    "notify_on_done": "Print finished",
+                    "notify_on_error": "Print error",
+                    "notify_on_maintenance": "Maintenance due",
+                    "notify_on_low_filament": "Low filament"
                 }
             },
-            "texts": {
-                "title": "Customize texts"
-            },
             "maintenance": {
-                "title": "Maintenance intervals"
+                "title": "Maintenance intervals",
+                "description": "Intervals in hours or print count. A notification is sent when the interval is reached.",
+                "data": {
+                    "nozzle_clean": "Clean / replace nozzle",
+                    "left_nozzle_clean": "Clean / replace left nozzle (H2D)",
+                    "right_nozzle_clean": "Clean / replace right nozzle (H2D)",
+                    "ptfe_tube": "Check / replace PTFE tube",
+                    "heatbreak": "Clean heatbreak",
+                    "lube_xy": "Lubricate X/Y linear rails",
+                    "lube_z": "Lubricate Z axis",
+                    "carbon_rods": "Clean & oil carbon rods (X1C/P1S/H2D)",
+                    "belt_x": "Check belt tension (X)",
+                    "belt_y": "Check belt tension (Y)",
+                    "extruder_gear": "Clean extruder gear",
+                    "toolhead_cable": "Inspect toolhead cable",
+                    "clean_bed": "Clean print bed (IPA)",
+                    "flip_bed": "Flip print bed",
+                    "inspect_bed": "Inspect bed for wear",
+                    "parts_fan": "Clean part cooling fan",
+                    "hotend_fan": "Clean hotend fan",
+                    "hepa_filter": "Replace chamber HEPA filter (X1C/P1S/H2D)",
+                    "carbon_filter": "Replace activated carbon filter (X1C/P1S/H2D)",
+                    "chamber_fan": "Clean chamber fan (X1C/P1S/H2D)",
+                    "ams_wiper": "Clean purge wiper / cutter blade (AMS)",
+                    "ams_cutter": "Replace AMS cutter blade (AMS)",
+                    "ams_gears": "Clean AMS gears / rollers (AMS)",
+                    "resonance_cal": "Resonance compensation calibration",
+                    "flow_cal": "Flow rate calibration",
+                    "first_layer_cal": "First layer calibration",
+                    "laser_lens": "Clean laser head lens (H2D)",
+                    "laser_air": "Check laser air nozzle (H2D)",
+                    "laser_bed": "Clean laser bed residue (H2D)",
+                    "laser_inspect": "Inspect laser module for damage (H2D)",
+                    "laser_safety": "Check laser safety window (H2D)",
+                    "vortek_lube": "Lubricate rack guides (H2C)",
+                    "vortek_wear": "Check hotend slots for wear (H2C)"
+                },
+                "data_description": {
+                    "nozzle_clean": "Trigger: nozzle print hours",
+                    "left_nozzle_clean": "Trigger: nozzle print hours",
+                    "right_nozzle_clean": "Trigger: nozzle print hours",
+                    "ptfe_tube": "Trigger: print hours",
+                    "heatbreak": "Trigger: print hours",
+                    "lube_xy": "Trigger: print hours",
+                    "lube_z": "Trigger: print hours",
+                    "carbon_rods": "Trigger: print hours",
+                    "belt_x": "Trigger: print hours",
+                    "belt_y": "Trigger: print hours",
+                    "extruder_gear": "Trigger: print hours",
+                    "toolhead_cable": "Trigger: print hours",
+                    "clean_bed": "Trigger: print count",
+                    "flip_bed": "Trigger: print count",
+                    "inspect_bed": "Trigger: print count",
+                    "parts_fan": "Trigger: print hours",
+                    "hotend_fan": "Trigger: print hours",
+                    "hepa_filter": "Trigger: total hours",
+                    "carbon_filter": "Trigger: total hours",
+                    "chamber_fan": "Trigger: print hours",
+                    "ams_wiper": "Trigger: print count",
+                    "ams_cutter": "Trigger: print count",
+                    "ams_gears": "Trigger: print hours",
+                    "resonance_cal": "Trigger: print hours",
+                    "flow_cal": "Trigger: print hours",
+                    "first_layer_cal": "Trigger: print hours",
+                    "laser_lens": "Trigger: laser hours",
+                    "laser_air": "Trigger: laser hours",
+                    "laser_bed": "Trigger: laser jobs",
+                    "laser_inspect": "Trigger: laser hours",
+                    "laser_safety": "Trigger: laser hours",
+                    "vortek_lube": "Trigger: total hours",
+                    "vortek_wear": "Trigger: total hours"
+                }
             },
             "general": {
                 "title": "General",
                 "data": {
-                    "max_history": "Maximum history entries",
                     "low_filament_threshold": "Low filament threshold (%)"
                 }
             }
