@@ -12,8 +12,12 @@ def get_applicable_tasks(model: str, has_ams: bool) -> list[dict]:
     for task in MAINTENANCE_TASKS:
         allowed_models: list | None = task.get("models")
         requires_ams: bool = task.get("requires_ams", False)
+        single_nozzle_only: bool = task.get("single_nozzle_only", False)
 
         if requires_ams and not has_ams:
+            continue
+
+        if single_nozzle_only and features.get("dual_nozzle", False):
             continue
 
         if allowed_models is not None and model not in allowed_models:
