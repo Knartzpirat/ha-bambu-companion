@@ -39,8 +39,7 @@
                     "notify_on_progress": "Notify: Progress update",
                     "notify_on_done": "Notify: Print finished",
                     "notify_on_error": "Notify: Print error",
-                    "notify_on_maintenance": "Notify: Maintenance due",
-                    "notify_on_low_filament": "Notify: Low filament"
+                    "notify_on_maintenance": "Notify: Maintenance due"
                 }
             }
         },
@@ -83,39 +82,36 @@
                     "notify_on_progress": "Progress update",
                     "notify_on_done": "Print finished",
                     "notify_on_error": "Print error",
-                    "notify_on_maintenance": "Maintenance due",
-                    "notify_on_low_filament": "Low filament"
+                    "notify_on_maintenance": "Maintenance due"
                 }
             },
             "maintenance": {
                 "title": "Maintenance intervals",
                 "description": "Intervals in hours or print count. A notification is sent when the interval is reached.",
                 "data": {
-                    "nozzle_clean": "Clean / replace nozzle",
-                    "left_nozzle_clean": "Clean / replace left nozzle (H2D)",
-                    "right_nozzle_clean": "Clean / replace right nozzle (H2D)",
-                    "filament_cutter": "Check / replace filament cutter blade",
-                    "ptfe_tube": "Check / replace PTFE tube",
-                    "heatbreak": "Clean hotend / heatbreak",
+                    "nozzle_clean": "Clean / replace toolhead nozzle",
+                    "left_nozzle_clean": "Clean / replace toolhead left nozzle (H2D)",
+                    "right_nozzle_clean": "Clean / replace toolhead right nozzle (H2D)",
+                    "filament_cutter": "Check / replace toolhead filament cutter",
+                    "ptfe_tube": "Check / replace toolhead PTFE tube",
+                    "heatbreak": "Clean toolhead hotend / heatbreak",
                     "lube_linear": "Clean & preserve Y/Z linear rods",
                     "lube_z": "Lubricate Z lead screws",
                     "carbon_rods": "Clean carbon rods – IPA only, no oil! (X1/X1C/X1E/P1S)",
                     "belt": "Check belt tension (X & Y)",
-                    "extruder_gear": "Clean extruder gear",
+                    "extruder_gear": "Clean toolhead extruder gear",
                     "toolhead_cable": "Inspect toolhead cable",
                     "clean_bed": "Clean print bed (IPA)",
-                    "inspect_bed": "Inspect bed for wear",
                     "fans_clean": "Clean all fans",
-                    "hepa_filter": "Replace chamber HEPA filter (X1/X1C/X1E/H2D)",
+                    "hepa_filter": "Replace chamber HEPA filter (X1/X1C/X1E)",
                     "carbon_filter": "Replace activated carbon filter (X1/X1C/X1E/P1S/H2D)",
-                    "ams_wiper": "Clean purge wiper / cutter blade (AMS)",
+                    "ams_wiper": "Clean purge wiper (AMS)",
                     "ams_gears": "Clean AMS gears / rollers (AMS)",
                     "resonance_cal": "Resonance compensation calibration",
                     "flow_cal": "Flow rate calibration",
-                    "laser_lens": "Clean laser head lens (H2D)",
-                    "laser_air": "Check laser air nozzle (H2D)",
+                    "laser_lens": "Clean laser head lens & fan (H2D)",
+                    "laser_deep": "Deep clean laser head (H2D)",
                     "laser_bed": "Clean laser bed residue (H2D)",
-                    "laser_inspect": "Inspect laser module for damage (H2D)",
                     "laser_safety": "Check laser safety window (H2D)",
                     "vortek_lube": "Lubricate rack guides (H2C)",
                     "vortek_wear": "Check hotend slots for wear (H2C)"
@@ -134,7 +130,6 @@
                     "extruder_gear": "Trigger: print hours | Wiki → Bambu: Extruder",
                     "toolhead_cable": "Trigger: print hours",
                     "clean_bed": "Trigger: print count",
-                    "inspect_bed": "Trigger: print count",
                     "fans_clean": "Trigger: print hours | Wiki → Bambu: Part Cooling Fans",
                     "hepa_filter": "Trigger: total hours",
                     "carbon_filter": "Trigger: total hours | Wiki → Bambu: Carbon Filter",
@@ -143,18 +138,11 @@
                     "resonance_cal": "Trigger: print hours",
                     "flow_cal": "Trigger: print hours",
                     "laser_lens": "Trigger: laser hours",
-                    "laser_air": "Trigger: laser hours",
+                    "laser_deep": "Trigger: laser hours",
                     "laser_bed": "Trigger: laser jobs",
-                    "laser_inspect": "Trigger: laser hours",
                     "laser_safety": "Trigger: laser hours",
                     "vortek_lube": "Trigger: total hours",
                     "vortek_wear": "Trigger: total hours"
-                }
-            },
-            "general": {
-                "title": "General",
-                "data": {
-                    "low_filament_threshold": "Low filament threshold (%)"
                 }
             }
         }

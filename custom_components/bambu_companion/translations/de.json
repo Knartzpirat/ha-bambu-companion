@@ -38,8 +38,7 @@
                     "notify_on_progress": "Benachrichtigung: Fortschrittsupdate",
                     "notify_on_done": "Benachrichtigung: Druck abgeschlossen",
                     "notify_on_error": "Benachrichtigung: Druckfehler",
-                    "notify_on_maintenance": "Benachrichtigung: Wartung fällig",
-                    "notify_on_low_filament": "Benachrichtigung: Filament fast leer"
+                    "notify_on_maintenance": "Benachrichtigung: Wartung fällig"
                 }
             }
         },
@@ -82,39 +81,36 @@
                     "notify_on_progress": "Fortschrittsupdate",
                     "notify_on_done": "Druck abgeschlossen",
                     "notify_on_error": "Druckfehler",
-                    "notify_on_maintenance": "Wartung fällig",
-                    "notify_on_low_filament": "Filament fast leer"
+                    "notify_on_maintenance": "Wartung fällig"
                 }
             },
             "maintenance": {
                 "title": "Wartungsintervalle",
                 "description": "Intervalle in Stunden bzw. Druckanzahl. Die Aufgaben werden jeweils nach Erreichen des Intervalls gemeldet.",
                 "data": {
-                    "nozzle_clean": "Düse reinigen / wechseln",
-                    "left_nozzle_clean": "Linke Düse reinigen / wechseln (H2D)",
-                    "right_nozzle_clean": "Rechte Düse reinigen / wechseln (H2D)",
-                    "filament_cutter": "Schneidmesser prüfen / wechseln",
-                    "ptfe_tube": "PTFE-Tube prüfen / wechseln",
-                    "heatbreak": "Hotend / Heatbreak reinigen",
+                    "nozzle_clean": "Druckkopf Düse reinigen / wechseln",
+                    "left_nozzle_clean": "Druckkopf Linke Düse reinigen / wechseln (H2D)",
+                    "right_nozzle_clean": "Druckkopf Rechte Düse reinigen / wechseln (H2D)",
+                    "filament_cutter": "Druckkopf Schneidmesser prüfen / wechseln",
+                    "ptfe_tube": "Druckkopf PTFE-Tube prüfen / wechseln",
+                    "heatbreak": "Druckkopf Hotend / Heatbreak reinigen",
                     "lube_linear": "Y/Z-Linearschienen reinigen & konservieren",
                     "lube_z": "Z-Gewindespindeln schmieren",
                     "carbon_rods": "Carbon-Stangen reinigen – IPA, kein Öl! (X1/X1C/X1E/P1S)",
                     "belt": "Riemenspannung prüfen (X & Y)",
-                    "extruder_gear": "Extruder-Zahnrad reinigen",
-                    "toolhead_cable": "Toolhead-Kabel prüfen",
+                    "extruder_gear": "Druckkopf Extruder-Zahnrad reinigen",
+                    "toolhead_cable": "Druckkopf Kabel prüfen",
                     "clean_bed": "Druckbett reinigen (IPA)",
-                    "inspect_bed": "Druckbett auf Verschleiß prüfen",
                     "fans_clean": "Alle Lüfter reinigen",
-                    "hepa_filter": "Kammer-HEPA-Filter wechseln (X1/X1C/X1E/H2D)",
+                    "hepa_filter": "Kammer-HEPA-Filter wechseln (X1/X1C/X1E)",
                     "carbon_filter": "Aktivkohle-Filter wechseln (X1/X1C/X1E/P1S/H2D)",
-                    "ams_wiper": "Purge Wiper / Schneidklinge reinigen (AMS)",
+                    "ams_wiper": "Purge Wiper reinigen (AMS)",
                     "ams_gears": "AMS Getriebe / Rollen reinigen (AMS)",
                     "resonance_cal": "Vibrationskompensation (Resonance)",
                     "flow_cal": "Fluss-Kalibrierung",
-                    "laser_lens": "Laserkopf-Linse reinigen (H2D)",
-                    "laser_air": "Lasermodul Luftdüse prüfen (H2D)",
+                    "laser_lens": "Laserkopf Linse & Lüfter reinigen (H2D)",
+                    "laser_deep": "Laserkopf Grundreinigung (H2D)",
                     "laser_bed": "Laserbett reinigen (H2D)",
-                    "laser_inspect": "Lasermodul auf Beschädigung prüfen (H2D)",
                     "laser_safety": "Lasersicherheitsscheibe prüfen (H2D)",
                     "vortek_lube": "Rack-Führungen schmieren (H2C)",
                     "vortek_wear": "Hotend-Slots auf Verschleiß prüfen (H2C)"
@@ -133,7 +129,6 @@
                     "extruder_gear": "Trigger: Druckstunden | Wiki → Bambu: Extruder",
                     "toolhead_cable": "Trigger: Druckstunden",
                     "clean_bed": "Trigger: Anzahl Drucke",
-                    "inspect_bed": "Trigger: Anzahl Drucke",
                     "fans_clean": "Trigger: Druckstunden | Wiki → Bambu: Part Cooling Fans",
                     "hepa_filter": "Trigger: Gesamtstunden",
                     "carbon_filter": "Trigger: Gesamtstunden | Wiki → Bambu: Carbon Filter",
@@ -142,18 +137,11 @@
                     "resonance_cal": "Trigger: Druckstunden",
                     "flow_cal": "Trigger: Druckstunden",
                     "laser_lens": "Trigger: Laserstunden",
-                    "laser_air": "Trigger: Laserstunden",
+                    "laser_deep": "Trigger: Laserstunden",
                     "laser_bed": "Trigger: Laseraufträge",
-                    "laser_inspect": "Trigger: Laserstunden",
                     "laser_safety": "Trigger: Laserstunden",
                     "vortek_lube": "Trigger: Gesamtstunden",
                     "vortek_wear": "Trigger: Gesamtstunden"
-                }
-            },
-            "general": {
-                "title": "Allgemein",
-                "data": {
-                    "low_filament_threshold": "Filament-Warnschwelle (%)"
                 }
             }
         }
