@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import os
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -17,7 +16,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import BambuPrintTrackerCoordinator
-from .dashboard import generate_dashboard
+from .dashboard import async_setup_lovelace_dashboard, async_remove_lovelace_dashboard
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,14 +35,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    # Auto-generate dashboard YAML into /config/www/ on every setup
-    await _write_dashboard(hass, entry)
+    await _setup_dashboard(hass, entry)
 
     return True
 
 
-async def _write_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Write the Lovelace dashboard YAML to /config/www/ and notify once."""
+async def _setup_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Write dashboard into HA Lovelace storage and notify the user once."""
     opts = {**entry.data, **entry.options}
     serial: str = entry.data.get("serial", "unknown")
     model: str = entry.data.get("model", "")
@@ -51,31 +49,25 @@ async def _write_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
     printer_name: str = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
     currency: str = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
 
-    yaml_content = generate_dashboard(serial, model, has_ams, printer_name, currency)
+    try:
+        url_path = await async_setup_lovelace_dashboard(
+            hass, serial, model, has_ams, printer_name, currency
+        )
+        _LOGGER.info("Bambu Companion: Lovelace dashboard written to storage (/%s)", url_path)
 
-    www_path = hass.config.path("www")
-    filename = f"bambu_companion_dashboard_{serial}.yaml"
-    filepath = os.path.join(www_path, filename)
-
-    def _write() -> None:
-        os.makedirs(www_path, exist_ok=True)
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(yaml_content)
-
-    await hass.async_add_executor_job(_write)
-    _LOGGER.info("Bambu Companion: Dashboard YAML written to %s", filepath)
-
-    async_create(
-        hass,
-        (
-            f"Das Bambu Companion Dashboard wurde automatisch erstellt:\n\n"
-            f"`/config/www/{filename}`\n\n"
-            "Gehe zu **Einstellungen → Dashboards → Dashboard hinzufügen**, "
-            "wähle **Neues Dashboard aus YAML** und füge den Inhalt der Datei ein."
-        ),
-        title="Bambu Companion – Dashboard bereit",
-        notification_id=f"bambu_companion_dashboard_{serial}",
-    )
+        async_create(
+            hass,
+            (
+                f"Das **{printer_name}** Dashboard wurde automatisch angelegt.\n\n"
+                "Starte Home Assistant einmal neu – danach erscheint es mit 3 Reiter "
+                "(**Übersicht · Wartung · Historie**) automatisch in der Seitenleiste. "
+                "Kein Kopieren, kein Einfügen."
+            ),
+            title="Bambu Companion – Dashboard bereit",
+            notification_id=f"bambu_companion_dashboard_{serial}",
+        )
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Bambu Companion: Could not write Lovelace dashboard: %s", err)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -84,6 +76,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up Lovelace dashboard when integration is removed."""
+    serial: str = entry.data.get("serial", "unknown")
+    try:
+        await async_remove_lovelace_dashboard(hass, serial)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Bambu Companion: Could not remove Lovelace dashboard: %s", err)
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload integration when options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
