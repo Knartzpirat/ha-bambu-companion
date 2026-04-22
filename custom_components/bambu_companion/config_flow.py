@@ -17,7 +17,6 @@ from .const import (
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_ON_DONE,
     CONF_NOTIFY_ON_ERROR,
-    CONF_NOTIFY_ON_LOW_FILAMENT,
     CONF_NOTIFY_ON_MAINTENANCE,
     CONF_NOTIFY_ON_PROGRESS,
     CONF_NOTIFY_ON_START,
@@ -32,7 +31,6 @@ from .const import (
     DEFAULT_NOTIFY_INTERVAL,
     DEFAULT_NOTIFY_ON_DONE,
     DEFAULT_NOTIFY_ON_ERROR,
-    DEFAULT_NOTIFY_ON_LOW_FILAMENT,
     DEFAULT_NOTIFY_ON_MAINTENANCE,
     DEFAULT_NOTIFY_ON_PROGRESS,
     DEFAULT_NOTIFY_ON_START,
@@ -239,9 +237,6 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): selector.BooleanSelector(),
                 vol.Required(
                     CONF_NOTIFY_ON_MAINTENANCE, default=DEFAULT_NOTIFY_ON_MAINTENANCE
-                ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_NOTIFY_ON_LOW_FILAMENT, default=DEFAULT_NOTIFY_ON_LOW_FILAMENT
                 ): selector.BooleanSelector(),
             }
         )
