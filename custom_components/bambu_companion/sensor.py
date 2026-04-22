@@ -32,26 +32,30 @@ async def async_setup_entry(
     currency = entry.data.get("currency", "€")
 
     entities: list[SensorEntity] = [
-        BptStatSensor(coordinator, entry, serial, "print_status", "Druckstatus", None, None, None),
-        BptStatSensor(coordinator, entry, serial, "total_prints", "Gesamtdrucke", "mdi:printer-3d", None, "prints"),
+        BptStatSensor(coordinator, entry, serial, "print_status", "Druckstatus", "mdi:printer-3d-nozzle", None, None),
+        BptStatSensor(coordinator, entry, serial, "total_prints", "Drucke gesamt", "mdi:printer-3d", None, "prints"),
         BptStatSensor(coordinator, entry, serial, "successful_prints", "Erfolgreiche Drucke", "mdi:check-circle", None, "prints"),
         BptStatSensor(coordinator, entry, serial, "failed_prints", "Fehlgeschlagene Drucke", "mdi:close-circle", None, "prints"),
-        BptStatSensor(coordinator, entry, serial, "total_print_time", "Gesamtdruckzeit", "mdi:clock-outline", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
-        BptStatSensor(coordinator, entry, serial, "total_energy", "Gesamtenergie", "mdi:lightning-bolt", SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR),
-        BptStatSensor(coordinator, entry, serial, "total_filament", "Gesamtfilament", "mdi:weight-gram", SensorStateClass.TOTAL_INCREASING, "g"),
-        BptStatSensor(coordinator, entry, serial, "total_cost", "Gesamtkosten", "mdi:currency-eur", SensorStateClass.TOTAL_INCREASING, currency),
+        BptStatSensor(coordinator, entry, serial, "total_print_time", "Druckzeit gesamt", "mdi:clock-outline", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
+        BptStatSensor(coordinator, entry, serial, "total_energy", "Energie gesamt", "mdi:lightning-bolt", SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR),
+        BptStatSensor(coordinator, entry, serial, "total_filament", "Filament gesamt", "mdi:weight-gram", SensorStateClass.TOTAL_INCREASING, "g"),
+        BptStatSensor(coordinator, entry, serial, "total_cost", "Kosten gesamt", "mdi:currency-eur", SensorStateClass.TOTAL_INCREASING, currency),
         BptStatSensor(coordinator, entry, serial, "monthly_cost", "Kosten diesen Monat", "mdi:calendar-month", None, currency),
         BptStatSensor(coordinator, entry, serial, "monthly_prints", "Drucke diesen Monat", "mdi:calendar-month", None, "prints"),
         BptStatSensor(coordinator, entry, serial, "last_print_duration", "Dauer letzter Druck", "mdi:timer-outline", None, UnitOfTime.MINUTES),
         BptStatSensor(coordinator, entry, serial, "last_print_cost", "Kosten letzter Druck", "mdi:receipt", None, currency),
-        BptStatSensor(coordinator, entry, serial, "nozzle_hours", "Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
     ]
 
     if features.get("dual_nozzle"):
+        # Dual nozzle: track each nozzle separately, skip generic nozzle_hours
         entities += [
-            BptStatSensor(coordinator, entry, serial, "left_nozzle_hours", "Linke Düse Stunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
-            BptStatSensor(coordinator, entry, serial, "right_nozzle_hours", "Rechte Düse Stunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
+            BptStatSensor(coordinator, entry, serial, "left_nozzle_hours", "Linke Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
+            BptStatSensor(coordinator, entry, serial, "right_nozzle_hours", "Rechte Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
         ]
+    else:
+        entities.append(
+            BptStatSensor(coordinator, entry, serial, "nozzle_hours", "Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS)
+        )
 
     if features.get("laser"):
         entities.append(
@@ -66,10 +70,9 @@ async def async_setup_entry(
         )
 
     # AMS filament warning sensors
-    for ams_dev_id in entry.data.get("ams_device_ids", []):
-        # Placeholder - real entity keys resolved at runtime
+    for idx, ams_dev_id in enumerate(entry.data.get("ams_device_ids", []), start=1):
         entities.append(
-            BptAmsWarningSensor(coordinator, entry, serial, ams_dev_id)
+            BptAmsWarningSensor(coordinator, entry, serial, ams_dev_id, idx)
         )
 
     async_add_entities(entities)
@@ -101,7 +104,7 @@ class BptStatSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._serial = serial
         self._stat_key = stat_key
-        self._attr_name = f"BPT {name}"
+        self._attr_name = name
         self._attr_unique_id = f"bpt_{serial}_{stat_key}"
         self._attr_icon = icon
         self._attr_state_class = state_class
@@ -154,7 +157,7 @@ class BptMaintenanceSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._serial = serial
         self._task = task
-        self._attr_name = f"BPT Wartung: {task['name']}"
+        self._attr_name = f"Wartung: {task['name']}"
         self._attr_unique_id = f"bpt_{serial}_maint_{task['key']}"
         self._attr_icon = "mdi:wrench"
         self._attr_device_info = _device_info(entry, serial)
@@ -186,6 +189,7 @@ class BptMaintenanceSensor(CoordinatorEntity, SensorEntity):
             "interval": interval,
             "trigger": self._task["trigger"],
             "task_key": key,
+            "wiki_url": self._task.get("wiki"),
         }
 
 
@@ -198,12 +202,13 @@ class BptAmsWarningSensor(CoordinatorEntity, SensorEntity):
         entry: ConfigEntry,
         serial: str,
         ams_device_id: str,
+        ams_index: int,
     ) -> None:
         super().__init__(coordinator)
         self._serial = serial
         self._ams_device_id = ams_device_id
-        short_id = ams_device_id[-6:]
-        self._attr_name = f"BPT AMS Warnung {short_id}"
+        self._ams_index = ams_index
+        self._attr_name = f"AMS {ams_index} Filament-Status"
         self._attr_unique_id = f"bpt_{serial}_ams_{ams_device_id}_warning"
         self._attr_icon = "mdi:spool"
         self._attr_device_info = _device_info(entry, serial)
