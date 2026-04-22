@@ -73,7 +73,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._features: dict = PRINTER_FEATURES.get(self._model, {})
 
         self._store = PrintHistoryStore(
-            hass, self._serial, int(self._options.get("max_history", 50))
+            hass, self._serial, int(self._options.get("max_history", 0))
         )
         self._notify = NotifyManager(hass, self._options)
 
