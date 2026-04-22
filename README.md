@@ -1,6 +1,5 @@
 # Bambu Companion
 
-<a href="https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FKnartzpirat%2Fha-bambu-companion" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg" alt="Open your Home Assistant instance and show the add app repository dialog with a specific repository URL pre-filled." /></a>
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/Knartzpirat/ha-bambu-companion/releases)
