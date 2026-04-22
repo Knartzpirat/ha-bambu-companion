@@ -6,8 +6,8 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from ...const import DOMAIN, PLATFORMS
-from ...coordinator import BambuPrintTrackerCoordinator
+from .const import DOMAIN, PLATFORMS
+from .coordinator import BambuPrintTrackerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
