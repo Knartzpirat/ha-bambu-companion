@@ -17,6 +17,7 @@
             },
             "energy": {
                 "title": "Energie & Kosten",
+                "description": "Gib Strompreis und Filamentkosten an, damit Bambu Companion die Druckkosten berechnen kann. Die Sensoren sind optional.",
                 "data": {
                     "electricity_price": "Strompreis (€/kWh)",
                     "electricity_sensor": "Dynamischer Strompreissensor (optional)",

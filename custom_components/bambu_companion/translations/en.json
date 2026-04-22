@@ -17,6 +17,7 @@
             },
             "energy": {
                 "title": "Energy & costs",
+                "description": "Enter electricity price and filament cost so Bambu Companion can calculate print costs. The sensors are optional.",
                 "data": {
                     "electricity_price": "Electricity price (€/kWh)",
                     "electricity_sensor": "Dynamic electricity price sensor (optional)",
@@ -28,6 +29,7 @@
             },
             "notify": {
                 "title": "Notifications",
+                "description": "Choose which events you want to be notified about. Quiet hours suppress all notifications.",
                 "data": {
                     "notify_targets": "Notification services (notify.*)",
                     "notify_interval": "Progress interval (%)",
