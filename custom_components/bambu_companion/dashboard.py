@@ -101,7 +101,7 @@ def _history_card() -> dict:
         "type": "markdown",
         "content": (
             "## 📋 Druckhistorie\n\n"
-            "> Letzte Drucke sind im `bambu_print_tracker` Sensor-Attribut `history` verfügbar. "
+            "> Letzte Drucke sind im `bambu_companion` Sensor-Attribut `history` verfügbar. "
             "Für eine tabellarische Ansicht wird `flex-table-card` (HACS) empfohlen."
         ),
     }

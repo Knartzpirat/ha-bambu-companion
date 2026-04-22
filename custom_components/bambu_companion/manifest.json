@@ -1,5 +1,5 @@
 {
-  "domain": "bambu_print_tracker",
+  "domain": "bambu_companion",
   "name": "Bambu Companion",
   "version": "0.0.1",
   "documentation": "https://github.com/Knartzpirat/ha-bambu-companion",

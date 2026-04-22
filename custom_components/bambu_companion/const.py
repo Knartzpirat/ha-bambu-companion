@@ -1,6 +1,6 @@
 """Constants for Bambu Print Tracker integration."""
 
-DOMAIN = "bambu_print_tracker"
+DOMAIN = "bambu_companion"
 BAMBU_LAB_DOMAIN = "bambu_lab"
 
 # Storage
