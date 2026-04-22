@@ -61,7 +61,7 @@ class PrintHistoryStore:
             record["id"] = str(uuid.uuid4())
         history: list = self._data.setdefault("history", [])
         history.insert(0, record)
-        if len(history) > self._max_history:
+        if self._max_history > 0 and len(history) > self._max_history:
             self._data["history"] = history[: self._max_history]
 
     def get_history(self) -> list[dict]:
