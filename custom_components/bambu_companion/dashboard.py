@@ -1,16 +1,18 @@
-"""Dashboard generator for Bambu Companion – writes directly into HA Lovelace storage."""
+"""Dashboard generator for Bambu Companion – writes card YAML to HA config directory."""
 from __future__ import annotations
 
-import uuid
+import os
+
+import yaml
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
 
+from .entity_helper import get_ams_devices, get_printer_entities
 from .maintenance import get_applicable_tasks
 
-_LOVELACE_DASHBOARDS_KEY = "lovelace.dashboards"
-_LOVELACE_DASHBOARDS_VERSION = 1
-_LOVELACE_CONFIG_VERSION = 1
+
+def _yaml_file_path(hass: HomeAssistant, serial: str) -> str:
+    return os.path.join(hass.config.config_dir, f"bambu_companion_{serial}.yaml")
 
 
 async def async_setup_lovelace_dashboard(
@@ -20,83 +22,67 @@ async def async_setup_lovelace_dashboard(
     has_ams: bool,
     printer_name: str,
     currency: str = "€",
+    ams_device_ids: list[str] | None = None,
+    printer_device_id: str = "",
 ) -> str:
-    """Create or update the Bambu Companion dashboard in HA Lovelace storage.
+    """Write Lovelace card YAML to the HA config directory.
 
-    After HA restarts the dashboard appears automatically in the sidebar.
+    The file can be included in any dashboard via the UI editor or
+    ``!include bambu_companion_<serial>.yaml``.
+    Returns the absolute path to the written file.
     """
-    url_path = f"bambu-companion-{serial}"
-    dashboard_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, url_path))
     tasks = get_applicable_tasks(model, has_ams)
+    ids = ams_device_ids or []
+    ams_name_map = {
+        d["device_id"]: d["name"]
+        for d in get_ams_devices(hass, printer_device_id)
+    } if printer_device_id else {}
+    ams_entries = [
+        (dev_id, ams_name_map.get(dev_id, f"AMS ({dev_id[:6]})"))
+        for dev_id in ids
+    ]
+    printer_entities = get_printer_entities(hass, printer_device_id) if printer_device_id else {}
+    total_usage_entity = printer_entities.get("total_usage_hours")
+    cards = [
+        _overview_card(serial, printer_name, currency, ams_entries, total_usage_entity),
+        _maintenance_card(serial, tasks),
+        _history_card(serial, currency),
+    ]
+    content = yaml.dump(cards, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    file_path = _yaml_file_path(hass, serial)
+    await hass.async_add_executor_job(_write_file, file_path, content)
+    return file_path
 
-    lovelace_config = {
-        "views": [
-            {
-                "title": "Übersicht",
-                "path": "uebersicht",
-                "icon": "mdi:view-dashboard",
-                "cards": [_overview_card(serial, printer_name, currency, has_ams)],
-            },
-            {
-                "title": "Wartung",
-                "path": "wartung",
-                "icon": "mdi:wrench-clock",
-                "cards": [_maintenance_card(serial, tasks)],
-            },
-            {
-                "title": "Historie",
-                "path": "historie",
-                "icon": "mdi:history",
-                "cards": [_history_card(serial, currency)],
-            },
-        ]
-    }
 
-    # Write dashboard config into HA storage
-    config_store = Store(hass, _LOVELACE_CONFIG_VERSION, f"lovelace.{url_path}")
-    await config_store.async_save({"config": lovelace_config})
-
-    # Register dashboard in the global lovelace dashboards list
-    dashboards_store = Store(hass, _LOVELACE_DASHBOARDS_VERSION, _LOVELACE_DASHBOARDS_KEY)
-    stored = await dashboards_store.async_load() or {}
-    items: list = stored.get("items", [])
-    items = [i for i in items if i.get("url_path") != url_path]  # remove stale entry
-    items.append(
-        {
-            "icon": "mdi:printer-3d",
-            "id": dashboard_id,
-            "mode": "storage",
-            "require_admin": False,
-            "show_in_sidebar": True,
-            "title": f"🖨️ {printer_name}",
-            "url_path": url_path,
-        }
-    )
-    await dashboards_store.async_save({"items": items})
-
-    return url_path
+def _write_file(path: str, content: str) -> None:
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(content)
 
 
 async def async_remove_lovelace_dashboard(hass: HomeAssistant, serial: str) -> None:
-    """Remove the dashboard from HA Lovelace storage on integration removal."""
-    url_path = f"bambu-companion-{serial}"
+    """Remove the card YAML file when the integration is removed."""
+    file_path = _yaml_file_path(hass, serial)
+    await hass.async_add_executor_job(_remove_file, file_path)
 
-    config_store = Store(hass, _LOVELACE_CONFIG_VERSION, f"lovelace.{url_path}")
-    await config_store.async_remove()
 
-    dashboards_store = Store(hass, _LOVELACE_DASHBOARDS_VERSION, _LOVELACE_DASHBOARDS_KEY)
-    stored = await dashboards_store.async_load() or {}
-    items = [i for i in stored.get("items", []) if i.get("url_path") != url_path]
-    await dashboards_store.async_save({"items": items})
+def _remove_file(path: str) -> None:
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
 
 
 # ---------------------------------------------------------------------------
 # Card builders
 # ---------------------------------------------------------------------------
 
-def _overview_card(serial: str, printer_name: str, currency: str, has_ams: bool) -> dict:
+def _overview_card(serial: str, printer_name: str, currency: str, ams_entries: list[tuple[str, str]], total_usage_entity: str | None = None) -> dict:
     s = serial
-    rows = [
+    rows = []
+    if total_usage_entity:
+        rows.append({"entity": total_usage_entity, "name": "Gesamtnutzung Drucker"})
+        rows.append({"type": "divider"})
+    rows += [
         {"entity": f"sensor.bpt_{s}_print_status", "name": "Status"},
         {"entity": f"sensor.bpt_{s}_total_prints", "name": "Drucke gesamt"},
         {"entity": f"sensor.bpt_{s}_successful_prints", "name": "Erfolgreich"},
@@ -112,11 +98,6 @@ def _overview_card(serial: str, printer_name: str, currency: str, has_ams: bool)
         {"entity": f"sensor.bpt_{s}_last_print_duration", "name": "Letzter Druck – Dauer"},
         {"entity": f"sensor.bpt_{s}_last_print_cost", "name": f"Letzter Druck – Kosten ({currency})"},
     ]
-    if has_ams:
-        rows += [
-            {"type": "divider"},
-            {"entity": f"sensor.bpt_{s}_ams_warning", "name": "AMS Filament-Warnung"},
-        ]
     return {
         "type": "entities",
         "title": f"📊 {printer_name} – Übersicht",
