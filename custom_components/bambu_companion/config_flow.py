@@ -14,9 +14,13 @@ from .const import (
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
-    CONF_LOW_FILAMENT_THRESHOLD,
-    CONF_MAX_HISTORY,
     CONF_NOTIFY_INTERVAL,
+    CONF_NOTIFY_ON_DONE,
+    CONF_NOTIFY_ON_ERROR,
+    CONF_NOTIFY_ON_LOW_FILAMENT,
+    CONF_NOTIFY_ON_MAINTENANCE,
+    CONF_NOTIFY_ON_PROGRESS,
+    CONF_NOTIFY_ON_START,
     CONF_NOTIFY_TARGETS,
     CONF_PRINTER_DISPLAY_NAME,
     CONF_QUIET_FROM,
@@ -25,10 +29,13 @@ from .const import (
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
     DEFAULT_FILAMENT_UNIT,
-    DEFAULT_LOW_FILAMENT_THRESHOLD,
-    DEFAULT_MAX_HISTORY,
     DEFAULT_NOTIFY_INTERVAL,
-    DEFAULT_PRINTER_NAME,
+    DEFAULT_NOTIFY_ON_DONE,
+    DEFAULT_NOTIFY_ON_ERROR,
+    DEFAULT_NOTIFY_ON_LOW_FILAMENT,
+    DEFAULT_NOTIFY_ON_MAINTENANCE,
+    DEFAULT_NOTIFY_ON_PROGRESS,
+    DEFAULT_NOTIFY_ON_START,
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
     DOMAIN,
@@ -219,23 +226,23 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_QUIET_TO, default=DEFAULT_QUIET_TO
                 ): selector.TimeSelector(),
                 vol.Required(
-                    CONF_PRINTER_DISPLAY_NAME,
-                    default=self._data.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME),
-                ): selector.TextSelector(),
+                    CONF_NOTIFY_ON_START, default=DEFAULT_NOTIFY_ON_START
+                ): selector.BooleanSelector(),
                 vol.Required(
-                    CONF_MAX_HISTORY, default=DEFAULT_MAX_HISTORY
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=10, max=500, step=10, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
+                    CONF_NOTIFY_ON_PROGRESS, default=DEFAULT_NOTIFY_ON_PROGRESS
+                ): selector.BooleanSelector(),
                 vol.Required(
-                    CONF_LOW_FILAMENT_THRESHOLD, default=DEFAULT_LOW_FILAMENT_THRESHOLD
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=1, max=50, step=1, mode=selector.NumberSelectorMode.BOX
-                    )
-                ),
+                    CONF_NOTIFY_ON_DONE, default=DEFAULT_NOTIFY_ON_DONE
+                ): selector.BooleanSelector(),
+                vol.Required(
+                    CONF_NOTIFY_ON_ERROR, default=DEFAULT_NOTIFY_ON_ERROR
+                ): selector.BooleanSelector(),
+                vol.Required(
+                    CONF_NOTIFY_ON_MAINTENANCE, default=DEFAULT_NOTIFY_ON_MAINTENANCE
+                ): selector.BooleanSelector(),
+                vol.Required(
+                    CONF_NOTIFY_ON_LOW_FILAMENT, default=DEFAULT_NOTIFY_ON_LOW_FILAMENT
+                ): selector.BooleanSelector(),
             }
         )
 
