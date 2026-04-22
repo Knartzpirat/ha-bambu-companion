@@ -5,7 +5,7 @@ BAMBU_LAB_DOMAIN = "bambu_lab"
 
 # Storage
 STORAGE_VERSION = 1
-DEFAULT_MAX_HISTORY = 50
+DEFAULT_MAX_HISTORY = 0  # 0 = unbegrenzt
 
 # Defaults
 DEFAULT_ELECTRICITY_PRICE = 0.30
@@ -35,6 +35,21 @@ CONF_PRINTER_DISPLAY_NAME = "printer_display_name"
 CONF_MAX_HISTORY = "max_history"
 CONF_LOW_FILAMENT_THRESHOLD = "low_filament_threshold"
 CONF_MAINTENANCE_INTERVALS = "maintenance_intervals"
+
+# Notification event toggles
+CONF_NOTIFY_ON_START = "notify_on_start"
+CONF_NOTIFY_ON_PROGRESS = "notify_on_progress"
+CONF_NOTIFY_ON_DONE = "notify_on_done"
+CONF_NOTIFY_ON_ERROR = "notify_on_error"
+CONF_NOTIFY_ON_MAINTENANCE = "notify_on_maintenance"
+CONF_NOTIFY_ON_LOW_FILAMENT = "notify_on_low_filament"
+
+DEFAULT_NOTIFY_ON_START = False
+DEFAULT_NOTIFY_ON_PROGRESS = True
+DEFAULT_NOTIFY_ON_DONE = True
+DEFAULT_NOTIFY_ON_ERROR = True
+DEFAULT_NOTIFY_ON_MAINTENANCE = True
+DEFAULT_NOTIFY_ON_LOW_FILAMENT = True
 
 # Custom text keys
 CONF_TEXT_PROGRESS_TITLE = "text_progress_title"
