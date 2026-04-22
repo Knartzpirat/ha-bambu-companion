@@ -20,12 +20,10 @@ from .const import (
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
-    CONF_LOW_FILAMENT_THRESHOLD,
     CONF_PRINTER_DISPLAY_NAME,
     DEFAULT_CURRENCY,
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
-    DEFAULT_LOW_FILAMENT_THRESHOLD,
     DOMAIN,
     MAINTENANCE_TASKS,
     NOZZLE_ACTIVE_TEMP_THRESHOLD,
@@ -37,7 +35,6 @@ from .const import (
     TERMINAL_PRINT_STATUSES,
 )
 from .entity_helper import (
-    get_ams_tray_entities,
     get_entity_float,
     get_entity_state,
     get_printer_entities,
@@ -92,7 +89,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         # Cached entity maps (populated on first refresh)
         self._entities: dict[str, str] = {}
-        self._ams_entities: dict[str, dict[str, str]] = {}  # {device_id: {key: entity_id}}
 
         # Maintenance notification cooldown: task_key → last notified datetime
         self._maint_notified: dict[str, datetime] = {}
@@ -111,16 +107,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     def _refresh_entity_maps(self) -> None:
         self._entities = get_printer_entities(self.hass, self._device_id)
-        self._ams_entities = {
-            dev_id: get_ams_tray_entities(self.hass, dev_id)
-            for dev_id in self._ams_device_ids
-        }
 
     def _setup_state_listeners(self) -> None:
         """Subscribe to state changes of all tracked bambu_lab entities."""
         all_entity_ids = list(self._entities.values())
-        for ams_map in self._ams_entities.values():
-            all_entity_ids.extend(ams_map.values())
 
         if all_entity_ids:
             self._entry.async_on_unload(
@@ -154,13 +144,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Update maintenance sensor values
         await self._update_maintenance_values()
 
-        # AMS filament warnings
-        ams_warnings = self._compute_ams_warnings()
-
         result = {
             "print_status": new_status,
             "entities": self._entities,
-            "ams_warnings": ams_warnings,
             "counters": dict(self._store.counters),
             "maintenance": dict(self._store.get_maintenance()),
             "history": self._store.get_history(),
@@ -428,38 +414,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         }
         counter_key = mapping.get(trigger, trigger)
         return float(counters.get(counter_key, 0))
-
-    # ------------------------------------------------------------------
-    # AMS warnings
-    # ------------------------------------------------------------------
-
-    def _compute_ams_warnings(self) -> dict[str, str]:
-        """Return {tray_key: status} where status is ok/low/empty."""
-        threshold = int(self._options.get(CONF_LOW_FILAMENT_THRESHOLD, DEFAULT_LOW_FILAMENT_THRESHOLD))
-        result: dict[str, str] = {}
-
-        for dev_id, entity_map in self._ams_entities.items():
-            for key, entity_id in entity_map.items():
-                state = self.hass.states.get(entity_id)
-                if state is None:
-                    continue
-                attrs = state.attributes
-                empty = attrs.get("empty", False)
-                remaining = attrs.get("remaining_filament")
-
-                status = "ok"
-                if empty:
-                    status = "empty"
-                elif remaining is not None:
-                    try:
-                        if float(remaining) < threshold:
-                            status = "low"
-                    except (ValueError, TypeError):
-                        pass
-
-                result[f"{dev_id}_{key}"] = status
-
-        return result
 
     # ------------------------------------------------------------------
     # Public reset helpers (called by buttons)
