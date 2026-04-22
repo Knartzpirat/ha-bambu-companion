@@ -69,12 +69,6 @@ async def async_setup_entry(
             BptMaintenanceSensor(coordinator, entry, serial, task)
         )
 
-    # AMS filament warning sensors
-    for idx, ams_dev_id in enumerate(entry.data.get("ams_device_ids", []), start=1):
-        entities.append(
-            BptAmsWarningSensor(coordinator, entry, serial, ams_dev_id, idx)
-        )
-
     async_add_entities(entities)
 
 
@@ -191,43 +185,3 @@ class BptMaintenanceSensor(CoordinatorEntity, SensorEntity):
             "task_key": key,
             "wiki_url": self._task.get("wiki"),
         }
-
-
-class BptAmsWarningSensor(CoordinatorEntity, SensorEntity):
-    """AMS device-level filament warning sensor."""
-
-    def __init__(
-        self,
-        coordinator: BambuPrintTrackerCoordinator,
-        entry: ConfigEntry,
-        serial: str,
-        ams_device_id: str,
-        ams_index: int,
-    ) -> None:
-        super().__init__(coordinator)
-        self._serial = serial
-        self._ams_device_id = ams_device_id
-        self._ams_index = ams_index
-        self._attr_name = f"AMS {ams_index} Filament-Status"
-        self._attr_unique_id = f"bpt_{serial}_ams_{ams_device_id}_warning"
-        self._attr_icon = "mdi:spool"
-        self._attr_device_info = _device_info(entry, serial)
-
-    @property
-    def native_value(self) -> str:
-        if self.coordinator.data is None:
-            return "ok"
-        warnings = self.coordinator.data.get("ams_warnings", {})
-        statuses = [v for k, v in warnings.items() if k.startswith(self._ams_device_id)]
-        if "empty" in statuses:
-            return "empty"
-        if "low" in statuses:
-            return "low"
-        return "ok"
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        if self.coordinator.data is None:
-            return {}
-        warnings = self.coordinator.data.get("ams_warnings", {})
-        return {k: v for k, v in warnings.items() if k.startswith(self._ams_device_id)}
