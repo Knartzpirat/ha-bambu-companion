@@ -1,7 +1,0 @@
-download_dashboard:
-  name: Dashboard-YAML generieren
-  description: >
-    Generiert eine Lovelace-Dashboard-YAML-Datei für den konfigurierten Drucker
-    und speichert sie unter /config/www/bambu_companion_dashboard_<serial>.yaml.
-    Nach dem Aufruf erscheint eine Benachrichtigung mit dem Pfad und einer Anleitung.
-  fields: {}
