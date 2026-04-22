@@ -5,7 +5,7 @@ import logging
 import os
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant
 from homeassistant.components.persistent_notification import async_create
 
 from .const import (
@@ -36,46 +36,46 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    # Register dashboard download service (once per domain)
-    if not hass.services.has_service(DOMAIN, "download_dashboard"):
-        async def _handle_download_dashboard(call: ServiceCall) -> None:
-            """Write dashboard YAML to /config/www/ and notify the user."""
-            opts = {**entry.data, **entry.options}
-            serial: str = entry.data.get("serial", "unknown")
-            model: str = entry.data.get("model", "")
-            has_ams: bool = bool(entry.data.get("ams_device_ids", []))
-            printer_name: str = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
-            currency: str = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
-
-            yaml_content = generate_dashboard(serial, model, has_ams, printer_name, currency)
-
-            www_path = hass.config.path("www")
-            os.makedirs(www_path, exist_ok=True)
-            filename = f"bambu_companion_dashboard_{serial}.yaml"
-            filepath = os.path.join(www_path, filename)
-
-            def _write() -> None:
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(yaml_content)
-
-            await hass.async_add_executor_job(_write)
-
-            async_create(
-                hass,
-                (
-                    f"Das Bambu Companion Dashboard wurde gespeichert:\n\n"
-                    f"`/config/www/{filename}`\n\n"
-                    "Du kannst den Inhalt der Datei direkt als neues Lovelace-Dashboard "
-                    "einfügen (**Einstellungen → Dashboards → Dashboard hinzufügen → YAML-Modus**)."
-                ),
-                title="Bambu Companion – Dashboard generiert",
-                notification_id=f"bambu_companion_dashboard_{serial}",
-            )
-            _LOGGER.info("Dashboard YAML written to %s", filepath)
-
-        hass.services.async_register(DOMAIN, "download_dashboard", _handle_download_dashboard)
+    # Auto-generate dashboard YAML into /config/www/ on every setup
+    await _write_dashboard(hass, entry)
 
     return True
+
+
+async def _write_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Write the Lovelace dashboard YAML to /config/www/ and notify once."""
+    opts = {**entry.data, **entry.options}
+    serial: str = entry.data.get("serial", "unknown")
+    model: str = entry.data.get("model", "")
+    has_ams: bool = bool(entry.data.get("ams_device_ids", []))
+    printer_name: str = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
+    currency: str = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
+
+    yaml_content = generate_dashboard(serial, model, has_ams, printer_name, currency)
+
+    www_path = hass.config.path("www")
+    filename = f"bambu_companion_dashboard_{serial}.yaml"
+    filepath = os.path.join(www_path, filename)
+
+    def _write() -> None:
+        os.makedirs(www_path, exist_ok=True)
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(yaml_content)
+
+    await hass.async_add_executor_job(_write)
+    _LOGGER.info("Bambu Companion: Dashboard YAML written to %s", filepath)
+
+    async_create(
+        hass,
+        (
+            f"Das Bambu Companion Dashboard wurde automatisch erstellt:\n\n"
+            f"`/config/www/{filename}`\n\n"
+            "Gehe zu **Einstellungen → Dashboards → Dashboard hinzufügen**, "
+            "wähle **Neues Dashboard aus YAML** und füge den Inhalt der Datei ein."
+        ),
+        title="Bambu Companion – Dashboard bereit",
+        notification_id=f"bambu_companion_dashboard_{serial}",
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
