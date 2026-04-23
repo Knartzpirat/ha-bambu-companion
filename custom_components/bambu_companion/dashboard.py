@@ -43,10 +43,11 @@ async def async_setup_lovelace_dashboard(
     ]
     printer_entities = get_printer_entities(hass, printer_device_id) if printer_device_id else {}
     total_usage_entity = printer_entities.get("total_usage_hours")
+    cover_image_entity = printer_entities.get("cover_image")
     cards = [
         _overview_card(serial, printer_name, currency, ams_entries, total_usage_entity),
         _maintenance_card(serial, tasks),
-        _history_card(serial, currency),
+        _history_card(serial, currency, cover_image_entity),
     ]
     content = yaml.dump(cards, allow_unicode=True, sort_keys=False, default_flow_style=False)
     file_path = _yaml_file_path(hass, serial)
@@ -137,43 +138,74 @@ def _maintenance_card(serial: str, tasks: list[dict]) -> dict:
     }
 
 
-def _history_card(serial: str, currency: str) -> dict:
+def _history_card(serial: str, currency: str, cover_image_entity: str | None = None) -> dict:
     s = serial
+    entity = f"sensor.bpt_{s}_total_prints"
+    cur = currency
+
+    detail_content = (
+        f"{{% set h = state_attr('{entity}', 'history') or [] %}}"
+        "{% set p = h[0] if h else none %}"
+        "{% if p %}"
+        "{% set tray = p.active_tray or {} %}"
+        "{{ '✅ Erfolgreich' if p.status == 'success' else '❌ Fehlgeschlagen' }}\n\n"
+        "| | |\n"
+        "|---|---|\n"
+        "| 📅 Start | {{ p.timestamp_start[5:16]|replace('T',' ')|replace('-','/') if p.timestamp_start else '–' }} |\n"
+        "| 🏁 Ende | {{ p.timestamp_end[5:16]|replace('T',' ')|replace('-','/') if p.timestamp_end else '–' }} |\n"
+        "| ⏱️ Dauer | {% set m = p.duration_min | int %}{{ (m // 60)|string + 'h ' + (m % 60)|string + 'min' if m >= 60 else m|string + ' min' }} |\n"
+        "| 🛏️ Druckbett | {{ p.bed_type or '–' }} |\n"
+        "| 🔩 Düse | {{ ('%.1f mm' % (p.nozzle_diameter | float)) ~ ' – ' ~ p.nozzle_type if p.nozzle_diameter else '–' }} |\n"
+        "| 🎨 Material | {{ (tray.name or '–') ~ ' (' ~ (tray.type or '–') ~ ')' }} |\n"
+        "| 🎨 Farbe | {{ tray.color or '–' }} |\n"
+        "| 📦 AMS-Slot | {% if tray and tray.slot is not none %}AMS {{ (tray.ams | int(0)) + 1 }} / Slot {{ (tray.slot | int(0)) + 1 }}{% else %}–{% endif %} |\n"
+        "| 🧵 Filament | {{ '%.1f g' % (p.filament_weight_g | float) }} |\n"
+        "| ⚡ Energie | {{ '%.3f kWh' % (p.energy_kwh | float) }} |\n"
+        f"| 💡 Energiekosten | {{{{ '%.2f {cur}' % (p.energy_cost | float) }}}} |\n"
+        f"| 🧵 Filamentkosten | {{{{ '%.2f {cur}' % (p.filament_cost | float) }}}} |\n"
+        f"| 💵 **Gesamtkosten** | **{{{{ '%.2f {cur}' % (p.total_cost | float) }}}}** |\n"
+        "| 📄 Druckdatei | {{ p.gcode_file or '–' }} |\n"
+        "{% else %}"
+        "_Noch kein Druck aufgezeichnet._"
+        "{% endif %}"
+    )
+
+    table_content = (
+        f"{{% set history = state_attr('{entity}', 'history') or [] %}}"
+        "| | Name | Datum | Dauer | Filament | Kosten |\n"
+        "|---|---|---|---|---|---|\n"
+        "{% for p in history[:20] %}"
+        "| {{ '✅' if p.status == 'success' else '❌' }} "
+        "| {{ p.name or '(unbekannt)' }} "
+        "| {{ p.timestamp_start[5:16]|replace('T',' ')|replace('-','/') if p.timestamp_start else '' }} "
+        "| {% set m = p.duration_min | int %}{{ (m // 60)|string + 'h ' + (m % 60)|string + 'min' if m >= 60 else m|string + ' min' }} "
+        "| {{ '%.1f g' % (p.filament_weight_g | float) }} "
+        f"| {{{{ '%.2f {cur}' % (p.total_cost | float) }}}} |\n"
+        "{% endfor %}"
+        "{% if not history %}_Noch keine Drucke aufgezeichnet._{% endif %}"
+    )
+
+    cards: list[dict] = []
+    if cover_image_entity:
+        cards.append({
+            "type": "picture-entity",
+            "entity": cover_image_entity,
+            "show_state": False,
+            "show_name": False,
+        })
+    cards.extend([
+        {
+            "type": "markdown",
+            "title": "🖨️ Letzter Druck – Details",
+            "content": detail_content,
+        },
+        {
+            "type": "markdown",
+            "title": "📋 Druckverlauf (letzte 20)",
+            "content": table_content,
+        },
+    ])
     return {
         "type": "vertical-stack",
-        "cards": [
-            {
-                "type": "entities",
-                "title": "📋 Letzter Druck",
-                "icon": "mdi:history",
-                "entities": [
-                    {"entity": f"sensor.bpt_{s}_print_status", "name": "Status"},
-                    {"entity": f"sensor.bpt_{s}_last_print_duration", "name": "Dauer"},
-                    {"entity": f"sensor.bpt_{s}_last_print_cost", "name": f"Kosten ({currency})"},
-                ],
-            },
-            {
-                "type": "markdown",
-                "content": (
-                    "### Vollständige Druckhistorie\n"
-                    f"Die gesamte Historie steckt im Attribut `history` von\n"
-                    f"`sensor.bpt_{s}_total_prints`.\n\n"
-                    "Für eine Tabellendarstellung: **flex-table-card** (HACS) installieren:\n"
-                    "```yaml\n"
-                    "type: custom:flex-table-card\n"
-                    f"entities:\n"
-                    f"  include: sensor.bpt_{s}_total_prints\n"
-                    "columns:\n"
-                    "  - data: history[].name\n"
-                    "    name: Name\n"
-                    "  - data: history[].duration_min\n"
-                    "    name: Dauer (min)\n"
-                    "  - data: history[].cost\n"
-                    "    name: Kosten\n"
-                    "  - data: history[].status\n"
-                    "    name: Status\n"
-                    "```"
-                ),
-            },
-        ],
+        "cards": cards,
     }
