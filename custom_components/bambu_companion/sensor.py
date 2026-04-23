@@ -137,6 +137,12 @@ class BptStatSensor(CoordinatorEntity, SensorEntity):
         }
         return mapping.get(self._stat_key)
 
+    @property
+    def extra_state_attributes(self) -> dict:
+        if self._stat_key != "total_prints" or self.coordinator.data is None:
+            return {}
+        return {"history": self.coordinator.data.get("history", [])}
+
 
 class BptMaintenanceSensor(CoordinatorEntity, SensorEntity):
     """Maintenance task sensor."""
