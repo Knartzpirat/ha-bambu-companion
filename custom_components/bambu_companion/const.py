@@ -16,7 +16,6 @@ DEFAULT_NOTIFY_INTERVAL = 5
 DEFAULT_QUIET_FROM = "22:00"
 DEFAULT_QUIET_TO = "07:00"
 DEFAULT_PRINTER_NAME = "Bambu Lab"
-DEFAULT_LOW_FILAMENT_THRESHOLD = 15
 
 # Config / Options keys
 CONF_DEVICE_ID = "device_id"
@@ -33,7 +32,6 @@ CONF_QUIET_FROM = "quiet_from"
 CONF_QUIET_TO = "quiet_to"
 CONF_PRINTER_DISPLAY_NAME = "printer_display_name"
 CONF_MAX_HISTORY = "max_history"
-CONF_LOW_FILAMENT_THRESHOLD = "low_filament_threshold"
 CONF_MAINTENANCE_INTERVALS = "maintenance_intervals"
 
 # Notification event toggles
@@ -42,14 +40,12 @@ CONF_NOTIFY_ON_PROGRESS = "notify_on_progress"
 CONF_NOTIFY_ON_DONE = "notify_on_done"
 CONF_NOTIFY_ON_ERROR = "notify_on_error"
 CONF_NOTIFY_ON_MAINTENANCE = "notify_on_maintenance"
-CONF_NOTIFY_ON_LOW_FILAMENT = "notify_on_low_filament"
 
 DEFAULT_NOTIFY_ON_START = False
 DEFAULT_NOTIFY_ON_PROGRESS = True
 DEFAULT_NOTIFY_ON_DONE = True
 DEFAULT_NOTIFY_ON_ERROR = True
 DEFAULT_NOTIFY_ON_MAINTENANCE = True
-DEFAULT_NOTIFY_ON_LOW_FILAMENT = True
 
 # Custom text keys
 CONF_TEXT_PROGRESS_TITLE = "text_progress_title"
