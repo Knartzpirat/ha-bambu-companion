@@ -35,6 +35,7 @@ from .const import (
     TERMINAL_PRINT_STATUSES,
 )
 from .entity_helper import (
+    get_entity_attribute,
     get_entity_float,
     get_entity_state,
     get_printer_entities,
@@ -204,9 +205,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     async def _on_print_start(self) -> None:
         self._print_start_time = datetime.now()
-        self._last_print_name = _get_print_name(
-            get_entity_state(self.hass, self._entities, "print_status")
-        )
+        self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
         energy_entity_id = self._options.get(CONF_ENERGY_SENSOR)
         if energy_entity_id:
             raw_e = self.hass.states.get(energy_entity_id)
@@ -265,13 +264,22 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         progress_raw = get_entity_float(self.hass, self._entities, "print_progress") or 0
         filament_weight = get_entity_float(self.hass, self._entities, "print_weight") or 0
-        bed_temp = get_entity_float(self.hass, self._entities, "bed_temperature") or 0
-        nozzle_temp = get_entity_float(self.hass, self._entities, "nozzle_temperature") or 0
-        layer_count = get_entity_float(self.hass, self._entities, "total_layer_count") or 0
+        bed_temp = get_entity_float(self.hass, self._entities, "bed_temp") or 0
+        nozzle_temp = get_entity_float(self.hass, self._entities, "nozzle_temp") or 0
+        layer_count = get_entity_float(self.hass, self._entities, "total_layers") or 0
         current_layer = get_entity_float(self.hass, self._entities, "current_layer") or 0
-        nozzle_size = get_entity_state(self.hass, self._entities, "nozzle_size") or ""
+        nozzle_diameter = get_entity_float(self.hass, self._entities, "nozzle_diameter")
         nozzle_type = get_entity_state(self.hass, self._entities, "nozzle_type") or ""
         bed_type = get_entity_state(self.hass, self._entities, "print_bed_type") or ""
+        name = get_entity_state(self.hass, self._entities, "subtask_name") or self._last_print_name
+        gcode_file = get_entity_state(self.hass, self._entities, "gcode_file") or ""
+        # Active tray / filament slot snapshot
+        active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
+        active_tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
+        active_tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
+        active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
+        active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
+        cover_image_entity = self._entities.get("cover_image", "")
 
         # Energy calculation
         energy_kwh = 0.0
@@ -312,7 +320,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         return {
             "timestamp_start": start.isoformat(),
             "timestamp_end": now.isoformat(),
-            "name": self._last_print_name,
+            "name": name,
+            "gcode_file": gcode_file,
             "status": "success" if success else "failed",
             "duration_min": duration_min,
             "progress_at_end": int(progress_raw),
@@ -321,13 +330,21 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "filament_cost": filament_cost,
             "energy_cost": energy_cost,
             "total_cost": total_cost,
-            "nozzle_size": nozzle_size,
+            "nozzle_diameter": nozzle_diameter,
             "nozzle_type": nozzle_type,
             "bed_type": bed_type,
             "avg_bed_temp": bed_temp,
             "avg_nozzle_temp": nozzle_temp,
             "layer_count": int(layer_count),
             "current_layer": int(current_layer),
+            "active_tray": {
+                "name": active_tray_name,
+                "color": active_tray_color,
+                "type": active_tray_type,
+                "slot": active_tray_slot,
+                "ams": active_tray_ams,
+            },
+            "cover_image_entity": cover_image_entity,
         }
 
     # ------------------------------------------------------------------
@@ -468,8 +485,3 @@ def _format_minutes(minutes: int) -> str:
     if h > 0:
         return f"{h}h {m}m"
     return f"{m}m"
-
-
-def _get_print_name(print_status_state: str | None) -> str:
-    """Placeholder: extract job name when ha-bambulab exposes it."""
-    return print_status_state or ""
