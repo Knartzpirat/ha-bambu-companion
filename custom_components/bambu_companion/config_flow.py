@@ -17,7 +17,6 @@ from .const import (
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_MOBILE_EVENTS,
     CONF_NOTIFY_HA_EVENTS,
-    CONF_NOTIFY_QUIET_EVENTS,
     CONF_NOTIFY_TARGETS,
     CONF_PRINTER_DISPLAY_NAME,
     CONF_QUIET_FROM,
@@ -29,7 +28,6 @@ from .const import (
     DEFAULT_NOTIFY_INTERVAL,
     DEFAULT_NOTIFY_MOBILE_EVENTS,
     DEFAULT_NOTIFY_HA_EVENTS,
-    DEFAULT_NOTIFY_QUIET_EVENTS,
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
     DOMAIN,
@@ -196,19 +194,24 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title = self._data.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab Printer")
             return self.async_create_entry(title=title, data=self._data)
 
-        notify_services = sorted(
-            f"notify.{service}"
-            for service in self.hass.services.async_services().get("notify", {})
-        )
-        notify_options = [{"value": s, "label": s} for s in notify_services]
+        # Build list of HA Companion App devices (mobile_app integration only)
+        mobile_options = []
+        for entry in self.hass.config_entries.async_entries("mobile_app"):
+            device_name = entry.data.get("device_name", "")
+            if not device_name:
+                continue
+            slug = device_name.lower().replace(" ", "_").replace("-", "_")
+            full_service = f"notify.mobile_app_{slug}"
+            if f"mobile_app_{slug}" in self.hass.services.async_services().get("notify", {}):
+                mobile_options.append({"value": full_service, "label": entry.title or device_name})
+        mobile_options.sort(key=lambda x: x["label"])
 
         schema = vol.Schema(
             {
                 vol.Optional(CONF_NOTIFY_TARGETS): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=notify_options,
+                        options=mobile_options,
                         multiple=True,
-                        custom_value=True,
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
@@ -244,22 +247,6 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_NOTIFY_HA_EVENTS,
                     default=DEFAULT_NOTIFY_HA_EVENTS,
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "start", "label": "Druck gestartet"},
-                            {"value": "progress", "label": "Fortschrittsupdate"},
-                            {"value": "done", "label": "Druck abgeschlossen"},
-                            {"value": "error", "label": "Druckfehler"},
-                            {"value": "maintenance", "label": "Wartung fällig"},
-                        ],
-                        multiple=True,
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
-                vol.Required(
-                    CONF_NOTIFY_QUIET_EVENTS,
-                    default=DEFAULT_NOTIFY_QUIET_EVENTS,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
