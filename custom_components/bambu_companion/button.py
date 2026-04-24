@@ -25,7 +25,7 @@ async def async_setup_entry(
     features = PRINTER_FEATURES.get(model, {})
 
     entities: list[ButtonEntity] = [
-        BptResetButton(
+        BcResetButton(
             coordinator, entry, serial, "reset_nozzle",
             "Düsenstunden zurücksetzen", "mdi:restore",
             coordinator.async_reset_nozzle,
@@ -34,12 +34,12 @@ async def async_setup_entry(
 
     if features.get("dual_nozzle"):
         entities += [
-            BptResetButton(
+            BcResetButton(
                 coordinator, entry, serial, "reset_left_nozzle",
                 "Linke Düse zurücksetzen", "mdi:restore",
                 coordinator.async_reset_left_nozzle,
             ),
-            BptResetButton(
+            BcResetButton(
                 coordinator, entry, serial, "reset_right_nozzle",
                 "Rechte Düse zurücksetzen", "mdi:restore",
                 coordinator.async_reset_right_nozzle,
@@ -48,7 +48,7 @@ async def async_setup_entry(
 
     if features.get("laser"):
         entities.append(
-            BptResetButton(
+            BcResetButton(
                 coordinator, entry, serial, "reset_laser",
                 "Laser-Stunden zurücksetzen", "mdi:restore",
                 coordinator.async_reset_laser,
@@ -60,13 +60,13 @@ async def async_setup_entry(
     for task in applicable_tasks:
         task_key = task["key"]
         entities.append(
-            BptMaintenanceResetButton(coordinator, entry, serial, task)
+            BcMaintenanceResetButton(coordinator, entry, serial, task)
         )
 
     async_add_entities(entities)
 
 
-class BptResetButton(ButtonEntity):
+class BcResetButton(ButtonEntity):
     """Generic reset button."""
 
     def __init__(
@@ -81,8 +81,8 @@ class BptResetButton(ButtonEntity):
     ) -> None:
         self._coordinator = coordinator
         self._action = action
-        self._attr_name = f"BPT {name}"
-        self._attr_unique_id = f"bpt_{serial}_{button_key}"
+        self._attr_name = f"BC {name}"
+        self._attr_unique_id = f"bc_{serial}_{button_key}"
         self._attr_icon = icon
         self._attr_device_info = _device_info(entry, serial)
 
@@ -90,7 +90,7 @@ class BptResetButton(ButtonEntity):
         await self._action()
 
 
-class BptMaintenanceResetButton(ButtonEntity):
+class BcMaintenanceResetButton(ButtonEntity):
     """Reset button for a maintenance task."""
 
     def __init__(
@@ -102,8 +102,8 @@ class BptMaintenanceResetButton(ButtonEntity):
     ) -> None:
         self._coordinator = coordinator
         self._task_key = task["key"]
-        self._attr_name = f"BPT Reset: {task['name']}"
-        self._attr_unique_id = f"bpt_{serial}_reset_maint_{task['key']}"
+        self._attr_name = f"BC Reset: {task['name']}"
+        self._attr_unique_id = f"bc_{serial}_reset_maint_{task['key']}"
         self._attr_icon = "mdi:restore"
         self._attr_device_info = _device_info(entry, serial)
 
