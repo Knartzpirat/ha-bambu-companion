@@ -145,10 +145,14 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Update maintenance sensor values
         await self._update_maintenance_values()
 
+        # Read total_usage_hours from ha-bambulab and prefer it over the internal counter
+        bambu_total_hours = get_entity_float(self.hass, self._entities, "total_usage_hours")
+
         result = {
             "print_status": new_status,
             "entities": self._entities,
             "counters": dict(self._store.counters),
+            "bambu_total_hours": bambu_total_hours,
             "maintenance": dict(self._store.get_maintenance()),
             "history": self._store.get_history(),
             "monthly": self._store.get_monthly_stats(),
