@@ -16,7 +16,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import BambuPrintTrackerCoordinator
-from .dashboard import async_setup_lovelace_dashboard, async_remove_lovelace_dashboard
+from .frontend import BambuCompanionCardRegistration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,41 +35,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    await _setup_dashboard(hass, entry)
+    # Register JS cards once per HA session (idempotent)
+    if "card_registration" not in hass.data[DOMAIN]:
+        registration = BambuCompanionCardRegistration(hass)
+        await registration.async_register()
+        hass.data[DOMAIN]["card_registration"] = registration
+        _notify_cards_ready(hass, entry)
 
     return True
 
 
-async def _setup_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Write dashboard into HA Lovelace storage and notify the user once."""
+def _notify_cards_ready(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Send a one-time persistent notification telling the user how to add cards."""
     opts = {**entry.data, **entry.options}
-    serial: str = entry.data.get("serial", "unknown")
-    model: str = entry.data.get("model", "")
-    has_ams: bool = bool(entry.data.get("ams_device_ids", []))
-    ams_device_ids: list[str] = entry.data.get("ams_device_ids", [])
-    printer_device_id: str = entry.data.get("device_id", "")
-    printer_name: str = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
-    currency: str = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
+    printer_name = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
+    serial = entry.data.get("serial", "")
+    currency = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
 
-    try:
-        file_path = await async_setup_lovelace_dashboard(
-            hass, serial, model, has_ams, printer_name, currency, ams_device_ids, printer_device_id
-        )
-        _LOGGER.info("Bambu Companion: Lovelace card YAML written to %s", file_path)
-
-        async_create(
-            hass,
-            (
-                f"Die Kacheln für **{printer_name}** wurden als YAML-Datei gespeichert:\n\n"
-                f"`{file_path}`\n\n"
-                "Öffne dein Dashboard im UI-Editor, wechsle in den **Raw-Konfigurationsmodus** "
-                "und füge die gewünschten Karten aus der Datei ein."
-            ),
-            title="Bambu Companion – Kacheln bereit",
-            notification_id=f"bambu_companion_dashboard_{serial}",
-        )
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Bambu Companion: Could not write Lovelace dashboard: %s", err)
+    async_create(
+        hass,
+        (
+            f"Die Bambu Companion Karten sind jetzt verfügbar.\n\n"
+            "Öffne ein beliebiges Dashboard im **Bearbeitungsmodus**, klicke auf "
+            "**Karte hinzufügen** und suche nach **Bambu Companion**.\n\n"
+            "Folgende Karten stehen zur Verfügung:\n"
+            "- **Bambu Companion – Übersicht** (`serial: " + serial + "`, `currency: " + currency + "`)\n"
+            "- **Bambu Companion – Wartung** (`serial: " + serial + "`)\n"
+            "- **Bambu Companion – Druckverlauf** (`serial: " + serial + "`)"
+        ),
+        title="Bambu Companion – Karten bereit",
+        notification_id=f"bambu_companion_cards_{serial}",
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -77,16 +73,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
+        # Unregister JS cards when no more entries remain
+        remaining = [k for k in hass.data[DOMAIN] if k != "card_registration"]
+        if not remaining:
+            registration = hass.data[DOMAIN].pop("card_registration", None)
+            if registration:
+                await registration.async_unregister()
     return unload_ok
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Clean up Lovelace dashboard when integration is removed."""
-    serial: str = entry.data.get("serial", "unknown")
-    try:
-        await async_remove_lovelace_dashboard(hass, serial)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Bambu Companion: Could not remove Lovelace dashboard: %s", err)
+    """Clean up when integration is removed."""
+    pass
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
