@@ -7,9 +7,10 @@ from datetime import datetime, time
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
-    CONF_NOTIFY_MOBILE_ENABLED,
-    CONF_NOTIFY_HA_SUMMARY,
+    CONF_NOTIFY_MOBILE_EVENTS,
+    CONF_NOTIFY_QUIET_EVENTS,
     CONF_NOTIFY_TARGETS,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
@@ -27,8 +28,11 @@ from .const import (
     CONF_TEXT_MAINT_TITLE,
     CONF_TEXT_PROGRESS_MSG,
     CONF_TEXT_PROGRESS_TITLE,
-    DEFAULT_NOTIFY_MOBILE_ENABLED,
-    DEFAULT_NOTIFY_HA_SUMMARY,
+    CONF_TEXT_START_MSG,
+    CONF_TEXT_START_TITLE,
+    DEFAULT_NOTIFY_HA_EVENTS,
+    DEFAULT_NOTIFY_MOBILE_EVENTS,
+    DEFAULT_NOTIFY_QUIET_EVENTS,
     DEFAULT_TEXTS,
 )
 
@@ -64,8 +68,9 @@ def _get_text(options: dict, key: str) -> str:
 class NotifyManager:
     """Handles all notification dispatching for one printer."""
 
-    def __init__(self, hass: HomeAssistant, options: dict) -> None:
+    def __init__(self, hass: HomeAssistant, serial: str, options: dict) -> None:
         self._hass = hass
+        self._serial = serial
         self._options = options
         self._last_notified_progress: int = -1
 
@@ -81,24 +86,40 @@ class NotifyManager:
             self._options.get(CONF_QUIET_TO, "07:00"),
         )
 
-    async def _send(self, title: str, message: str) -> None:
-        mobile_enabled = self._options.get(CONF_NOTIFY_MOBILE_ENABLED, DEFAULT_NOTIFY_MOBILE_ENABLED)
-        targets = self._targets()
-        if mobile_enabled and targets:
-            if self._is_quiet():
-                _LOGGER.debug("Suppressed mobile notification (quiet hours): %s", title)
-            else:
-                for target in targets:
-                    try:
-                        service_domain, service_name = target.rsplit(".", 1)
-                        await self._hass.services.async_call(
-                            service_domain,
-                            service_name,
-                            {"title": title, "message": message},
-                            blocking=False,
-                        )
-                    except Exception as exc:  # noqa: BLE001
-                        _LOGGER.warning("Failed to send notification to %s: %s", target, exc)
+    async def _send(self, event_key: str, title: str, message: str) -> None:
+        """Route notification to configured channels based on per-event settings."""
+        mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
+        ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+        quiet_events = self._options.get(CONF_NOTIFY_QUIET_EVENTS, DEFAULT_NOTIFY_QUIET_EVENTS)
+
+        # --- Mobile channel ---
+        if event_key in mobile_events:
+            targets = self._targets()
+            if targets:
+                if event_key in quiet_events and self._is_quiet():
+                    _LOGGER.debug("Suppressed mobile notification (quiet hours): %s", title)
+                else:
+                    for target in targets:
+                        try:
+                            service_domain, service_name = target.rsplit(".", 1)
+                            await self._hass.services.async_call(
+                                service_domain,
+                                service_name,
+                                {"title": title, "message": message},
+                                blocking=False,
+                            )
+                        except Exception as exc:  # noqa: BLE001
+                            _LOGGER.warning("Failed to send notification to %s: %s", target, exc)
+
+        # --- HA persistent notification channel ---
+        if event_key in ha_events:
+            from homeassistant.components.persistent_notification import async_create
+            async_create(
+                self._hass,
+                message,
+                title=title,
+                notification_id=f"bambu_companion_{self._serial}_{event_key}",
+            )
 
     def should_notify_progress(self, progress: int) -> bool:
         interval: int = int(self._options.get(CONF_NOTIFY_INTERVAL, 5))
@@ -111,36 +132,28 @@ class NotifyManager:
     def reset_progress_tracker(self) -> None:
         self._last_notified_progress = -1
 
+    async def notify_start(self, variables: dict) -> None:
+        title = _render(_get_text(self._options, CONF_TEXT_START_TITLE), variables)
+        message = _render(_get_text(self._options, CONF_TEXT_START_MSG), variables)
+        await self._send("start", title, message)
+
     async def notify_progress(self, variables: dict) -> None:
         title = _render(_get_text(self._options, CONF_TEXT_PROGRESS_TITLE), variables)
         message = _render(_get_text(self._options, CONF_TEXT_PROGRESS_MSG), variables)
-        await self._send(title, message)
+        await self._send("progress", title, message)
 
     async def notify_done(self, variables: dict) -> None:
         title = _render(_get_text(self._options, CONF_TEXT_DONE_TITLE), variables)
         message = _render(_get_text(self._options, CONF_TEXT_DONE_MSG), variables)
-        await self._send(title, message)
+        await self._send("done", title, message)
 
     async def notify_error(self, variables: dict) -> None:
         title = _render(_get_text(self._options, CONF_TEXT_ERROR_TITLE), variables)
         message = _render(_get_text(self._options, CONF_TEXT_ERROR_MSG), variables)
-        await self._send(title, message)
+        await self._send("error", title, message)
 
     async def notify_maintenance(self, variables: dict) -> None:
         title = _render(_get_text(self._options, CONF_TEXT_MAINT_TITLE), variables)
         message = _render(_get_text(self._options, CONF_TEXT_MAINT_MSG), variables)
-        await self._send(title, message)
+        await self._send("maintenance", title, message)
 
-    async def notify_ha_summary(self, serial: str, variables: dict) -> None:
-        """Create or update a persistent HA notification with the print summary."""
-        if not self._options.get(CONF_NOTIFY_HA_SUMMARY, DEFAULT_NOTIFY_HA_SUMMARY):
-            return
-        from homeassistant.components.persistent_notification import async_create
-        title = _render(_get_text(self._options, CONF_TEXT_DONE_TITLE), variables)
-        message = _render(_get_text(self._options, CONF_TEXT_DONE_MSG), variables)
-        async_create(
-            self._hass,
-            message,
-            title=title,
-            notification_id=f"bambu_companion_summary_{serial}",
-        )
