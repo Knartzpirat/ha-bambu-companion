@@ -3,21 +3,27 @@
         "step": {
             "user": {
                 "title": "Drucker auswählen",
-                "description": "Wähle einen Bambu Lab Drucker aus, der bereits über die ha-bambulab Integration eingerichtet ist.",
+                "description": "Bambu Companion erweitert einen bestehenden Bambu Lab Drucker um Statistiken, Kostenberechnung und Wartungserinnerungen. Voraussetzung: Die ha-bambulab Integration muss bereits eingerichtet und der Drucker verbunden sein.",
                 "data": {
                     "device_id": "Drucker"
+                },
+                "data_description": {
+                    "device_id": "Wähle den Drucker, den du überwachen möchtest. Bambu Companion liest seine Live-Daten aus ha-bambulab und fügt eigene Zähler, Druckkosten und Wartungspläne hinzu."
                 }
             },
             "ams": {
                 "title": "AMS-Einheiten",
-                "description": "Wähle die AMS-Einheiten aus, die überwacht werden sollen.",
+                "description": "Das Automatic Material System (AMS) ermöglicht den Druck mit mehreren Filamenten. Wähle hier alle AMS-Einheiten, die an diesem Drucker angeschlossen sind. Drucker ohne AMS überspringen diesen Schritt automatisch.",
                 "data": {
                     "ams_device_ids": "AMS-Einheiten"
+                },
+                "data_description": {
+                    "ams_device_ids": "Alle erkannten AMS-Einheiten sind vorausgewählt. Entferne Einheiten, die du nicht überwachen möchtest."
                 }
             },
             "energy": {
                 "title": "Energie & Kosten",
-                "description": "Gib Strompreis und Filamentkosten an, damit Bambu Companion die Druckkosten berechnen kann. Die Sensoren sind optional.",
+                "description": "Bambu Companion berechnet die Druckkosten aus Stromverbrauch und Filamentgewicht. Die optionalen Sensoren ermöglichen eine exakte Messung statt Schätzung – du kannst sie auch später in den Einstellungen hinzufügen.",
                 "data": {
                     "electricity_price": "Strompreis (€/kWh)",
                     "electricity_sensor": "Dynamischer Strompreissensor (optional)",
@@ -25,20 +31,36 @@
                     "filament_cost": "Filamentkosten pro kg (€)",
                     "currency": "Währungssymbol",
                     "filament_unit": "Filamenteinheit"
+                },
+                "data_description": {
+                    "electricity_price": "Preis pro kWh, z. B. 0.30 für 30 Cent. Wird für die Kostenschätzung genutzt, solange kein Live-Sensor angegeben ist.",
+                    "electricity_sensor": "Optional: Sensor mit dem aktuellen Strompreis in €/kWh – z. B. von Tibber oder einem anderen Tarifdienst.",
+                    "energy_sensor": "Optional: kWh-Sensor einer smarten Steckdose am Drucker. Liefert den tatsächlichen Verbrauch statt einer Schätzung aus Druckzeit × Leistung.",
+                    "filament_cost": "Kosten pro Kilogramm Filament, z. B. 25.00. Bambu Companion errechnet daraus die Filamentkosten anhand des verbrauchten Gewichts.",
+                    "currency": "Währungssymbol für Sensoren und Dashboard-Karten, z. B. € oder $.",
+                    "filament_unit": "Einheit für die Filamentmengenanzeige – kg oder g."
                 }
             },
             "notify": {
                 "title": "Benachrichtigungen",
+                "description": "Bambu Companion kann dich über dein Smartphone und/oder den Home-Assistant-Posteingang informieren. Beide Kanäle sind unabhängig voneinander konfigurierbar. Ruhige Stunden gelten nur für Smartphone-Nachrichten.",
                 "data": {
                     "notify_targets": "Benachrichtigungsgeräte (notify.*)",
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
-                    "notify_on_start": "Benachrichtigung: Druck gestartet",
-                    "notify_on_progress": "Benachrichtigung: Fortschrittsupdate",
-                    "notify_on_done": "Benachrichtigung: Druck abgeschlossen",
-                    "notify_on_error": "Benachrichtigung: Druckfehler",
-                    "notify_on_maintenance": "Benachrichtigung: Wartung fällig"
+                    "notify_mobile_events": "Ereignisse → Handy senden",
+                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen",
+                    "notify_quiet_events": "Ruhezeit gilt für"
+                },
+                "data_description": {
+                    "notify_targets": "Wähle ein oder mehrere notify.*-Dienste aus – z. B. die Companion App oder andere Benachrichtigungs-Integrationen. Leer lassen, wenn du ausschließlich den HA-Posteingang nutzen möchtest.",
+                    "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet, z. B. 25 = Nachricht bei 25 %, 50 %, 75 % und 100 %.",
+                    "quiet_from": "Beginn der Ruhezeit. In diesem Zeitraum werden keine Smartphone-Nachrichten gesendet. HA-Posteingang-Nachrichten sind davon nicht betroffen.",
+                    "quiet_to": "Ende der Ruhezeit. Danach werden Smartphone-Nachrichten wieder gesendet.",
+                    "notify_mobile_events": "Diese Ereignistypen werden als Push-Nachricht an die ausgewählten Geräte gesendet. Erfordert mindestens einen Eintrag in 'Benachrichtigungsgeräte'.",
+                    "notify_ha_events": "Diese Ereignistypen erscheinen im HA-Posteingang (Glocken-Symbol oben rechts). Kein Smartphone oder externe App erforderlich.",
+                    "notify_quiet_events": "Diese Ereignistypen werden während der Ruhezeit NICHT ans Smartphone gesendet. Alle anderen Typen werden unabhängig von der Ruhezeit zugestellt."
                 }
             }
         },
@@ -81,43 +103,38 @@
             },
             "notify": {
                 "title": "Benachrichtigungen",
-                "description": "Lege fest, wann Bambu Companion Benachrichtigungen senden soll und zu welchen Diensten. Ruhige Stunden unterdrücken alle Meldungen im eingestellten Zeitraum.",
+                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten nur für Smartphone-Nachrichten.",
                 "data": {
-                    "notify_mobile_enabled": "Handy-Benachrichtigungen aktivieren",
-                    "notify_targets": "Benachrichtigungsger\u00e4te (notify.*)",
-                    "notify_ha_summary": "Zusammenfassung in HA-Benachrichtigungen anzeigen",
                     "printer_display_name": "Druckername (Anzeige)",
+                    "notify_targets": "Benachrichtigungsger\u00e4te (notify.*)",
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
-                    "notify_on_start": "Druck gestartet",
-                    "notify_on_progress": "Fortschrittsupdate",
-                    "notify_on_done": "Druck abgeschlossen",
-                    "notify_on_error": "Druckfehler",
-                    "notify_on_maintenance": "Wartung fällig"
+                    "notify_mobile_events": "Ereignisse → Handy senden",
+                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen",
+                    "notify_quiet_events": "Ruhezeit gilt für"
                 },
                 "data_description": {
-                    "notify_mobile_enabled": "Aktiviert den Versand an die unten eingetragenen Benachrichtigungsdienste.",
-                    "notify_targets": "Kommagetrennte Liste von notify.*-Diensten, z. B. notify.mobile_app_iphone.",
-                    "notify_ha_summary": "Nach jedem abgeschlossenen Druck wird eine Zusammenfassung unter Home Assistant \u2192 Benachrichtigungen angezeigt.",
-                    "printer_display_name": "Name des Druckers, der in Benachrichtigungen erscheint.",
-                    "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet.",
-                    "quiet_from": "Beginn der Ruhezeit – keine Benachrichtigungen ab dieser Uhrzeit.",
-                    "quiet_to": "Ende der Ruhezeit – Benachrichtigungen werden wieder gesendet.",
-                    "notify_on_start": "Benachrichtigung, wenn ein Druck gestartet wird.",
-                    "notify_on_progress": "Periodische Fortschrittsupdates während des Drucks.",
-                    "notify_on_done": "Benachrichtigung, wenn ein Druck erfolgreich abgeschlossen wurde.",
-                    "notify_on_error": "Benachrichtigung bei einem Druckfehler oder Abbruch.",
-                    "notify_on_maintenance": "Benachrichtigung, wenn ein Wartungsintervall erreicht wurde."
+                    "printer_display_name": "Name des Druckers, der in Benachrichtigungen und Karten erscheint.",
+                    "notify_targets": "Wähle ein oder mehrere notify.*-Dienste aus (z. B. notify.mobile_app_iphone). Leer lassen, wenn du nur den HA-Posteingang nutzen möchtest.",
+                    "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet, z. B. 25 = bei 25 %, 50 %, 75 % und 100 %.",
+                    "quiet_from": "Beginn der Ruhezeit – keine Smartphone-Nachrichten ab dieser Uhrzeit. Der HA-Posteingang ist nicht betroffen.",
+                    "quiet_to": "Ende der Ruhezeit – Smartphone-Nachrichten werden wieder gesendet.",
+                    "notify_mobile_events": "Diese Ereignisse werden als Push-Nachricht ans Smartphone gesendet. Erfordert mindestens einen Eintrag in 'Benachrichtigungsgeräte'.",
+                    "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich.",
+                    "notify_quiet_events": "Diese Ereignistypen werden während der Ruhezeit nicht ans Smartphone gesendet."
                 }
             },
             "maintenance": {
                 "title": "Wartungsintervalle",
                 "description": "Intervalle in Stunden bzw. Druckanzahl. Die Aufgaben werden jeweils nach Erreichen des Intervalls gemeldet.",
                 "data": {
-                    "nozzle_clean": "Druckkopf Düse reinigen / wechseln",
-                    "left_nozzle_clean": "Druckkopf Linke Düse reinigen / wechseln (H2D)",
-                    "right_nozzle_clean": "Druckkopf Rechte Düse reinigen / wechseln (H2D)",
+                    "nozzle_clean": "Druckkopf Düse reinigen",
+                    "nozzle_replace": "Druckkopf Düse gewechselt (Stundenzähler zurücksetzen)",
+                    "left_nozzle_clean": "Druckkopf Linke Düse reinigen (H2D)",
+                    "left_nozzle_replace": "Druckkopf Linke Düse gewechselt – Stundenzähler zurücksetzen (H2D)",
+                    "right_nozzle_clean": "Druckkopf Rechte Düse reinigen (H2D)",
+                    "right_nozzle_replace": "Druckkopf Rechte Düse gewechselt – Stundenzähler zurücksetzen (H2D)",
                     "filament_cutter": "Druckkopf Schneidmesser prüfen / wechseln",
                     "ptfe_tube": "Druckkopf PTFE-Tube prüfen / wechseln",
                     "heatbreak": "Druckkopf Hotend / Heatbreak reinigen",
@@ -143,9 +160,12 @@
                     "vortek_wear": "Hotend-Slots auf Verschleiß prüfen (H2C)"
                 },
                 "data_description": {
-                    "nozzle_clean": "Trigger: Düsen-Druckstunden",
-                    "left_nozzle_clean": "Trigger: Düsen-Druckstunden",
-                    "right_nozzle_clean": "Trigger: Düsen-Druckstunden",
+                    "nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",
+                    "nozzle_replace": "Trigger: Düsen-Druckstunden. Setzt beim Quittieren den Stundenzähler auf 0.",
+                    "left_nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",
+                    "left_nozzle_replace": "Trigger: Düsen-Druckstunden. Setzt beim Quittieren den Stundenzähler der linken Düse auf 0.",
+                    "right_nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",
+                    "right_nozzle_replace": "Trigger: Düsen-Druckstunden. Setzt beim Quittieren den Stundenzähler der rechten Düse auf 0.",
                     "filament_cutter": "Trigger: Anzahl Drucke | Wiki → Bambu: Filament Cutter",
                     "ptfe_tube": "Trigger: Druckstunden",
                     "heatbreak": "Trigger: Druckstunden | Wiki → Bambu: Hotend Cleaning",
@@ -175,6 +195,8 @@
                 "title": "Benachrichtigungstexte anpassen",
                 "description": "Passe Titel, Nachrichtentext und Schaltflächenbeschriftungen für jede Benachrichtigung an. Platzhalter: {drucker}, {name}, {progress}, {remaining}, {duration}, {weight}, {energy}, {cost}, {wartung}, {stunden}, {intervall}.",
                 "data": {
+                    "text_start_title": "Gestartet – Titel",
+                    "text_start_msg": "Gestartet – Nachricht",
                     "text_progress_title": "Fortschritt – Titel",
                     "text_done_title": "Fertig – Titel",
                     "text_error_title": "Fehler – Titel",
