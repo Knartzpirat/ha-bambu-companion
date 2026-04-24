@@ -10,7 +10,6 @@ from .const import (
     CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_MOBILE_EVENTS,
-    CONF_NOTIFY_QUIET_EVENTS,
     CONF_NOTIFY_TARGETS,
     CONF_QUIET_FROM,
     CONF_QUIET_TO,
@@ -32,7 +31,6 @@ from .const import (
     CONF_TEXT_START_TITLE,
     DEFAULT_NOTIFY_HA_EVENTS,
     DEFAULT_NOTIFY_MOBILE_EVENTS,
-    DEFAULT_NOTIFY_QUIET_EVENTS,
     DEFAULT_TEXTS,
 )
 
@@ -90,13 +88,12 @@ class NotifyManager:
         """Route notification to configured channels based on per-event settings."""
         mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
         ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
-        quiet_events = self._options.get(CONF_NOTIFY_QUIET_EVENTS, DEFAULT_NOTIFY_QUIET_EVENTS)
 
         # --- Mobile channel ---
         if event_key in mobile_events:
             targets = self._targets()
             if targets:
-                if event_key in quiet_events and self._is_quiet():
+                if self._is_quiet():
                     _LOGGER.debug("Suppressed mobile notification (quiet hours): %s", title)
                 else:
                     for target in targets:
