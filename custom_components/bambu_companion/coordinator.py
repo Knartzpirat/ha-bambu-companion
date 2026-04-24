@@ -232,6 +232,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._store.increment_counter("total_energy_kwh", record.get("energy_kwh", 0))
         self._store.increment_counter("total_filament_g", record.get("filament_weight_g", 0))
         self._store.increment_counter("total_cost", record.get("total_cost", 0))
+        self._store.increment_counter("total_filament_cost", record.get("filament_cost", 0))
+        self._store.increment_counter("total_energy_cost", record.get("energy_cost", 0))
         await self._store.async_save()
 
         printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
