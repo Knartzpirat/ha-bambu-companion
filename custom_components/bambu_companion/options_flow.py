@@ -13,14 +13,10 @@ from .const import (
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
     CONF_MAX_HISTORY,
-    CONF_NOTIFY_HA_SUMMARY,
+    CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
-    CONF_NOTIFY_MOBILE_ENABLED,
-    CONF_NOTIFY_ON_DONE,
-    CONF_NOTIFY_ON_ERROR,
-    CONF_NOTIFY_ON_MAINTENANCE,
-    CONF_NOTIFY_ON_PROGRESS,
-    CONF_NOTIFY_ON_START,
+    CONF_NOTIFY_MOBILE_EVENTS,
+    CONF_NOTIFY_QUIET_EVENTS,
     CONF_NOTIFY_TARGETS,
     CONF_PRINTER_DISPLAY_NAME,
     CONF_QUIET_FROM,
@@ -41,19 +37,17 @@ from .const import (
     CONF_TEXT_PROGRESS_TITLE,
     CONF_TEXT_RESET_MSG,
     CONF_TEXT_RESET_TITLE,
+    CONF_TEXT_START_MSG,
+    CONF_TEXT_START_TITLE,
     DEFAULT_CURRENCY,
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
     DEFAULT_FILAMENT_UNIT,
     DEFAULT_MAX_HISTORY,
     DEFAULT_NOTIFY_INTERVAL,
-    DEFAULT_NOTIFY_ON_DONE,
-    DEFAULT_NOTIFY_ON_ERROR,
-    DEFAULT_NOTIFY_ON_MAINTENANCE,
-    DEFAULT_NOTIFY_ON_PROGRESS,
-    DEFAULT_NOTIFY_MOBILE_ENABLED,
-    DEFAULT_NOTIFY_HA_SUMMARY,
-    DEFAULT_NOTIFY_ON_START,
+    DEFAULT_NOTIFY_MOBILE_EVENTS,
+    DEFAULT_NOTIFY_HA_EVENTS,
+    DEFAULT_NOTIFY_QUIET_EVENTS,
     DEFAULT_PRINTER_NAME,
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
@@ -156,29 +150,37 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             self._combined.update(user_input)
             return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
 
+        # Collect all registered notify.* services dynamically
+        notify_services = sorted(
+            f"notify.{service}"
+            for service in self.hass.services.async_services().get("notify", {})
+        )
+        # Always include already-saved targets so they remain selectable
+        saved_targets = current.get(CONF_NOTIFY_TARGETS, [])
+        if isinstance(saved_targets, str):
+            saved_targets = [saved_targets] if saved_targets else []
+        for t in saved_targets:
+            if t not in notify_services:
+                notify_services.append(t)
+        notify_options = [{"value": s, "label": s} for s in notify_services]
+
         schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_NOTIFY_MOBILE_ENABLED,
-                    default=current.get(CONF_NOTIFY_MOBILE_ENABLED, DEFAULT_NOTIFY_MOBILE_ENABLED),
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_NOTIFY_TARGETS,
-                    description={"suggested_value": current.get(CONF_NOTIFY_TARGETS, [])},
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[], multiple=True, custom_value=True,
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
-                vol.Required(
-                    CONF_NOTIFY_HA_SUMMARY,
-                    default=current.get(CONF_NOTIFY_HA_SUMMARY, DEFAULT_NOTIFY_HA_SUMMARY),
-                ): selector.BooleanSelector(),
                 vol.Required(
                     CONF_PRINTER_DISPLAY_NAME,
                     default=current.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME),
                 ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_NOTIFY_TARGETS,
+                    description={"suggested_value": saved_targets},
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=notify_options,
+                        multiple=True,
+                        custom_value=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Required(
                     CONF_NOTIFY_INTERVAL,
                     default=current.get(CONF_NOTIFY_INTERVAL, DEFAULT_NOTIFY_INTERVAL),
@@ -194,25 +196,53 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     default=current.get(CONF_QUIET_TO, DEFAULT_QUIET_TO),
                 ): selector.TimeSelector(),
                 vol.Required(
-                    CONF_NOTIFY_ON_START,
-                    default=current.get(CONF_NOTIFY_ON_START, DEFAULT_NOTIFY_ON_START),
-                ): selector.BooleanSelector(),
+                    CONF_NOTIFY_MOBILE_EVENTS,
+                    default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "start", "label": "Druck gestartet"},
+                            {"value": "progress", "label": "Fortschrittsupdate"},
+                            {"value": "done", "label": "Druck abgeschlossen"},
+                            {"value": "error", "label": "Druckfehler"},
+                            {"value": "maintenance", "label": "Wartung fällig"},
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Required(
-                    CONF_NOTIFY_ON_PROGRESS,
-                    default=current.get(CONF_NOTIFY_ON_PROGRESS, DEFAULT_NOTIFY_ON_PROGRESS),
-                ): selector.BooleanSelector(),
+                    CONF_NOTIFY_HA_EVENTS,
+                    default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "start", "label": "Druck gestartet"},
+                            {"value": "progress", "label": "Fortschrittsupdate"},
+                            {"value": "done", "label": "Druck abgeschlossen"},
+                            {"value": "error", "label": "Druckfehler"},
+                            {"value": "maintenance", "label": "Wartung fällig"},
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Required(
-                    CONF_NOTIFY_ON_DONE,
-                    default=current.get(CONF_NOTIFY_ON_DONE, DEFAULT_NOTIFY_ON_DONE),
-                ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_NOTIFY_ON_ERROR,
-                    default=current.get(CONF_NOTIFY_ON_ERROR, DEFAULT_NOTIFY_ON_ERROR),
-                ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_NOTIFY_ON_MAINTENANCE,
-                    default=current.get(CONF_NOTIFY_ON_MAINTENANCE, DEFAULT_NOTIFY_ON_MAINTENANCE),
-                ): selector.BooleanSelector(),
+                    CONF_NOTIFY_QUIET_EVENTS,
+                    default=current.get(CONF_NOTIFY_QUIET_EVENTS, DEFAULT_NOTIFY_QUIET_EVENTS),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "start", "label": "Druck gestartet"},
+                            {"value": "progress", "label": "Fortschrittsupdate"},
+                            {"value": "done", "label": "Druck abgeschlossen"},
+                            {"value": "error", "label": "Druckfehler"},
+                            {"value": "maintenance", "label": "Wartung fällig"},
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
             }
         )
         return self.async_show_form(step_id="notify", data_schema=schema)
@@ -228,9 +258,9 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
 
         fields = {}
         for key in [
-            CONF_TEXT_PROGRESS_TITLE, CONF_TEXT_DONE_TITLE, CONF_TEXT_ERROR_TITLE,
+            CONF_TEXT_START_TITLE, CONF_TEXT_PROGRESS_TITLE, CONF_TEXT_DONE_TITLE, CONF_TEXT_ERROR_TITLE,
             CONF_TEXT_MAINT_TITLE, CONF_TEXT_RESET_TITLE,
-            CONF_TEXT_PROGRESS_MSG, CONF_TEXT_DONE_MSG, CONF_TEXT_ERROR_MSG,
+            CONF_TEXT_START_MSG, CONF_TEXT_PROGRESS_MSG, CONF_TEXT_DONE_MSG, CONF_TEXT_ERROR_MSG,
             CONF_TEXT_MAINT_MSG, CONF_TEXT_RESET_MSG,
             CONF_TEXT_BTN_DONE, CONF_TEXT_BTN_SNOOZE, CONF_TEXT_BTN_CANCEL,
             CONF_TEXT_BTN_RESET_CONFIRM, CONF_TEXT_BTN_RESET_CANCEL, CONF_TEXT_BTN_CAMERA,
