@@ -73,7 +73,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._store = PrintHistoryStore(
             hass, self._serial, int(self._options.get("max_history", 0))
         )
-        self._notify = NotifyManager(hass, self._options)
+        self._notify = NotifyManager(hass, self._serial, self._options)
 
         # State machine
         self._print_status: str = PRINT_STATUS_IDLE
@@ -210,6 +210,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     async def _on_print_start(self) -> None:
         self._print_start_time = datetime.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
+        printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+        await self._notify.notify_start(
+            {"drucker": printer_name, "name": self._last_print_name}
+        )
         energy_entity_id = self._options.get(CONF_ENERGY_SENSOR)
         if energy_entity_id:
             raw_e = self.hass.states.get(energy_entity_id)
@@ -241,7 +245,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "cost": f"{currency}{record.get('total_cost', 0):.2f}",
         }
         await self._notify.notify_done(variables)
-        await self._notify.notify_ha_summary(self._serial, variables)
 
     async def _on_print_failed(self) -> None:
         record = self._build_print_record(success=False)
@@ -464,6 +467,15 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "total_hours": "print_hours",
         }
         counter_key = counter_map.get(trigger, "print_hours")
+
+        # If the task has reset_counter=True (e.g. nozzle replacement),
+        # zero the underlying counter so hours count from scratch.
+        task_def = next((t for t in MAINTENANCE_TASKS if t["key"] == task_key), {})
+        if task_def.get("reset_counter", False):
+            # Use explicit counter_key override when provided (e.g. left/right nozzle)
+            actual_counter = task_def.get("counter_key", counter_key)
+            self._store.set_counter(actual_counter, 0)
+
         await self._reset_with_baseline(task_key, counter_key)
 
     async def _reset_with_baseline(self, task_key: str, counter_key: str) -> None:
