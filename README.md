@@ -70,7 +70,7 @@ Each record includes:
 |---|---|
 | Nozzle & Hotend | Clean/replace nozzle, PTFE tube, heatbreak |
 | Motion | X/Y rail lubrication, Z axis, belt tension, carbon rods |
-| Print Bed | Clean with IPA, flip bed, inspect for wear |
+| Print Bed | Clean bed, flip bed, inspect for wear |
 | Fans & Filters | Part cooling fan, HEPA filter, activated carbon filter |
 | AMS | Purge wiper, cutter blade, gear cleaning |
 | Calibration | Resonance, flow, first-layer calibration |
@@ -98,7 +98,7 @@ Each task has:
 
 ### 📊 Sensors Created
 
-Prefix: `sensor.bpt_{serial}_*`
+Prefix: `sensor.bc_{serial}_*`
 
 | Sensor | Description |
 |---|---|
@@ -119,11 +119,11 @@ Prefix: `sensor.bpt_{serial}_*`
 
 | Sensor | Description |
 |---|---|
-| `sensor.bpt_all_total_energy` | Combined energy all printers |
-| `sensor.bpt_all_total_cost` | Combined costs all printers |
-| `sensor.bpt_all_monthly_cost` | Monthly combined costs |
-| `sensor.bpt_all_active_printers` | Currently printing devices |
-| `sensor.bpt_all_total_prints` | Total prints all printers |
+| `sensor.bc_all_total_energy` | Combined energy all printers |
+| `sensor.bc_all_total_cost` | Combined costs all printers |
+| `sensor.bc_all_monthly_cost` | Monthly combined costs |
+| `sensor.bc_all_active_printers` | Currently printing devices |
+| `sensor.bc_all_total_prints` | Total prints all printers |
 
 ---
 
