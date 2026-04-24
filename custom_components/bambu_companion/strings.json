@@ -53,13 +53,15 @@
     "options": {
         "step": {
             "init": {
-                "title": "Einstellungen",
+                "title": "Einstellungen – Bambu Companion",
+                "description": "Wähle den Bereich, den du anpassen möchtest.",
                 "data": {
                     "tab": "Bereich"
                 }
             },
             "energy": {
                 "title": "Kosten & Energie",
+                "description": "Gib hier Strompreis und Filamentkosten an. Über optionale Sensoren werden Verbrauchswerte direkt aus deiner Smarten Steckdose oder einem Strompreis-Feed ausgelesen.",
                 "data": {
                     "electricity_price": "Strompreis (€/kWh)",
                     "electricity_sensor": "Dynamischer Strompreissensor (optional)",
@@ -67,10 +69,19 @@
                     "filament_cost": "Filamentkosten pro kg",
                     "currency": "Währungssymbol",
                     "filament_unit": "Filamenteinheit"
+                },
+                "data_description": {
+                    "electricity_price": "Preis pro kWh, z. B. 0.30 für 30 Cent.",
+                    "electricity_sensor": "Sensor, dessen Zustandswert den aktuellen Strompreis in €/kWh enthält.",
+                    "energy_sensor": "kWh-Sensor einer smarten Steckdose am Drucker – ermöglicht exakte Energiemessung.",
+                    "filament_cost": "Kosten pro Kilogramm Filament, z. B. 25.00.",
+                    "currency": "Währungssymbol das in Sensoren und Karten angezeigt wird, z. B. € oder $.",
+                    "filament_unit": "Einheit für die Filamentanzeige."
                 }
             },
             "notify": {
                 "title": "Benachrichtigungen",
+                "description": "Lege fest, wann Bambu Companion Benachrichtigungen senden soll und zu welchen Diensten. Ruhige Stunden unterdrücken alle Meldungen im eingestellten Zeitraum.",
                 "data": {
                     "notify_targets": "Benachrichtigungsgeräte",
                     "printer_display_name": "Druckername (Anzeige)",
@@ -82,6 +93,18 @@
                     "notify_on_done": "Druck abgeschlossen",
                     "notify_on_error": "Druckfehler",
                     "notify_on_maintenance": "Wartung fällig"
+                },
+                "data_description": {
+                    "notify_targets": "Kommagetrennte Liste von notify.*-Diensten, z. B. notify.mobile_app_iphone.",
+                    "printer_display_name": "Name des Druckers, der in Benachrichtigungen erscheint.",
+                    "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet.",
+                    "quiet_from": "Beginn der Ruhezeit – keine Benachrichtigungen ab dieser Uhrzeit.",
+                    "quiet_to": "Ende der Ruhezeit – Benachrichtigungen werden wieder gesendet.",
+                    "notify_on_start": "Benachrichtigung, wenn ein Druck gestartet wird.",
+                    "notify_on_progress": "Periodische Fortschrittsupdates während des Drucks.",
+                    "notify_on_done": "Benachrichtigung, wenn ein Druck erfolgreich abgeschlossen wurde.",
+                    "notify_on_error": "Benachrichtigung bei einem Druckfehler oder Abbruch.",
+                    "notify_on_maintenance": "Benachrichtigung, wenn ein Wartungsintervall erreicht wurde."
                 }
             },
             "maintenance": {
@@ -100,7 +123,7 @@
                     "belt": "Riemenspannung prüfen (X & Y)",
                     "extruder_gear": "Druckkopf Extruder-Zahnrad reinigen",
                     "toolhead_cable": "Druckkopf Kabel prüfen",
-                    "clean_bed": "Druckbett reinigen (IPA)",
+                    "clean_bed": "Druckbett reinigen",
                     "fans_clean": "Alle Lüfter reinigen",
                     "hepa_filter": "Kammer-HEPA-Filter wechseln (X1/X1C/X1E)",
                     "carbon_filter": "Aktivkohle-Filter wechseln (X1/X1C/X1E/P1S/H2D)",
@@ -110,13 +133,13 @@
                     "flow_cal": "Fluss-Kalibrierung",
                     "laser_lens": "Laserkopf Linse & Lüfter reinigen (H2D)",
                     "laser_deep": "Laserkopf Grundreinigung (H2D)",
-                    "laser_bed": "Laserbett reinigen (H2D)",
+                    "laser_bed": "Laserbett reinigen",
                     "laser_safety": "Lasersicherheitsscheibe prüfen (H2D)",
                     "vortek_lube": "Rack-Führungen schmieren (H2C)",
                     "vortek_wear": "Hotend-Slots auf Verschleiß prüfen (H2C)"
                 },
                 "data_description": {
-                    "nozzle_clean": "Trigger: Düsen-Druckstunden",
+                    "nozzle_clean": "Intervall in Düsen-Druckstunden.",
                     "left_nozzle_clean": "Trigger: Düsen-Druckstunden",
                     "right_nozzle_clean": "Trigger: Düsen-Druckstunden",
                     "filament_cutter": "Trigger: Anzahl Drucke | Wiki: Bambu – Filament Cutter",
@@ -142,6 +165,38 @@
                     "laser_safety": "Trigger: Laserstunden",
                     "vortek_lube": "Trigger: Gesamtstunden",
                     "vortek_wear": "Trigger: Gesamtstunden"
+                }
+            },
+            "texts": {
+                "title": "Benachrichtigungstexte anpassen",
+                "description": "Passe Titel, Nachrichtentext und Schaltflächenbeschriftungen für jede Benachrichtigung an. Platzhalter: {drucker}, {name}, {progress}, {remaining}, {duration}, {weight}, {energy}, {cost}, {wartung}, {stunden}, {intervall}.",
+                "data": {
+                    "text_progress_title": "Fortschritt – Titel",
+                    "text_done_title": "Fertig – Titel",
+                    "text_error_title": "Fehler – Titel",
+                    "text_maint_title": "Wartung – Titel",
+                    "text_reset_title": "Wartung zurücksetzen – Titel",
+                    "text_progress_msg": "Fortschritt – Nachricht",
+                    "text_done_msg": "Fertig – Nachricht",
+                    "text_error_msg": "Fehler – Nachricht",
+                    "text_maint_msg": "Wartung – Nachricht",
+                    "text_reset_msg": "Wartung zurücksetzen – Nachricht",
+                    "text_btn_done": "Schaltfläche: Erledigt",
+                    "text_btn_snooze": "Schaltfläche: Erinnern",
+                    "text_btn_cancel": "Schaltfläche: Abbrechen",
+                    "text_btn_reset_confirm": "Schaltfläche: Bestätigen",
+                    "text_btn_reset_cancel": "Schaltfläche: Abbrechen (Reset)",
+                    "text_btn_camera": "Schaltfläche: Kamera"
+                }
+            },
+            "general": {
+                "title": "Allgemeine Einstellungen",
+                "description": "Allgemeine Einstellungen für Bambu Companion.",
+                "data": {
+                    "max_history": "Max. gespeicherte Drucke (Verlauf)"
+                },
+                "data_description": {
+                    "max_history": "Maximale Anzahl von Druckaufträgen, die im Verlauf gespeichert werden. 0 = unbegrenzt."
                 }
             }
         }
