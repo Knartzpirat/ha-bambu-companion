@@ -44,6 +44,8 @@ async def async_setup_entry(
         BcStatSensor(coordinator, entry, serial, "monthly_prints", "Drucke diesen Monat", "mdi:calendar-month", None, "prints"),
         BcStatSensor(coordinator, entry, serial, "last_print_duration", "Dauer letzter Druck", "mdi:timer-outline", None, UnitOfTime.MINUTES),
         BcStatSensor(coordinator, entry, serial, "last_print_cost", "Kosten letzter Druck", "mdi:receipt", None, currency),
+        BcStatSensor(coordinator, entry, serial, "total_filament_cost", "Filamentkosten gesamt", "mdi:spool", SensorStateClass.TOTAL_INCREASING, currency),
+        BcStatSensor(coordinator, entry, serial, "total_energy_cost", "Energiekosten gesamt", "mdi:lightning-bolt-circle", SensorStateClass.TOTAL_INCREASING, currency),
     ]
 
     if features.get("dual_nozzle"):
@@ -138,6 +140,8 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
             "monthly_prints": monthly.get("monthly_prints", 0),
             "last_print_duration": last.get("duration_min"),
             "last_print_cost": round(last.get("total_cost", 0), 2) if last else None,
+            "total_filament_cost": round(counters.get("total_filament_cost", 0), 2),
+            "total_energy_cost": round(counters.get("total_energy_cost", 0), 2),
             "nozzle_hours": round(counters.get("nozzle_hours", 0), 2),
             "left_nozzle_hours": round(counters.get("left_nozzle_hours", 0), 2),
             "right_nozzle_hours": round(counters.get("right_nozzle_hours", 0), 2),
