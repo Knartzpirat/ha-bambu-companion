@@ -3,12 +3,22 @@
 DOMAIN = "bambu_companion"
 BAMBU_LAB_DOMAIN = "bambu_lab"
 
+# Frontend / Lovelace
+URL_BASE = "/bambu_companion_static"
+BAMBU_COMPANION_CARDS = [
+    {
+        "filename": "bambu-companion-cards.js",
+        "version": "0.0.1",
+        "name": "Bambu Companion Cards",
+    }
+]
+
 # Storage
 STORAGE_VERSION = 1
 DEFAULT_MAX_HISTORY = 0  # 0 = unbegrenzt
 
 # Defaults
-DEFAULT_ELECTRICITY_PRICE = 0.30
+DEFAULT_ELECTRICITY_PRICE = 0.35
 DEFAULT_FILAMENT_COST_PER_KG = 25.00
 DEFAULT_CURRENCY = "€"
 DEFAULT_FILAMENT_UNIT = "kg"
@@ -243,7 +253,7 @@ MAINTENANCE_TASKS: list[dict] = [
     {"key": "toolhead_cable", "name": "Druckkopf Kabel prüfen", "default_interval": 1000, "trigger": "print_hours", "models": None,
      "wiki": None},
     # Bed
-    {"key": "clean_bed", "name": "Druckbett reinigen (IPA)", "default_interval": 20, "trigger": "print_count", "models": None,
+    {"key": "clean_bed", "name": "Druckbett reinigen", "default_interval": 20, "trigger": "print_count", "models": None,
      "wiki": None},
     # Fans & Filters
     # Bambu Wiki: clean hotend fan, part cooling fan, chamber fan, aux fan in one session (weekly check recommended)
@@ -267,7 +277,7 @@ MAINTENANCE_TASKS: list[dict] = [
     # Laser (H2D)
     {"key": "laser_lens", "name": "Laserkopf Linse & Lüfter reinigen", "default_interval": 20, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
     {"key": "laser_deep", "name": "Laserkopf Grundreinigung", "default_interval": 100, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
-    {"key": "laser_bed", "name": "Laserbett reinigen (Rückstände)", "default_interval": 10, "trigger": "laser_jobs", "models": ["H2D"], "wiki": None},
+    {"key": "laser_bed", "name": "Laserbett reinigen", "default_interval": 10, "trigger": "laser_jobs", "models": ["H2D"], "wiki": None},
     {"key": "laser_safety", "name": "Lasersicherheitsscheibe prüfen", "default_interval": 100, "trigger": "laser_hours", "models": ["H2D"], "wiki": None},
     # H2C Vortek
     {"key": "vortek_lube", "name": "Rack-Führungen schmieren", "default_interval": 500, "trigger": "total_hours", "models": ["H2C"], "wiki": None},
