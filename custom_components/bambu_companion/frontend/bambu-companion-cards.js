@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.0";
+const VERSION = "1.3.1";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -75,7 +75,21 @@ function _findPrinters(hass) {
         const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/);
         if (m && !seen.has(m[1])) {
             seen.add(m[1]);
-            result.push(m[1]);
+            let label = m[1]; // fallback: serial number
+            // Prefer device registry name (available in HA 2023+)
+            if (hass.entities && hass.devices) {
+                const entityEntry = Object.values(hass.entities).find(e => e.entity_id === entityId);
+                if (entityEntry?.device_id) {
+                    const device = hass.devices[entityEntry.device_id];
+                    if (device) label = device.name_by_user || device.name || label;
+                }
+            } else {
+                // Fallback: strip sensor suffix from friendly_name
+                const fn = hass.states[entityId]?.attributes?.friendly_name ?? "";
+                const stripped = fn.replace(/\s*Druckstatus\s*$/i, "").trim();
+                if (stripped) label = stripped;
+            }
+            result.push({ serial: m[1], label });
         }
     }
     return result;
@@ -86,8 +100,8 @@ function _printerSelect(printers, current) {
         return `<select id="serial"><option value="">– Kein Bambu Companion Drucker gefunden –</option></select>
                 <div class="hint">Bitte zuerst die Integration einrichten.</div>`;
     }
-    const opts = printers.map(s =>
-        `<option value="${s}"${s === current ? " selected" : ""}>${s}</option>`
+    const opts = printers.map(({ serial, label }) =>
+        `<option value="${serial}"${serial === current ? " selected" : ""}>${label}</option>`
     ).join("");
     return `<select id="serial"><option value="">– Drucker wählen –</option>${opts}</select>`;
 }
