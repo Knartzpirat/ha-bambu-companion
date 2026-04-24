@@ -13,7 +13,9 @@ from .const import (
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
     CONF_MAX_HISTORY,
+    CONF_NOTIFY_HA_SUMMARY,
     CONF_NOTIFY_INTERVAL,
+    CONF_NOTIFY_MOBILE_ENABLED,
     CONF_NOTIFY_ON_DONE,
     CONF_NOTIFY_ON_ERROR,
     CONF_NOTIFY_ON_MAINTENANCE,
@@ -49,6 +51,8 @@ from .const import (
     DEFAULT_NOTIFY_ON_ERROR,
     DEFAULT_NOTIFY_ON_MAINTENANCE,
     DEFAULT_NOTIFY_ON_PROGRESS,
+    DEFAULT_NOTIFY_MOBILE_ENABLED,
+    DEFAULT_NOTIFY_HA_SUMMARY,
     DEFAULT_NOTIFY_ON_START,
     DEFAULT_PRINTER_NAME,
     DEFAULT_QUIET_FROM,
@@ -154,6 +158,10 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
 
         schema = vol.Schema(
             {
+                vol.Required(
+                    CONF_NOTIFY_MOBILE_ENABLED,
+                    default=current.get(CONF_NOTIFY_MOBILE_ENABLED, DEFAULT_NOTIFY_MOBILE_ENABLED),
+                ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_NOTIFY_TARGETS,
                     description={"suggested_value": current.get(CONF_NOTIFY_TARGETS, [])},
@@ -163,6 +171,10 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
+                vol.Required(
+                    CONF_NOTIFY_HA_SUMMARY,
+                    default=current.get(CONF_NOTIFY_HA_SUMMARY, DEFAULT_NOTIFY_HA_SUMMARY),
+                ): selector.BooleanSelector(),
                 vol.Required(
                     CONF_PRINTER_DISPLAY_NAME,
                     default=current.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME),
