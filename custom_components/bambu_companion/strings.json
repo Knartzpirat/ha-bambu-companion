@@ -43,24 +43,22 @@
             },
             "notify": {
                 "title": "Benachrichtigungen",
-                "description": "Bambu Companion kann dich über dein Smartphone und/oder den Home-Assistant-Posteingang informieren. Beide Kanäle sind unabhängig voneinander konfigurierbar – du kannst z. B. Fehlermeldungen aufs Handy senden, aber Fortschrittsupdates nur im HA-Posteingang anzeigen. Ruhige Stunden gelten nur für Smartphone-Nachrichten.",
+                "description": "Bambu Companion kann dich über dein Smartphone und/oder den Home-Assistant-Posteingang informieren. Beide Kanäle sind unabhängig voneinander konfigurierbar – du kannst z. B. Fehlermeldungen aufs Handy senden, aber Fortschrittsupdates nur im HA-Posteingang anzeigen. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.",
                 "data": {
-                    "notify_targets": "Benachrichtigungsgeräte (notify.*)",
+                    "notify_targets": "Mobilgerät(e) für Benachrichtigungen",
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
                     "notify_mobile_events": "Ereignisse → Handy senden",
-                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen",
-                    "notify_quiet_events": "Ruhezeit gilt für"
+                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen"
                 },
                 "data_description": {
-                    "notify_targets": "Wähle ein oder mehrere notify.*-Dienste aus – z. B. die Companion App oder andere Benachrichtigungs-Integrationen. Leer lassen, wenn du ausschließlich den HA-Posteingang nutzen möchtest.",
+                    "notify_targets": "Wähle dein Smartphone oder Tablet aus der Liste der HA Companion App-Geräte. Leer lassen, wenn du ausschließlich den HA-Posteingang nutzen möchtest.",
                     "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet, z. B. 25 = Nachricht bei 25 %, 50 %, 75 % und 100 %.",
-                    "quiet_from": "Beginn der Ruhezeit. In diesem Zeitraum werden keine Smartphone-Nachrichten gesendet. HA-Posteingang-Nachrichten sind davon nicht betroffen.",
+                    "quiet_from": "Beginn der Ruhezeit. In diesem Zeitraum werden KEINE Smartphone-Nachrichten gesendet (gilt für alle Ereignistypen). HA-Posteingang-Nachrichten sind davon nicht betroffen.",
                     "quiet_to": "Ende der Ruhezeit. Danach werden Smartphone-Nachrichten wieder gesendet.",
-                    "notify_mobile_events": "Diese Ereignistypen werden als Push-Nachricht an die ausgewählten Geräte gesendet. Erfordert mindestens einen Eintrag in 'Benachrichtigungsgeräte'.",
-                    "notify_ha_events": "Diese Ereignistypen erscheinen im HA-Posteingang (Glocken-Symbol oben rechts). Kein Smartphone oder externe App erforderlich.",
-                    "notify_quiet_events": "Diese Ereignistypen werden während der Ruhezeit NICHT ans Smartphone gesendet. Alle anderen Typen werden unabhängig von der Ruhezeit zugestellt."
+                    "notify_mobile_events": "Diese Ereignistypen werden als Push-Nachricht an die ausgewählten Geräte gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
+                    "notify_ha_events": "Diese Ereignistypen erscheinen im HA-Posteingang (Glocken-Symbol oben rechts). Kein Smartphone oder externe App erforderlich."
                 }
             }
         },
@@ -103,26 +101,24 @@
             },
             "notify": {
                 "title": "Benachrichtigungen",
-                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten nur für Smartphone-Nachrichten.",
+                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.",
                 "data": {
                     "printer_display_name": "Druckername (Anzeige)",
-                    "notify_targets": "Benachrichtigungsgeräte (notify.*)",
+                    "notify_targets": "Mobilgerät(e) für Benachrichtigungen",
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
                     "notify_mobile_events": "Ereignisse → Handy senden",
-                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen",
-                    "notify_quiet_events": "Ruhezeit gilt für"
+                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen"
                 },
                 "data_description": {
                     "printer_display_name": "Name des Druckers, der in Benachrichtigungen und Karten erscheint.",
-                    "notify_targets": "Wähle ein oder mehrere notify.*-Dienste aus (z. B. notify.mobile_app_iphone). Leer lassen, wenn du nur den HA-Posteingang nutzen möchtest.",
+                    "notify_targets": "Wähle dein Smartphone oder Tablet aus der Liste der HA Companion App-Geräte. Leer lassen, wenn du nur den HA-Posteingang nutzen möchtest.",
                     "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet, z. B. 25 = bei 25 %, 50 %, 75 % und 100 %.",
-                    "quiet_from": "Beginn der Ruhezeit – keine Smartphone-Nachrichten ab dieser Uhrzeit. Der HA-Posteingang ist nicht betroffen.",
+                    "quiet_from": "Beginn der Ruhezeit – KEINE Smartphone-Nachrichten ab dieser Uhrzeit (gilt für alle Ereignistypen). Der HA-Posteingang ist nicht betroffen.",
                     "quiet_to": "Ende der Ruhezeit – Smartphone-Nachrichten werden wieder gesendet.",
-                    "notify_mobile_events": "Diese Ereignisse werden als Push-Nachricht ans Smartphone gesendet. Erfordert mindestens einen Eintrag in 'Benachrichtigungsgeräte'.",
-                    "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich.",
-                    "notify_quiet_events": "Diese Ereignistypen werden während der Ruhezeit nicht ans Smartphone gesendet."
+                    "notify_mobile_events": "Diese Ereignisse werden als Push-Nachricht ans Smartphone gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
+                    "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich."
                 }
             },
             "maintenance": {
@@ -193,7 +189,7 @@
             },
             "texts": {
                 "title": "Benachrichtigungstexte anpassen",
-                "description": "Passe Titel, Nachrichtentext und Schaltflächenbeschriftungen für jede Benachrichtigung an. Platzhalter: {drucker}, {name}, {progress}, {remaining}, {duration}, {weight}, {energy}, {cost}, {wartung}, {stunden}, {intervall}.",
+                "description": "Passe Titel, Nachrichtentext und Schaltflächenbeschriftungen für jede Benachrichtigung an. Platzhalter: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
                 "data": {
                     "text_start_title": "Gestartet – Titel",
                     "text_start_msg": "Gestartet – Nachricht",
