@@ -51,11 +51,17 @@ CONF_NOTIFY_ON_DONE = "notify_on_done"
 CONF_NOTIFY_ON_ERROR = "notify_on_error"
 CONF_NOTIFY_ON_MAINTENANCE = "notify_on_maintenance"
 
+# Mobile / HA notification channels
+CONF_NOTIFY_MOBILE_ENABLED = "notify_mobile_enabled"
+CONF_NOTIFY_HA_SUMMARY = "notify_ha_summary"
+
 DEFAULT_NOTIFY_ON_START = False
 DEFAULT_NOTIFY_ON_PROGRESS = True
 DEFAULT_NOTIFY_ON_DONE = True
 DEFAULT_NOTIFY_ON_ERROR = True
 DEFAULT_NOTIFY_ON_MAINTENANCE = True
+DEFAULT_NOTIFY_MOBILE_ENABLED = False
+DEFAULT_NOTIFY_HA_SUMMARY = True
 
 # Custom text keys
 CONF_TEXT_PROGRESS_TITLE = "text_progress_title"
