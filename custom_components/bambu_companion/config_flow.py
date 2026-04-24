@@ -15,11 +15,9 @@ from .const import (
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
     CONF_NOTIFY_INTERVAL,
-    CONF_NOTIFY_ON_DONE,
-    CONF_NOTIFY_ON_ERROR,
-    CONF_NOTIFY_ON_MAINTENANCE,
-    CONF_NOTIFY_ON_PROGRESS,
-    CONF_NOTIFY_ON_START,
+    CONF_NOTIFY_MOBILE_EVENTS,
+    CONF_NOTIFY_HA_EVENTS,
+    CONF_NOTIFY_QUIET_EVENTS,
     CONF_NOTIFY_TARGETS,
     CONF_PRINTER_DISPLAY_NAME,
     CONF_QUIET_FROM,
@@ -29,11 +27,9 @@ from .const import (
     DEFAULT_FILAMENT_COST_PER_KG,
     DEFAULT_FILAMENT_UNIT,
     DEFAULT_NOTIFY_INTERVAL,
-    DEFAULT_NOTIFY_ON_DONE,
-    DEFAULT_NOTIFY_ON_ERROR,
-    DEFAULT_NOTIFY_ON_MAINTENANCE,
-    DEFAULT_NOTIFY_ON_PROGRESS,
-    DEFAULT_NOTIFY_ON_START,
+    DEFAULT_NOTIFY_MOBILE_EVENTS,
+    DEFAULT_NOTIFY_HA_EVENTS,
+    DEFAULT_NOTIFY_QUIET_EVENTS,
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
     DOMAIN,
@@ -200,11 +196,17 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title = self._data.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab Printer")
             return self.async_create_entry(title=title, data=self._data)
 
+        notify_services = sorted(
+            f"notify.{service}"
+            for service in self.hass.services.async_services().get("notify", {})
+        )
+        notify_options = [{"value": s, "label": s} for s in notify_services]
+
         schema = vol.Schema(
             {
                 vol.Optional(CONF_NOTIFY_TARGETS): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[],
+                        options=notify_options,
                         multiple=True,
                         custom_value=True,
                         mode=selector.SelectSelectorMode.LIST,
@@ -224,20 +226,53 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_QUIET_TO, default=DEFAULT_QUIET_TO
                 ): selector.TimeSelector(),
                 vol.Required(
-                    CONF_NOTIFY_ON_START, default=DEFAULT_NOTIFY_ON_START
-                ): selector.BooleanSelector(),
+                    CONF_NOTIFY_MOBILE_EVENTS,
+                    default=DEFAULT_NOTIFY_MOBILE_EVENTS,
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "start", "label": "Druck gestartet"},
+                            {"value": "progress", "label": "Fortschrittsupdate"},
+                            {"value": "done", "label": "Druck abgeschlossen"},
+                            {"value": "error", "label": "Druckfehler"},
+                            {"value": "maintenance", "label": "Wartung fällig"},
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Required(
-                    CONF_NOTIFY_ON_PROGRESS, default=DEFAULT_NOTIFY_ON_PROGRESS
-                ): selector.BooleanSelector(),
+                    CONF_NOTIFY_HA_EVENTS,
+                    default=DEFAULT_NOTIFY_HA_EVENTS,
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "start", "label": "Druck gestartet"},
+                            {"value": "progress", "label": "Fortschrittsupdate"},
+                            {"value": "done", "label": "Druck abgeschlossen"},
+                            {"value": "error", "label": "Druckfehler"},
+                            {"value": "maintenance", "label": "Wartung fällig"},
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Required(
-                    CONF_NOTIFY_ON_DONE, default=DEFAULT_NOTIFY_ON_DONE
-                ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_NOTIFY_ON_ERROR, default=DEFAULT_NOTIFY_ON_ERROR
-                ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_NOTIFY_ON_MAINTENANCE, default=DEFAULT_NOTIFY_ON_MAINTENANCE
-                ): selector.BooleanSelector(),
+                    CONF_NOTIFY_QUIET_EVENTS,
+                    default=DEFAULT_NOTIFY_QUIET_EVENTS,
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "start", "label": "Druck gestartet"},
+                            {"value": "progress", "label": "Fortschrittsupdate"},
+                            {"value": "done", "label": "Druck abgeschlossen"},
+                            {"value": "error", "label": "Druckfehler"},
+                            {"value": "maintenance", "label": "Wartung fällig"},
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
             }
         )
 
