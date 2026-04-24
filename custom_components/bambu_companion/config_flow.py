@@ -79,7 +79,7 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if selected is None:
                 errors[CONF_DEVICE_ID] = "invalid_device"
             else:
-                await self.async_set_unique_id(f"bpt_{selected['serial']}")
+                await self.async_set_unique_id(f"bc_{selected['serial']}")
                 self._abort_if_unique_id_configured()
                 self._data.update(
                     {
