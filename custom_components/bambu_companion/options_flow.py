@@ -16,7 +16,6 @@ from .const import (
     CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_MOBILE_EVENTS,
-    CONF_NOTIFY_QUIET_EVENTS,
     CONF_NOTIFY_TARGETS,
     CONF_PRINTER_DISPLAY_NAME,
     CONF_QUIET_FROM,
@@ -47,13 +46,13 @@ from .const import (
     DEFAULT_NOTIFY_INTERVAL,
     DEFAULT_NOTIFY_MOBILE_EVENTS,
     DEFAULT_NOTIFY_HA_EVENTS,
-    DEFAULT_NOTIFY_QUIET_EVENTS,
     DEFAULT_PRINTER_NAME,
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
     DEFAULT_TEXTS,
     MAINTENANCE_TASKS,
 )
+from .maintenance import get_applicable_tasks
 
 
 class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
@@ -150,19 +149,25 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             self._combined.update(user_input)
             return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
 
-        # Collect all registered notify.* services dynamically
-        notify_services = sorted(
-            f"notify.{service}"
-            for service in self.hass.services.async_services().get("notify", {})
-        )
-        # Always include already-saved targets so they remain selectable
+        # Build list of HA Companion App devices (mobile_app integration only)
+        mobile_options = []
+        for entry in self.hass.config_entries.async_entries("mobile_app"):
+            device_name = entry.data.get("device_name", "")
+            if not device_name:
+                continue
+            slug = device_name.lower().replace(" ", "_").replace("-", "_")
+            full_service = f"notify.mobile_app_{slug}"
+            if f"mobile_app_{slug}" in self.hass.services.async_services().get("notify", {}):
+                mobile_options.append({"value": full_service, "label": entry.title or device_name})
+        # Keep already-saved targets that may not be in the list (e.g. old manual entries)
         saved_targets = current.get(CONF_NOTIFY_TARGETS, [])
         if isinstance(saved_targets, str):
             saved_targets = [saved_targets] if saved_targets else []
+        existing_values = {o["value"] for o in mobile_options}
         for t in saved_targets:
-            if t not in notify_services:
-                notify_services.append(t)
-        notify_options = [{"value": s, "label": s} for s in notify_services]
+            if t not in existing_values:
+                mobile_options.append({"value": t, "label": t})
+        mobile_options.sort(key=lambda x: x["label"])
 
         schema = vol.Schema(
             {
@@ -175,9 +180,8 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     description={"suggested_value": saved_targets},
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=notify_options,
+                        options=mobile_options,
                         multiple=True,
-                        custom_value=True,
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
@@ -227,22 +231,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
-                vol.Required(
-                    CONF_NOTIFY_QUIET_EVENTS,
-                    default=current.get(CONF_NOTIFY_QUIET_EVENTS, DEFAULT_NOTIFY_QUIET_EVENTS),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "start", "label": "Druck gestartet"},
-                            {"value": "progress", "label": "Fortschrittsupdate"},
-                            {"value": "done", "label": "Druck abgeschlossen"},
-                            {"value": "error", "label": "Druckfehler"},
-                            {"value": "maintenance", "label": "Wartung fällig"},
-                        ],
-                        multiple=True,
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
             }
         )
         return self.async_show_form(step_id="notify", data_schema=schema)
@@ -278,9 +266,13 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
 
         current_intervals = current.get("maintenance_intervals", {})
+        model = self.config_entry.data.get("model", "")
+        has_ams = bool(self.config_entry.data.get("ams_device_ids", []))
+        applicable_tasks = get_applicable_tasks(model, has_ams)
+
         fields = {}
         placeholders = {}
-        for task in MAINTENANCE_TASKS:
+        for task in applicable_tasks:
             key = task["key"]
             default_val = current_intervals.get(key, task["default_interval"])
             fields[vol.Required(key, default=int(default_val))] = selector.NumberSelector(
@@ -306,7 +298,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     CONF_MAX_HISTORY,
                     default=current.get(CONF_MAX_HISTORY, DEFAULT_MAX_HISTORY),
                 ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=10, max=500, step=10, mode=selector.NumberSelectorMode.BOX)
+                    selector.NumberSelectorConfig(min=0, max=500, step=10, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
         )
