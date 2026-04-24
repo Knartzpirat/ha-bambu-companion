@@ -84,20 +84,20 @@ def _overview_card(serial: str, printer_name: str, currency: str, ams_entries: l
         rows.append({"entity": total_usage_entity, "name": "Gesamtnutzung Drucker"})
         rows.append({"type": "divider"})
     rows += [
-        {"entity": f"sensor.bpt_{s}_print_status", "name": "Status"},
-        {"entity": f"sensor.bpt_{s}_total_prints", "name": "Drucke gesamt"},
-        {"entity": f"sensor.bpt_{s}_successful_prints", "name": "Erfolgreich"},
-        {"entity": f"sensor.bpt_{s}_failed_prints", "name": "Fehler"},
-        {"entity": f"sensor.bpt_{s}_total_print_time", "name": "Druckzeit gesamt"},
-        {"entity": f"sensor.bpt_{s}_total_filament", "name": "Filament gesamt"},
-        {"entity": f"sensor.bpt_{s}_total_energy", "name": "Energie gesamt"},
-        {"entity": f"sensor.bpt_{s}_total_cost", "name": f"Kosten gesamt ({currency})"},
+        {"entity": f"sensor.bc_{s}_print_status", "name": "Status"},
+        {"entity": f"sensor.bc_{s}_total_prints", "name": "Drucke gesamt"},
+        {"entity": f"sensor.bc_{s}_successful_prints", "name": "Erfolgreich"},
+        {"entity": f"sensor.bc_{s}_failed_prints", "name": "Fehler"},
+        {"entity": f"sensor.bc_{s}_total_print_time", "name": "Druckzeit gesamt"},
+        {"entity": f"sensor.bc_{s}_total_filament", "name": "Filament gesamt"},
+        {"entity": f"sensor.bc_{s}_total_energy", "name": "Energie gesamt"},
+        {"entity": f"sensor.bc_{s}_total_cost", "name": f"Kosten gesamt ({currency})"},
         {"type": "divider"},
-        {"entity": f"sensor.bpt_{s}_monthly_prints", "name": "Drucke diesen Monat"},
-        {"entity": f"sensor.bpt_{s}_monthly_cost", "name": f"Kosten diesen Monat ({currency})"},
+        {"entity": f"sensor.bc_{s}_monthly_prints", "name": "Drucke diesen Monat"},
+        {"entity": f"sensor.bc_{s}_monthly_cost", "name": f"Kosten diesen Monat ({currency})"},
         {"type": "divider"},
-        {"entity": f"sensor.bpt_{s}_last_print_duration", "name": "Letzter Druck – Dauer"},
-        {"entity": f"sensor.bpt_{s}_last_print_cost", "name": f"Letzter Druck – Kosten ({currency})"},
+        {"entity": f"sensor.bc_{s}_last_print_duration", "name": "Letzter Druck – Dauer"},
+        {"entity": f"sensor.bc_{s}_last_print_cost", "name": f"Letzter Druck – Kosten ({currency})"},
     ]
     return {
         "type": "entities",
@@ -113,7 +113,7 @@ def _maintenance_card(serial: str, tasks: list[dict]) -> dict:
     for task in tasks:
         rows.append(
             {
-                "entity": f"sensor.bpt_{s}_maint_{task['key']}",
+                "entity": f"sensor.bc_{s}_maint_{task['key']}",
                 "name": task["name"],
                 "secondary_info": "last-changed",
             }
@@ -121,7 +121,7 @@ def _maintenance_card(serial: str, tasks: list[dict]) -> dict:
         rows.append(
             {
                 "type": "button",
-                "entity": f"button.bpt_{s}_reset_maint_{task['key']}",
+                "entity": f"button.bc_{s}_reset_maint_{task['key']}",
                 "name": f"✅ Erledigt: {task['name']}",
                 "show_state": False,
                 "tap_action": {"action": "toggle"},
@@ -140,7 +140,7 @@ def _maintenance_card(serial: str, tasks: list[dict]) -> dict:
 
 def _history_card(serial: str, currency: str, cover_image_entity: str | None = None) -> dict:
     s = serial
-    entity = f"sensor.bpt_{s}_total_prints"
+    entity = f"sensor.bc_{s}_total_prints"
     cur = currency
 
     detail_content = (
