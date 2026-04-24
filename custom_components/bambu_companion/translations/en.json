@@ -84,7 +84,9 @@
                 "title": "Notifications",
                 "description": "Configure when Bambu Companion should send notifications and to which services. Quiet hours suppress all notifications during the specified time window.",
                 "data": {
-                    "notify_targets": "Notification services",
+                    "notify_mobile_enabled": "Enable phone notifications",
+                    "notify_targets": "Notification services (notify.*)",
+                    "notify_ha_summary": "Show summary in HA notifications",
                     "printer_display_name": "Printer display name",
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
@@ -96,7 +98,9 @@
                     "notify_on_maintenance": "Maintenance due"
                 },
                 "data_description": {
+                    "notify_mobile_enabled": "Enables sending notifications to the services listed below.",
                     "notify_targets": "Comma-separated list of notify.* services, e.g. notify.mobile_app_iphone.",
+                    "notify_ha_summary": "After each completed print a summary is shown under Home Assistant \u2192 Notifications.",
                     "printer_display_name": "Name of the printer shown in notifications.",
                     "notify_interval": "A progress update is sent every X percent.",
                     "quiet_from": "Start of quiet hours – no notifications after this time.",

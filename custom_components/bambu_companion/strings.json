@@ -83,7 +83,9 @@
                 "title": "Benachrichtigungen",
                 "description": "Lege fest, wann Bambu Companion Benachrichtigungen senden soll und zu welchen Diensten. Ruhige Stunden unterdrücken alle Meldungen im eingestellten Zeitraum.",
                 "data": {
-                    "notify_targets": "Benachrichtigungsgeräte",
+                    "notify_mobile_enabled": "Handy-Benachrichtigungen aktivieren",
+                    "notify_targets": "Benachrichtigungsgeräte (notify.*)",
+                    "notify_ha_summary": "Zusammenfassung in HA-Benachrichtigungen anzeigen",
                     "printer_display_name": "Druckername (Anzeige)",
                     "notify_interval": "Fortschrittsintervall (%)",
                     "quiet_from": "Ruhige Stunden von",
@@ -95,7 +97,9 @@
                     "notify_on_maintenance": "Wartung fällig"
                 },
                 "data_description": {
+                    "notify_mobile_enabled": "Aktiviert den Versand an die unten eingetragenen Benachrichtigungsdienste.",
                     "notify_targets": "Kommagetrennte Liste von notify.*-Diensten, z. B. notify.mobile_app_iphone.",
+                    "notify_ha_summary": "Nach jedem abgeschlossenen Druck wird eine Zusammenfassung unter Home Assistant \u2192 Benachrichtigungen angezeigt.",
                     "printer_display_name": "Name des Druckers, der in Benachrichtigungen erscheint.",
                     "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet.",
                     "quiet_from": "Beginn der Ruhezeit – keine Benachrichtigungen ab dieser Uhrzeit.",
