@@ -29,15 +29,14 @@
             },
             "notify": {
                 "title": "Notifications",
-                "description": "Choose which events are sent to which channel. Quiet hours can be applied per event.",
+                "description": "Bambu Companion can notify you via your smartphone and/or the Home Assistant inbox. Both channels are independently configurable. Quiet hours suppress all smartphone notifications.",
                 "data": {
-                    "notify_targets": "Notification services (notify.*)",
+                    "notify_targets": "Mobile device(s) for notifications",
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
                     "quiet_to": "Quiet hours to",
-                    "notify_mobile_events": "Events \u2192 send to phone",
-                    "notify_ha_events": "Events \u2192 HA notifications",
-                    "notify_quiet_events": "Quiet hours apply to"
+                    "notify_mobile_events": "Events → send to phone",
+                    "notify_ha_events": "Events → HA notifications"
                 }
             }
         },
@@ -80,26 +79,24 @@
             },
             "notify": {
                 "title": "Notifications",
-                "description": "Phone channel and HA inbox are independently configurable. Quiet hours apply only to smartphone notifications.",
+                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.",
                 "data": {
                     "printer_display_name": "Printer display name",
-                    "notify_targets": "Notification services (notify.*)",
+                    "notify_targets": "Mobile device(s) for notifications",
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
                     "quiet_to": "Quiet hours to",
-                    "notify_mobile_events": "Events \u2192 send to phone",
-                    "notify_ha_events": "Events \u2192 HA notifications",
-                    "notify_quiet_events": "Quiet hours apply to"
+                    "notify_mobile_events": "Events → send to phone",
+                    "notify_ha_events": "Events → HA notifications"
                 },
                 "data_description": {
                     "printer_display_name": "Name of the printer shown in notifications and cards.",
-                    "notify_targets": "Select one or more notify.* services (e.g. notify.mobile_app_iphone). Leave empty to use only the HA inbox.",
+                    "notify_targets": "Select your smartphone or tablet from the list of HA Companion App devices. Leave empty to use only the HA inbox.",
                     "notify_interval": "A progress update is sent every X percent, e.g. 25 = at 25 %, 50 %, 75 % and 100 %.",
-                    "quiet_from": "Start of quiet hours – no smartphone notifications after this time. The HA inbox is not affected.",
+                    "quiet_from": "Start of quiet hours – NO smartphone notifications after this time (applies to all event types). The HA inbox is not affected.",
                     "quiet_to": "End of quiet hours – smartphone notifications resume.",
-                    "notify_mobile_events": "These events are sent as push notifications to the phone. Requires at least one entry in \u2018Notification services\u2019.",
-                    "notify_ha_events": "These events appear in the HA inbox. No smartphone required.",
-                    "notify_quiet_events": "These event types are not sent to the smartphone during quiet hours."
+                    "notify_mobile_events": "These events are sent as push notifications to the phone. Requires at least one selected mobile device.",
+                    "notify_ha_events": "These events appear in the HA inbox. No smartphone required."
                 }
             },
             "maintenance": {
@@ -170,7 +167,7 @@
             },
             "texts": {
                 "title": "Customise notification texts",
-                "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: {drucker}, {name}, {progress}, {remaining}, {duration}, {weight}, {energy}, {cost}, {wartung}, {stunden}, {intervall}.",
+                "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
                 "data": {
                     "text_start_title": "Print started \u2013 title",
                     "text_start_msg": "Print started \u2013 message",
