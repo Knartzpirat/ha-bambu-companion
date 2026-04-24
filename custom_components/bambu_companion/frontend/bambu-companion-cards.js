@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.0.0";
+const VERSION = "1.3.0";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +53,44 @@ const SHARED_STYLE = `
   .muted   { color: var(--secondary-text-color); }
 `;
 
+
+// ── Editor Helpers ────────────────────────────────────────────────────────────
+
+const SHARED_EDITOR_STYLE = `
+  .row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  label { font-size:0.85em; color:var(--secondary-text-color); }
+  select, input {
+    width:100%; padding:8px; box-sizing:border-box;
+    border:1px solid var(--divider-color);
+    border-radius:4px; background:var(--card-background-color);
+    color:var(--primary-text-color); font-size:0.95em;
+  }
+  .hint { font-size:0.75em; color:var(--secondary-text-color); margin-top:2px; }
+`;
+
+function _findPrinters(hass) {
+    const result = [];
+    const seen = new Set();
+    for (const entityId of Object.keys(hass.states)) {
+        const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/);
+        if (m && !seen.has(m[1])) {
+            seen.add(m[1]);
+            result.push(m[1]);
+        }
+    }
+    return result;
+}
+
+function _printerSelect(printers, current) {
+    if (!printers.length) {
+        return `<select id="serial"><option value="">– Kein Bambu Companion Drucker gefunden –</option></select>
+                <div class="hint">Bitte zuerst die Integration einrichten.</div>`;
+    }
+    const opts = printers.map(s =>
+        `<option value="${s}"${s === current ? " selected" : ""}>${s}</option>`
+    ).join("");
+    return `<select id="serial"><option value="">– Drucker wählen –</option>${opts}</select>`;
+}
 
 // ── Overview Card ─────────────────────────────────────────────────────────────
 
@@ -169,6 +207,53 @@ class BambuCompanionOverviewCard extends HTMLElement {
 
     getCardSize() { return 7; }
     static getStubConfig() { return { serial: "", currency: "€", printer_name: "Bambu Drucker" }; }
+    static getConfigElement() { return document.createElement("bambu-companion-overview-card-editor"); }
+}
+
+
+// ── Overview Card Editor ──────────────────────────────────────────────────────
+
+class BambuCompanionOverviewCardEditor extends HTMLElement {
+    constructor() { super(); this.attachShadow({ mode: "open" }); }
+
+    setConfig(config) { this._config = config; this._render(); }
+    set hass(hass) { this._hass = hass; this._render(); }
+
+    _fire() {
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
+    }
+
+    _render() {
+        if (!this._hass) return;
+        const c = this._config || {};
+        const printers = _findPrinters(this._hass);
+
+        this.shadowRoot.innerHTML = `
+      <style>${SHARED_EDITOR_STYLE}</style>
+      <div class="row">
+        <label>Drucker *</label>
+        ${_printerSelect(printers, c.serial ?? "")}
+      </div>
+      <div class="row">
+        <label>Druckername (Anzeige in der Karte)</label>
+        <input id="printer_name" type="text" placeholder="Bambu Drucker">
+      </div>
+      <div class="row">
+        <label>Währungssymbol</label>
+        <input id="currency" type="text" placeholder="€">
+      </div>`;
+
+        // set current values
+        const sel = this.shadowRoot.getElementById("serial");
+        sel.value = c.serial ?? "";
+        sel.addEventListener("change", e => { this._config = { ...this._config, serial: e.target.value }; this._fire(); });
+
+        [["printer_name", ""], ["currency", "€"]].forEach(([id, def]) => {
+            const inp = this.shadowRoot.getElementById(id);
+            inp.value = c[id] ?? def;
+            inp.addEventListener("change", e => { this._config = { ...this._config, [id]: e.target.value }; this._fire(); });
+        });
+    }
 }
 
 
@@ -253,6 +338,38 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
 
     getCardSize() { return 4; }
     static getStubConfig() { return { serial: "" }; }
+    static getConfigElement() { return document.createElement("bambu-companion-maintenance-card-editor"); }
+}
+
+
+// ── Maintenance Card Editor ───────────────────────────────────────────────────
+
+class BambuCompanionMaintenanceCardEditor extends HTMLElement {
+    constructor() { super(); this.attachShadow({ mode: "open" }); }
+
+    setConfig(config) { this._config = config; this._render(); }
+    set hass(hass) { this._hass = hass; this._render(); }
+
+    _fire() {
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
+    }
+
+    _render() {
+        if (!this._hass) return;
+        const c = this._config || {};
+        const printers = _findPrinters(this._hass);
+
+        this.shadowRoot.innerHTML = `
+      <style>${SHARED_EDITOR_STYLE}</style>
+      <div class="row">
+        <label>Drucker *</label>
+        ${_printerSelect(printers, c.serial ?? "")}
+      </div>`;
+
+        const sel = this.shadowRoot.getElementById("serial");
+        sel.value = c.serial ?? "";
+        sel.addEventListener("change", e => { this._config = { ...this._config, serial: e.target.value }; this._fire(); });
+    }
 }
 
 
@@ -271,10 +388,11 @@ class BambuCompanionHistoryCard extends HTMLElement {
     _render() {
         if (!this._hass || !this._config) return;
         const h = this._hass;
-        const { serial, currency = "€", max_items = 10 } = this._config;
+        const { serial, currency = "€", max_height = 400 } = this._config;
 
         const entityId = `sensor.bc_${serial}_total_prints`;
-        const history = (h.states[entityId]?.attributes?.history ?? []).slice(0, max_items);
+        const history = h.states[entityId]?.attributes?.history ?? [];
+        const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "";
 
         const rows = history.map(p => {
             const ok = p.success !== false;
@@ -295,11 +413,15 @@ class BambuCompanionHistoryCard extends HTMLElement {
         this.shadowRoot.innerHTML = `
       <style>
         ${SHARED_STYLE}
+        .table-wrap { ${scrollStyle} }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-        th {
+        thead th {
+          position: sticky; top: 0;
+          background: var(--card-background-color);
           text-align: left; padding: 4px 6px;
           color: var(--secondary-text-color);
           font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em;
+          z-index: 1;
         }
         td { padding: 8px 6px; border-top: 1px solid var(--divider-color); }
         .right { text-align: right; }
@@ -308,33 +430,88 @@ class BambuCompanionHistoryCard extends HTMLElement {
       <ha-card>
         <div class="card-header">📋 Druckverlauf</div>
         ${history.length ? `
-          <table>
-            <thead>
-              <tr>
-                <th></th>
-                <th>Datum</th>
-                <th style="text-align:right">Dauer</th>
-                <th style="text-align:right">Filament</th>
-                <th style="text-align:right">Kosten</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Datum</th>
+                  <th style="text-align:right">Dauer</th>
+                  <th style="text-align:right">Filament</th>
+                  <th style="text-align:right">Kosten</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
         ` : '<div class="empty">Noch keine Drucke aufgezeichnet</div>'}
       </ha-card>
     `;
     }
 
     getCardSize() { return 5; }
-    static getStubConfig() { return { serial: "", currency: "€", max_items: 10 }; }
+    static getStubConfig() { return { serial: "", currency: "€", max_height: 400 }; }
+    static getConfigElement() { return document.createElement("bambu-companion-history-card-editor"); }
+}
+
+
+// ── History Card Editor ───────────────────────────────────────────────────────
+
+class BambuCompanionHistoryCardEditor extends HTMLElement {
+    constructor() { super(); this.attachShadow({ mode: "open" }); }
+
+    setConfig(config) { this._config = config; this._render(); }
+    set hass(hass) { this._hass = hass; this._render(); }
+
+    _fire() {
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
+    }
+
+    _render() {
+        if (!this._hass) return;
+        const c = this._config || {};
+        const printers = _findPrinters(this._hass);
+
+        this.shadowRoot.innerHTML = `
+      <style>${SHARED_EDITOR_STYLE}</style>
+      <div class="row">
+        <label>Drucker *</label>
+        ${_printerSelect(printers, c.serial ?? "")}
+      </div>
+      <div class="row">
+        <label>Währungssymbol</label>
+        <input id="currency" type="text" placeholder="€">
+      </div>
+      <div class="row">
+        <label>Maximale Höhe in px – 0 = unbegrenzt</label>
+        <input id="max_height" type="number" min="0" step="50" placeholder="400">
+      </div>`;
+
+        const sel = this.shadowRoot.getElementById("serial");
+        sel.value = c.serial ?? "";
+        sel.addEventListener("change", e => { this._config = { ...this._config, serial: e.target.value }; this._fire(); });
+
+        [["currency", "€"], ["max_height", 400]].forEach(([id, def]) => {
+            const inp = this.shadowRoot.getElementById(id);
+            inp.value = c[id] ?? def;
+            inp.addEventListener("change", e => {
+                const val = inp.type === "number" ? (parseInt(e.target.value, 10) || 0) : e.target.value;
+                this._config = { ...this._config, [id]: val };
+                this._fire();
+            });
+        });
+    }
 }
 
 
 // ── Register ──────────────────────────────────────────────────────────────────
 
 customElements.define("bambu-companion-overview-card", BambuCompanionOverviewCard);
+customElements.define("bambu-companion-overview-card-editor", BambuCompanionOverviewCardEditor);
 customElements.define("bambu-companion-maintenance-card", BambuCompanionMaintenanceCard);
+customElements.define("bambu-companion-maintenance-card-editor", BambuCompanionMaintenanceCardEditor);
 customElements.define("bambu-companion-history-card", BambuCompanionHistoryCard);
+customElements.define("bambu-companion-history-card-editor", BambuCompanionHistoryCardEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push(
