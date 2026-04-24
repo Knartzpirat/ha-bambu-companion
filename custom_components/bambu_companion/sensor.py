@@ -32,41 +32,41 @@ async def async_setup_entry(
     currency = entry.data.get("currency", "€")
 
     entities: list[SensorEntity] = [
-        BptStatSensor(coordinator, entry, serial, "print_status", "Druckstatus", "mdi:printer-3d-nozzle", None, None),
-        BptStatSensor(coordinator, entry, serial, "total_prints", "Drucke gesamt", "mdi:printer-3d", None, "prints"),
-        BptStatSensor(coordinator, entry, serial, "successful_prints", "Erfolgreiche Drucke", "mdi:check-circle", None, "prints"),
-        BptStatSensor(coordinator, entry, serial, "failed_prints", "Fehlgeschlagene Drucke", "mdi:close-circle", None, "prints"),
-        BptStatSensor(coordinator, entry, serial, "total_print_time", "Druckzeit gesamt", "mdi:clock-outline", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
-        BptStatSensor(coordinator, entry, serial, "total_energy", "Energie gesamt", "mdi:lightning-bolt", SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR),
-        BptStatSensor(coordinator, entry, serial, "total_filament", "Filament gesamt", "mdi:weight-gram", SensorStateClass.TOTAL_INCREASING, "g"),
-        BptStatSensor(coordinator, entry, serial, "total_cost", "Kosten gesamt", "mdi:currency-eur", SensorStateClass.TOTAL_INCREASING, currency),
-        BptStatSensor(coordinator, entry, serial, "monthly_cost", "Kosten diesen Monat", "mdi:calendar-month", None, currency),
-        BptStatSensor(coordinator, entry, serial, "monthly_prints", "Drucke diesen Monat", "mdi:calendar-month", None, "prints"),
-        BptStatSensor(coordinator, entry, serial, "last_print_duration", "Dauer letzter Druck", "mdi:timer-outline", None, UnitOfTime.MINUTES),
-        BptStatSensor(coordinator, entry, serial, "last_print_cost", "Kosten letzter Druck", "mdi:receipt", None, currency),
+        BcStatSensor(coordinator, entry, serial, "print_status", "Druckstatus", "mdi:printer-3d-nozzle", None, None),
+        BcStatSensor(coordinator, entry, serial, "total_prints", "Drucke gesamt", "mdi:printer-3d", None, "prints"),
+        BcStatSensor(coordinator, entry, serial, "successful_prints", "Erfolgreiche Drucke", "mdi:check-circle", None, "prints"),
+        BcStatSensor(coordinator, entry, serial, "failed_prints", "Fehlgeschlagene Drucke", "mdi:close-circle", None, "prints"),
+        BcStatSensor(coordinator, entry, serial, "total_print_time", "Druckzeit gesamt", "mdi:clock-outline", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
+        BcStatSensor(coordinator, entry, serial, "total_energy", "Energie gesamt", "mdi:lightning-bolt", SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR),
+        BcStatSensor(coordinator, entry, serial, "total_filament", "Filament gesamt", "mdi:weight-gram", SensorStateClass.TOTAL_INCREASING, "g"),
+        BcStatSensor(coordinator, entry, serial, "total_cost", "Kosten gesamt", "mdi:currency-eur", SensorStateClass.TOTAL_INCREASING, currency),
+        BcStatSensor(coordinator, entry, serial, "monthly_cost", "Kosten diesen Monat", "mdi:calendar-month", None, currency),
+        BcStatSensor(coordinator, entry, serial, "monthly_prints", "Drucke diesen Monat", "mdi:calendar-month", None, "prints"),
+        BcStatSensor(coordinator, entry, serial, "last_print_duration", "Dauer letzter Druck", "mdi:timer-outline", None, UnitOfTime.MINUTES),
+        BcStatSensor(coordinator, entry, serial, "last_print_cost", "Kosten letzter Druck", "mdi:receipt", None, currency),
     ]
 
     if features.get("dual_nozzle"):
         # Dual nozzle: track each nozzle separately, skip generic nozzle_hours
         entities += [
-            BptStatSensor(coordinator, entry, serial, "left_nozzle_hours", "Linke Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
-            BptStatSensor(coordinator, entry, serial, "right_nozzle_hours", "Rechte Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
+            BcStatSensor(coordinator, entry, serial, "left_nozzle_hours", "Linke Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
+            BcStatSensor(coordinator, entry, serial, "right_nozzle_hours", "Rechte Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
         ]
     else:
         entities.append(
-            BptStatSensor(coordinator, entry, serial, "nozzle_hours", "Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS)
+            BcStatSensor(coordinator, entry, serial, "nozzle_hours", "Düse Betriebsstunden", "mdi:clock", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS)
         )
 
     if features.get("laser"):
         entities.append(
-            BptStatSensor(coordinator, entry, serial, "laser_hours", "Laser Betriebsstunden", "mdi:laser-pointer", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS)
+            BcStatSensor(coordinator, entry, serial, "laser_hours", "Laser Betriebsstunden", "mdi:laser-pointer", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS)
         )
 
     # Maintenance sensors
     applicable_tasks = get_applicable_tasks(model, has_ams)
     for task in applicable_tasks:
         entities.append(
-            BptMaintenanceSensor(coordinator, entry, serial, task)
+            BcMaintenanceSensor(coordinator, entry, serial, task)
         )
 
     async_add_entities(entities)
@@ -81,7 +81,7 @@ def _device_info(entry: ConfigEntry, serial: str) -> DeviceInfo:
     )
 
 
-class BptStatSensor(CoordinatorEntity, SensorEntity):
+class BcStatSensor(CoordinatorEntity, SensorEntity):
     """Generic stat sensor for Bambu Print Tracker."""
 
     def __init__(
@@ -99,7 +99,7 @@ class BptStatSensor(CoordinatorEntity, SensorEntity):
         self._serial = serial
         self._stat_key = stat_key
         self._attr_name = name
-        self._attr_unique_id = f"bpt_{serial}_{stat_key}"
+        self._attr_unique_id = f"bc_{serial}_{stat_key}"
         self._attr_icon = icon
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit
@@ -118,11 +118,19 @@ class BptStatSensor(CoordinatorEntity, SensorEntity):
         monthly = data.get("monthly", {})
         last = data.get("last_print") or {}
 
+        # Prefer total_usage_hours from ha-bambulab; fall back to internal counter
+        bambu_total_hours = data.get("bambu_total_hours")
+        total_print_time = (
+            round(bambu_total_hours, 2)
+            if bambu_total_hours is not None
+            else round(counters.get("total_print_time_min", 0) / 60, 2)
+        )
+
         mapping = {
             "total_prints": counters.get("total_prints", 0),
             "successful_prints": counters.get("successful_prints", 0),
             "failed_prints": counters.get("failed_prints", 0),
-            "total_print_time": round(counters.get("total_print_time_min", 0) / 60, 2),
+            "total_print_time": total_print_time,
             "total_energy": round(counters.get("total_energy_kwh", 0), 3),
             "total_filament": round(counters.get("total_filament_g", 0), 1),
             "total_cost": round(counters.get("total_cost", 0), 2),
@@ -144,7 +152,7 @@ class BptStatSensor(CoordinatorEntity, SensorEntity):
         return {"history": self.coordinator.data.get("history", [])}
 
 
-class BptMaintenanceSensor(CoordinatorEntity, SensorEntity):
+class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
     """Maintenance task sensor."""
 
     def __init__(
@@ -158,7 +166,7 @@ class BptMaintenanceSensor(CoordinatorEntity, SensorEntity):
         self._serial = serial
         self._task = task
         self._attr_name = f"Wartung: {task['name']}"
-        self._attr_unique_id = f"bpt_{serial}_maint_{task['key']}"
+        self._attr_unique_id = f"bc_{serial}_maint_{task['key']}"
         self._attr_icon = "mdi:wrench"
         self._attr_device_info = _device_info(entry, serial)
 
