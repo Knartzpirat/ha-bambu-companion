@@ -8,7 +8,7 @@ URL_BASE = "/bambu_companion_static"
 BAMBU_COMPANION_CARDS = [
     {
         "filename": "bambu-companion-cards.js",
-        "version": "0.0.1",
+        "version": "1.3.0",
         "name": "Bambu Companion Cards",
     }
 ]
@@ -44,31 +44,24 @@ CONF_PRINTER_DISPLAY_NAME = "printer_display_name"
 CONF_MAX_HISTORY = "max_history"
 CONF_MAINTENANCE_INTERVALS = "maintenance_intervals"
 
-# Notification event toggles
-CONF_NOTIFY_ON_START = "notify_on_start"
-CONF_NOTIFY_ON_PROGRESS = "notify_on_progress"
-CONF_NOTIFY_ON_DONE = "notify_on_done"
-CONF_NOTIFY_ON_ERROR = "notify_on_error"
-CONF_NOTIFY_ON_MAINTENANCE = "notify_on_maintenance"
+# Per-channel notification events (multi-select lists)
+# Each list contains event keys: "start", "progress", "done", "error", "maintenance"
+CONF_NOTIFY_MOBILE_EVENTS = "notify_mobile_events"   # events sent to phone
+CONF_NOTIFY_HA_EVENTS = "notify_ha_events"            # events shown in HA notifications
+CONF_NOTIFY_QUIET_EVENTS = "notify_quiet_events"      # events suppressed during quiet hours
 
-# Mobile / HA notification channels
-CONF_NOTIFY_MOBILE_ENABLED = "notify_mobile_enabled"
-CONF_NOTIFY_HA_SUMMARY = "notify_ha_summary"
-
-DEFAULT_NOTIFY_ON_START = False
-DEFAULT_NOTIFY_ON_PROGRESS = True
-DEFAULT_NOTIFY_ON_DONE = True
-DEFAULT_NOTIFY_ON_ERROR = True
-DEFAULT_NOTIFY_ON_MAINTENANCE = True
-DEFAULT_NOTIFY_MOBILE_ENABLED = False
-DEFAULT_NOTIFY_HA_SUMMARY = True
+DEFAULT_NOTIFY_MOBILE_EVENTS: list[str] = []
+DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done"]
+DEFAULT_NOTIFY_QUIET_EVENTS: list[str] = ["start", "progress", "done", "error", "maintenance"]
 
 # Custom text keys
+CONF_TEXT_START_TITLE = "text_start_title"
 CONF_TEXT_PROGRESS_TITLE = "text_progress_title"
 CONF_TEXT_DONE_TITLE = "text_done_title"
 CONF_TEXT_ERROR_TITLE = "text_error_title"
 CONF_TEXT_MAINT_TITLE = "text_maint_title"
 CONF_TEXT_RESET_TITLE = "text_reset_title"
+CONF_TEXT_START_MSG = "text_start_msg"
 CONF_TEXT_PROGRESS_MSG = "text_progress_msg"
 CONF_TEXT_DONE_MSG = "text_done_msg"
 CONF_TEXT_ERROR_MSG = "text_error_msg"
@@ -82,6 +75,8 @@ CONF_TEXT_BTN_RESET_CANCEL = "text_btn_reset_cancel"
 CONF_TEXT_BTN_CAMERA = "text_btn_camera"
 
 DEFAULT_TEXTS = {
+    CONF_TEXT_START_TITLE: "🚀 {drucker} – Druck gestartet",
+    CONF_TEXT_START_MSG: "{name} wird jetzt gedruckt.",
     CONF_TEXT_PROGRESS_TITLE: "{drucker} – {name} | {progress}%",
     CONF_TEXT_DONE_TITLE: "✅ {drucker} – Druck fertig – {name}",
     CONF_TEXT_ERROR_TITLE: "❌ {drucker} – Druckfehler – {name}",
@@ -229,11 +224,17 @@ PRINTER_FEATURES: dict[str, dict] = {
 # wiki: Bambu Lab Wiki link for reference (exposed as sensor attribute)
 MAINTENANCE_TASKS: list[dict] = [
     # Nozzle & Hotend
-    {"key": "nozzle_clean", "name": "Druckkopf Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": None, "single_nozzle_only": True,
+    {"key": "nozzle_clean", "name": "Druckkopf Düse reinigen", "default_interval": 200, "trigger": "nozzle_hours", "models": None, "single_nozzle_only": True,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    {"key": "left_nozzle_clean", "name": "Druckkopf Linke Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+    {"key": "nozzle_replace", "name": "Druckkopf Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "nozzle_hours", "models": None, "single_nozzle_only": True, "reset_counter": True,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    {"key": "right_nozzle_clean", "name": "Druckkopf Rechte Düse reinigen / wechseln", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+    {"key": "left_nozzle_clean", "name": "Druckkopf Linke Düse reinigen", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
+    {"key": "left_nozzle_replace", "name": "Druckkopf Linke Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "left_nozzle_hours",
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
+    {"key": "right_nozzle_clean", "name": "Druckkopf Rechte Düse reinigen", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+     "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
+    {"key": "right_nozzle_replace", "name": "Druckkopf Rechte Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "right_nozzle_hours",
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
     # Bambu Wiki: blade should be checked every 3-5 rolls (≈ 20 prints); ~5000-7000 cuts before replacement
     {"key": "filament_cutter", "name": "Druckkopf Schneidmesser prüfen / wechseln", "default_interval": 20, "trigger": "print_count", "models": None,
