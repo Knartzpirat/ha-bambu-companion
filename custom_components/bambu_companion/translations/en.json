@@ -54,13 +54,15 @@
     "options": {
         "step": {
             "init": {
-                "title": "Settings",
+                "title": "Settings – Bambu Companion",
+                "description": "Select the section you want to configure.",
                 "data": {
                     "tab": "Section"
                 }
             },
             "energy": {
                 "title": "Costs & Energy",
+                "description": "Enter your electricity price and filament costs. Optional sensors allow Bambu Companion to read live energy values from a smart plug or a dynamic tariff feed.",
                 "data": {
                     "electricity_price": "Electricity price (€/kWh)",
                     "electricity_sensor": "Dynamic electricity price sensor (optional)",
@@ -68,10 +70,19 @@
                     "filament_cost": "Filament cost per kg",
                     "currency": "Currency symbol",
                     "filament_unit": "Filament unit"
+                },
+                "data_description": {
+                    "electricity_price": "Price per kWh, e.g. 0.30 for 30 cents.",
+                    "electricity_sensor": "Sensor whose state contains the current electricity price in €/kWh.",
+                    "energy_sensor": "kWh sensor of a smart plug connected to the printer – enables accurate energy tracking.",
+                    "filament_cost": "Cost per kilogram of filament, e.g. 25.00.",
+                    "currency": "Currency symbol shown in sensors and cards, e.g. € or $.",
+                    "filament_unit": "Unit used for filament display."
                 }
             },
             "notify": {
                 "title": "Notifications",
+                "description": "Configure when Bambu Companion should send notifications and to which services. Quiet hours suppress all notifications during the specified time window.",
                 "data": {
                     "notify_targets": "Notification services",
                     "printer_display_name": "Printer display name",
@@ -83,6 +94,18 @@
                     "notify_on_done": "Print finished",
                     "notify_on_error": "Print error",
                     "notify_on_maintenance": "Maintenance due"
+                },
+                "data_description": {
+                    "notify_targets": "Comma-separated list of notify.* services, e.g. notify.mobile_app_iphone.",
+                    "printer_display_name": "Name of the printer shown in notifications.",
+                    "notify_interval": "A progress update is sent every X percent.",
+                    "quiet_from": "Start of quiet hours – no notifications after this time.",
+                    "quiet_to": "End of quiet hours – notifications resume after this time.",
+                    "notify_on_start": "Send a notification when a print starts.",
+                    "notify_on_progress": "Periodic progress updates while printing.",
+                    "notify_on_done": "Send a notification when a print completes successfully.",
+                    "notify_on_error": "Send a notification when a print fails or is cancelled.",
+                    "notify_on_maintenance": "Send a notification when a maintenance interval is reached."
                 }
             },
             "maintenance": {
@@ -101,7 +124,7 @@
                     "belt": "Check belt tension (X & Y)",
                     "extruder_gear": "Clean toolhead extruder gear",
                     "toolhead_cable": "Inspect toolhead cable",
-                    "clean_bed": "Clean print bed (IPA)",
+                    "clean_bed": "Clean print bed",
                     "fans_clean": "Clean all fans",
                     "hepa_filter": "Replace chamber HEPA filter (X1/X1C/X1E)",
                     "carbon_filter": "Replace activated carbon filter (X1/X1C/X1E/P1S/H2D)",
@@ -111,7 +134,7 @@
                     "flow_cal": "Flow rate calibration",
                     "laser_lens": "Clean laser head lens & fan (H2D)",
                     "laser_deep": "Deep clean laser head (H2D)",
-                    "laser_bed": "Clean laser bed residue (H2D)",
+                    "laser_bed": "Clean laser bed",
                     "laser_safety": "Check laser safety window (H2D)",
                     "vortek_lube": "Lubricate rack guides (H2C)",
                     "vortek_wear": "Check hotend slots for wear (H2C)"
@@ -143,6 +166,38 @@
                     "laser_safety": "Trigger: laser hours",
                     "vortek_lube": "Trigger: total hours",
                     "vortek_wear": "Trigger: total hours"
+                }
+            },
+            "texts": {
+                "title": "Customise notification texts",
+                "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: {drucker}, {name}, {progress}, {remaining}, {duration}, {weight}, {energy}, {cost}, {wartung}, {stunden}, {intervall}.",
+                "data": {
+                    "text_progress_title": "Progress – title",
+                    "text_done_title": "Done – title",
+                    "text_error_title": "Error – title",
+                    "text_maint_title": "Maintenance – title",
+                    "text_reset_title": "Reset maintenance – title",
+                    "text_progress_msg": "Progress – message",
+                    "text_done_msg": "Done – message",
+                    "text_error_msg": "Error – message",
+                    "text_maint_msg": "Maintenance – message",
+                    "text_reset_msg": "Reset maintenance – message",
+                    "text_btn_done": "Button: Done",
+                    "text_btn_snooze": "Button: Snooze",
+                    "text_btn_cancel": "Button: Cancel",
+                    "text_btn_reset_confirm": "Button: Confirm reset",
+                    "text_btn_reset_cancel": "Button: Cancel reset",
+                    "text_btn_camera": "Button: Camera"
+                }
+            },
+            "general": {
+                "title": "General settings",
+                "description": "General settings for Bambu Companion.",
+                "data": {
+                    "max_history": "Max. stored prints (history)"
+                },
+                "data_description": {
+                    "max_history": "Maximum number of print jobs stored in the history. 0 = unlimited."
                 }
             }
         }
