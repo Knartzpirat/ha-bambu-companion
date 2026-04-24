@@ -232,16 +232,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
         currency = self._options.get(CONF_CURRENCY, DEFAULT_CURRENCY)
-        await self._notify.notify_done(
-            {
-                "drucker": printer_name,
-                "name": record.get("name", ""),
-                "duration": _format_minutes(record.get("duration_min", 0)),
-                "weight": f"{record.get('filament_weight_g', 0):.1f} g",
-                "energy": f"{record.get('energy_kwh', 0):.3f} kWh",
-                "cost": f"{currency}{record.get('total_cost', 0):.2f}",
-            }
-        )
+        variables = {
+            "drucker": printer_name,
+            "name": record.get("name", ""),
+            "duration": _format_minutes(record.get("duration_min", 0)),
+            "weight": f"{record.get('filament_weight_g', 0):.1f} g",
+            "energy": f"{record.get('energy_kwh', 0):.3f} kWh",
+            "cost": f"{currency}{record.get('total_cost', 0):.2f}",
+        }
+        await self._notify.notify_done(variables)
+        await self._notify.notify_ha_summary(self._serial, variables)
 
     async def _on_print_failed(self) -> None:
         record = self._build_print_record(success=False)
