@@ -212,7 +212,7 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.SelectSelectorConfig(
                         options=mobile_options,
                         multiple=True,
-                        mode=selector.SelectSelectorMode.LIST,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
                 vol.Required(
