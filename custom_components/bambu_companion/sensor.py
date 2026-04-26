@@ -78,7 +78,7 @@ def _device_info(entry: ConfigEntry, serial: str) -> DeviceInfo:
     return DeviceInfo(
         identifiers={(DOMAIN, serial)},
         name=entry.data.get("printer_display_name", "Bambu Print Tracker"),
-        manufacturer="Bambu Lab (Tracker)",
+        manufacturer="Bambu Lab",
         model=entry.data.get("model", ""),
     )
 
