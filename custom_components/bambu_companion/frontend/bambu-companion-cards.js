@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.1";
+const VERSION = "1.3.2";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -71,27 +71,43 @@ const SHARED_EDITOR_STYLE = `
 function _findPrinters(hass) {
     const result = [];
     const seen = new Set();
-    for (const entityId of Object.keys(hass.states)) {
-        const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/);
-        if (m && !seen.has(m[1])) {
+
+    function getLabel(entityId, deviceId) {
+        if (deviceId && hass.devices) {
+            const device = hass.devices[deviceId];
+            if (device) return device.name_by_user || device.name || null;
+        }
+        // Fallback: strip suffix from friendly_name
+        const fn = hass.states[entityId]?.attributes?.friendly_name ?? "";
+        const stripped = fn.replace(/\s*Druckstatus\s*$/i, "").trim();
+        return stripped || null;
+    }
+
+    // Primary: entity registry filtered by integration platform (works even before states load)
+    if (hass.entities) {
+        for (const entity of Object.values(hass.entities)) {
+            if (entity.platform !== "bambu_companion") continue;
+            const m = entity.entity_id.match(/^sensor\.bc_(.+?)_print_status$/);
+            if (!m || seen.has(m[1])) continue;
             seen.add(m[1]);
-            let label = m[1]; // fallback: serial number
-            // Prefer device registry name (available in HA 2023+)
-            if (hass.entities && hass.devices) {
-                const entityEntry = Object.values(hass.entities).find(e => e.entity_id === entityId);
-                if (entityEntry?.device_id) {
-                    const device = hass.devices[entityEntry.device_id];
-                    if (device) label = device.name_by_user || device.name || label;
-                }
-            } else {
-                // Fallback: strip sensor suffix from friendly_name
-                const fn = hass.states[entityId]?.attributes?.friendly_name ?? "";
-                const stripped = fn.replace(/\s*Druckstatus\s*$/i, "").trim();
-                if (stripped) label = stripped;
-            }
-            result.push({ serial: m[1], label });
+            result.push({ serial: m[1], label: getLabel(entity.entity_id, entity.device_id) || m[1] });
         }
     }
+
+    // Fallback: scan hass.states directly (older HA or entity registry not populated)
+    for (const entityId of Object.keys(hass.states)) {
+        const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/);
+        if (!m || seen.has(m[1])) continue;
+        seen.add(m[1]);
+        let deviceId = null;
+        if (hass.entities) {
+            const entry = Object.values(hass.entities).find(e => e.entity_id === entityId);
+            deviceId = entry?.device_id ?? null;
+        }
+        result.push({ serial: m[1], label: getLabel(entityId, deviceId) || m[1] });
+    }
+
+    result.sort((a, b) => a.label.localeCompare(b.label));
     return result;
 }
 
@@ -402,11 +418,15 @@ class BambuCompanionHistoryCard extends HTMLElement {
     _render() {
         if (!this._hass || !this._config) return;
         const h = this._hass;
-        const { serial, currency = "€", max_height = 400 } = this._config;
+        const { serial, max_entries = 20, max_height = 400 } = this._config;
+
+        // Read currency from sensor unit_of_measurement (set by integration config)
+        const currency = h.states[`sensor.bc_${serial}_total_cost`]?.attributes?.unit_of_measurement ?? "€";
 
         const entityId = `sensor.bc_${serial}_total_prints`;
-        const history = h.states[entityId]?.attributes?.history ?? [];
-        const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "";
+        const fullHistory = h.states[entityId]?.attributes?.history ?? [];
+        const history = max_entries > 0 ? fullHistory.slice(0, max_entries) : fullHistory;
+        const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "overflow-y:auto;";
 
         const rows = history.map(p => {
             const ok = p.success !== false;
@@ -464,7 +484,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
     }
 
     getCardSize() { return 5; }
-    static getStubConfig() { return { serial: "", currency: "€", max_height: 400 }; }
+    static getStubConfig() { return { serial: "", max_entries: 20, max_height: 400 }; }
     static getConfigElement() { return document.createElement("bambu-companion-history-card-editor"); }
 }
 
@@ -493,11 +513,11 @@ class BambuCompanionHistoryCardEditor extends HTMLElement {
         ${_printerSelect(printers, c.serial ?? "")}
       </div>
       <div class="row">
-        <label>Währungssymbol</label>
-        <input id="currency" type="text" placeholder="€">
+        <label>Anzahl Einträge (0 = alle anzeigen)</label>
+        <input id="max_entries" type="number" min="0" step="5" placeholder="20">
       </div>
       <div class="row">
-        <label>Maximale Höhe in px – 0 = unbegrenzt</label>
+        <label>Maximale Höhe in px (0 = unbegrenzt)</label>
         <input id="max_height" type="number" min="0" step="50" placeholder="400">
       </div>`;
 
@@ -505,14 +525,18 @@ class BambuCompanionHistoryCardEditor extends HTMLElement {
         sel.value = c.serial ?? "";
         sel.addEventListener("change", e => { this._config = { ...this._config, serial: e.target.value }; this._fire(); });
 
-        [["currency", "€"], ["max_height", 400]].forEach(([id, def]) => {
-            const inp = this.shadowRoot.getElementById(id);
-            inp.value = c[id] ?? def;
-            inp.addEventListener("change", e => {
-                const val = inp.type === "number" ? (parseInt(e.target.value, 10) || 0) : e.target.value;
-                this._config = { ...this._config, [id]: val };
-                this._fire();
-            });
+        const inp = this.shadowRoot.getElementById("max_entries");
+        inp.value = c.max_entries ?? 20;
+        inp.addEventListener("change", e => {
+            this._config = { ...this._config, max_entries: parseInt(e.target.value, 10) || 0 };
+            this._fire();
+        });
+
+        const inpH = this.shadowRoot.getElementById("max_height");
+        inpH.value = c.max_height ?? 400;
+        inpH.addEventListener("change", e => {
+            this._config = { ...this._config, max_height: parseInt(e.target.value, 10) || 0 };
+            this._fire();
         });
     }
 }
