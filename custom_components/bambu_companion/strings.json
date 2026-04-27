@@ -2,224 +2,214 @@
     "config": {
         "step": {
             "user": {
-                "title": "Drucker auswählen",
-                "description": "Bambu Companion erweitert einen bestehenden Bambu Lab Drucker um Statistiken, Kostenberechnung und Wartungserinnerungen. Voraussetzung: Die ha-bambulab Integration muss bereits eingerichtet und der Drucker verbunden sein.",
+                "title": "Select printer",
+                "description": "Select a Bambu Lab printer already set up via the ha-bambulab integration.",
                 "data": {
-                    "device_id": "Drucker"
-                },
-                "data_description": {
-                    "device_id": "Wähle den Drucker, den du überwachen möchtest. Bambu Companion liest seine Live-Daten aus ha-bambulab und fügt eigene Zähler, Druckkosten und Wartungspläne hinzu."
+                    "device_id": "Printer"
                 }
             },
             "ams": {
-                "title": "AMS-Einheiten",
-                "description": "Das Automatic Material System (AMS) ermöglicht den Druck mit mehreren Filamenten. Wähle hier alle AMS-Einheiten, die an diesem Drucker angeschlossen sind. Drucker ohne AMS überspringen diesen Schritt automatisch.",
+                "title": "AMS units",
+                "description": "Select the AMS units to monitor.",
                 "data": {
-                    "ams_device_ids": "AMS-Einheiten"
-                },
-                "data_description": {
-                    "ams_device_ids": "Alle erkannten AMS-Einheiten sind vorausgewählt. Entferne Einheiten, die du nicht überwachen möchtest."
+                    "ams_device_ids": "AMS units"
                 }
             },
             "energy": {
-                "title": "Energie & Kosten",
-                "description": "Bambu Companion berechnet die Druckkosten aus Stromverbrauch und Filamentgewicht. Die optionalen Sensoren ermöglichen eine exakte Messung statt Schätzung – du kannst sie auch später in den Einstellungen hinzufügen.",
+                "title": "Energy & costs",
+                "description": "Enter electricity price and filament cost so Bambu Companion can calculate print costs. The sensors are optional.",
                 "data": {
-                    "electricity_price": "Strompreis (€/kWh)",
-                    "electricity_sensor": "Dynamischer Strompreissensor (optional)",
-                    "energy_sensor": "Smarte Steckdose kWh-Sensor (optional)",
-                    "filament_cost": "Filamentkosten pro kg (€)",
-                    "currency": "Währungssymbol",
-                    "filament_unit": "Filamenteinheit"
-                },
-                "data_description": {
-                    "electricity_price": "Preis pro kWh, z. B. 0.30 für 30 Cent. Wird für die Kostenschätzung genutzt, solange kein Live-Sensor angegeben ist.",
-                    "electricity_sensor": "Optional: Sensor mit dem aktuellen Strompreis in €/kWh – z. B. von Tibber oder einem anderen Tarifdienst.",
-                    "energy_sensor": "Optional: kWh-Sensor einer smarten Steckdose am Drucker. Liefert den tatsächlichen Verbrauch statt einer Schätzung aus Druckzeit × Leistung.",
-                    "filament_cost": "Kosten pro Kilogramm Filament, z. B. 25.00. Bambu Companion errechnet daraus die Filamentkosten anhand des verbrauchten Gewichts.",
-                    "currency": "Währungssymbol für Sensoren und Dashboard-Karten, z. B. € oder $.",
-                    "filament_unit": "Einheit für die Filamentmengenanzeige – kg oder g."
+                    "electricity_price": "Electricity price (€/kWh)",
+                    "electricity_sensor": "Dynamic electricity price sensor (optional)",
+                    "energy_sensor": "Smart plug kWh sensor (optional)",
+                    "filament_cost": "Filament cost per kg (€)",
+                    "currency": "Currency symbol",
+                    "filament_unit": "Filament unit"
                 }
             },
             "notify": {
-                "title": "Benachrichtigungen",
-                "description": "Bambu Companion kann dich über dein Smartphone und/oder den Home-Assistant-Posteingang informieren. Beide Kanäle sind unabhängig voneinander konfigurierbar – du kannst z. B. Fehlermeldungen aufs Handy senden, aber Fortschrittsupdates nur im HA-Posteingang anzeigen. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.",
+                "title": "Notifications",
+                "description": "Bambu Companion can notify you via your smartphone and/or the Home Assistant inbox. Both channels are independently configurable. Quiet hours suppress all smartphone notifications.",
                 "data": {
-                    "notify_targets": "Mobilgerät(e) für Benachrichtigungen",
-                    "notify_interval": "Fortschrittsintervall (%)",
-                    "quiet_from": "Ruhige Stunden von",
-                    "quiet_to": "Ruhige Stunden bis",
-                    "notify_mobile_events": "Ereignisse → Handy senden",
-                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen"
-                },
-                "data_description": {
-                    "notify_targets": "Wähle dein Smartphone oder Tablet aus der Liste der HA Companion App-Geräte. Leer lassen, wenn du ausschließlich den HA-Posteingang nutzen möchtest.",
-                    "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet, z. B. 25 = Nachricht bei 25 %, 50 %, 75 % und 100 %.",
-                    "quiet_from": "Beginn der Ruhezeit. In diesem Zeitraum werden KEINE Smartphone-Nachrichten gesendet (gilt für alle Ereignistypen). HA-Posteingang-Nachrichten sind davon nicht betroffen.",
-                    "quiet_to": "Ende der Ruhezeit. Danach werden Smartphone-Nachrichten wieder gesendet.",
-                    "notify_mobile_events": "Diese Ereignistypen werden als Push-Nachricht an die ausgewählten Geräte gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
-                    "notify_ha_events": "Diese Ereignistypen erscheinen im HA-Posteingang (Glocken-Symbol oben rechts). Kein Smartphone oder externe App erforderlich."
+                    "notify_targets": "Mobile device(s) for notifications",
+                    "notify_interval": "Progress interval (%)",
+                    "quiet_from": "Quiet hours from",
+                    "quiet_to": "Quiet hours to",
+                    "notify_mobile_events": "Events → send to phone",
+                    "notify_ha_events": "Events → HA notifications"
                 }
             }
         },
         "abort": {
-            "no_bambu_devices": "Keine Bambu Lab Drucker gefunden. Bitte zuerst die ha-bambulab Integration einrichten.",
-            "already_configured": "Dieser Drucker ist bereits konfiguriert."
+            "no_bambu_devices": "No Bambu Lab printers found. Please set up the ha-bambulab integration first.",
+            "already_configured": "This printer is already configured."
         },
         "error": {
-            "invalid_device": "Ungültiger Drucker ausgewählt."
+            "invalid_device": "Invalid printer selected."
         }
     },
     "options": {
         "step": {
             "init": {
-                "title": "Einstellungen – Bambu Companion",
-                "description": "Wähle den Bereich, den du anpassen möchtest.",
+                "title": "Settings – Bambu Companion",
+                "description": "Select the section you want to configure.",
                 "data": {
-                    "tab": "Bereich"
+                    "tab": "Section"
                 }
             },
             "energy": {
-                "title": "Kosten & Energie",
-                "description": "Gib hier Strompreis und Filamentkosten an. Über optionale Sensoren werden Verbrauchswerte direkt aus deiner Smarten Steckdose oder einem Strompreis-Feed ausgelesen.",
+                "title": "Costs & Energy",
+                "description": "Enter your electricity price and filament costs. Optional sensors allow Bambu Companion to read live energy values from a smart plug or a dynamic tariff feed.",
                 "data": {
-                    "electricity_price": "Strompreis (€/kWh)",
-                    "electricity_sensor": "Dynamischer Strompreissensor (optional)",
-                    "energy_sensor": "Smarte Steckdose kWh-Sensor (optional)",
-                    "filament_cost": "Filamentkosten pro kg",
-                    "currency": "Währungssymbol",
-                    "filament_unit": "Filamenteinheit"
+                    "electricity_price": "Electricity price (€/kWh)",
+                    "electricity_sensor": "Dynamic electricity price sensor (optional)",
+                    "energy_sensor": "Smart plug kWh sensor (optional)",
+                    "filament_cost": "Filament cost per kg",
+                    "currency": "Currency symbol",
+                    "filament_unit": "Filament unit"
                 },
                 "data_description": {
-                    "electricity_price": "Preis pro kWh, z. B. 0.30 für 30 Cent.",
-                    "electricity_sensor": "Sensor, dessen Zustandswert den aktuellen Strompreis in €/kWh enthält.",
-                    "energy_sensor": "kWh-Sensor einer smarten Steckdose am Drucker – ermöglicht exakte Energiemessung.",
-                    "filament_cost": "Kosten pro Kilogramm Filament, z. B. 25.00.",
-                    "currency": "Währungssymbol das in Sensoren und Karten angezeigt wird, z. B. € oder $.",
-                    "filament_unit": "Einheit für die Filamentanzeige."
+                    "electricity_price": "Price per kWh, e.g. 0.30 for 30 cents.",
+                    "electricity_sensor": "Sensor whose state contains the current electricity price in €/kWh.",
+                    "energy_sensor": "kWh sensor of a smart plug connected to the printer – enables accurate energy tracking.",
+                    "filament_cost": "Cost per kilogram of filament, e.g. 25.00.",
+                    "currency": "Currency symbol shown in sensors and cards, e.g. € or $.",
+                    "filament_unit": "Unit used for filament display."
                 }
             },
             "notify": {
-                "title": "Benachrichtigungen",
-                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.",
+                "title": "Notifications",
+                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.",
                 "data": {
-                    "printer_display_name": "Druckername (Anzeige)",
-                    "notify_targets": "Mobilgerät(e) für Benachrichtigungen",
-                    "notify_interval": "Fortschrittsintervall (%)",
-                    "quiet_from": "Ruhige Stunden von",
-                    "quiet_to": "Ruhige Stunden bis",
-                    "notify_mobile_events": "Ereignisse → Handy senden",
-                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen"
+                    "printer_display_name": "Printer display name",
+                    "notify_targets": "Mobile device(s) for notifications",
+                    "notify_interval": "Progress interval (%)",
+                    "quiet_from": "Quiet hours from",
+                    "quiet_to": "Quiet hours to",
+                    "notify_mobile_events": "Events → send to phone",
+                    "notify_ha_events": "Events → HA notifications"
                 },
                 "data_description": {
-                    "printer_display_name": "Name des Druckers, der in Benachrichtigungen und Karten erscheint.",
-                    "notify_targets": "Wähle dein Smartphone oder Tablet aus der Liste der HA Companion App-Geräte. Leer lassen, wenn du nur den HA-Posteingang nutzen möchtest.",
-                    "notify_interval": "Alle X Prozent wird ein Fortschrittsupdate gesendet, z. B. 25 = bei 25 %, 50 %, 75 % und 100 %.",
-                    "quiet_from": "Beginn der Ruhezeit – KEINE Smartphone-Nachrichten ab dieser Uhrzeit (gilt für alle Ereignistypen). Der HA-Posteingang ist nicht betroffen.",
-                    "quiet_to": "Ende der Ruhezeit – Smartphone-Nachrichten werden wieder gesendet.",
-                    "notify_mobile_events": "Diese Ereignisse werden als Push-Nachricht ans Smartphone gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
-                    "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich."
+                    "printer_display_name": "Name of the printer shown in notifications and cards.",
+                    "notify_targets": "Select your smartphone or tablet from the list of HA Companion App devices. Leave empty to use only the HA inbox.",
+                    "notify_interval": "A progress update is sent every X percent, e.g. 25 = at 25 %, 50 %, 75 % and 100 %.",
+                    "quiet_from": "Start of quiet hours – NO smartphone notifications after this time (applies to all event types). The HA inbox is not affected.",
+                    "quiet_to": "End of quiet hours – smartphone notifications resume.",
+                    "notify_mobile_events": "These events are sent as push notifications to the phone. Requires at least one selected mobile device.",
+                    "notify_ha_events": "These events appear in the HA inbox. No smartphone required."
                 }
             },
             "maintenance": {
-                "title": "Wartungsintervalle",
-                "description": "Intervalle in Stunden bzw. Druckanzahl. Die Aufgaben werden jeweils nach Erreichen des Intervalls gemeldet.",
+                "title": "Maintenance intervals",
+                "description": "Intervals in hours or print count. A notification is sent when the interval is reached.",
                 "data": {
-                    "nozzle_clean": "Druckkopf Düse reinigen",
-                    "nozzle_replace": "Druckkopf Düse gewechselt (Stundenzähler zurücksetzen)",
-                    "left_nozzle_clean": "Druckkopf Linke Düse reinigen (H2D)",
-                    "left_nozzle_replace": "Druckkopf Linke Düse gewechselt – Stundenzähler zurücksetzen (H2D)",
-                    "right_nozzle_clean": "Druckkopf Rechte Düse reinigen (H2D)",
-                    "right_nozzle_replace": "Druckkopf Rechte Düse gewechselt – Stundenzähler zurücksetzen (H2D)",
-                    "filament_cutter": "Druckkopf Schneidmesser prüfen / wechseln",
-                    "ptfe_tube": "Druckkopf PTFE-Tube prüfen / wechseln",
-                    "heatbreak": "Druckkopf Hotend / Heatbreak reinigen",
-                    "lube_linear": "Y/Z-Linearschienen reinigen & konservieren",
-                    "lube_z": "Z-Gewindespindeln schmieren",
-                    "carbon_rods": "Carbon-Stangen reinigen – IPA, kein Öl! (X1/X1C/X1E/P1S)",
-                    "belt": "Riemenspannung prüfen (X & Y)",
-                    "extruder_gear": "Druckkopf Extruder-Zahnrad reinigen",
-                    "toolhead_cable": "Druckkopf Kabel prüfen",
-                    "clean_bed": "Druckbett reinigen",
-                    "fans_clean": "Alle Lüfter reinigen",
-                    "hepa_filter": "Kammer-HEPA-Filter wechseln (X1/X1C/X1E)",
-                    "carbon_filter": "Aktivkohle-Filter wechseln (X1/X1C/X1E/P1S/H2D)",
-                    "ams_wiper": "Purge Wiper reinigen (AMS)",
-                    "ams_gears": "AMS Getriebe / Rollen reinigen (AMS)",
-                    "resonance_cal": "Vibrationskompensation (Resonance)",
-                    "flow_cal": "Fluss-Kalibrierung",
-                    "laser_lens": "Laserkopf Linse & Lüfter reinigen (H2D)",
-                    "laser_deep": "Laserkopf Grundreinigung (H2D)",
-                    "laser_bed": "Laserbett reinigen",
-                    "laser_safety": "Lasersicherheitsscheibe prüfen (H2D)",
-                    "vortek_lube": "Rack-Führungen schmieren (H2C)",
-                    "vortek_wear": "Hotend-Slots auf Verschleiß prüfen (H2C)"
+                    "nozzle_clean": "Clean toolhead nozzle",
+                    "nozzle_replace": "Toolhead nozzle replaced (reset hours counter)",
+                    "left_nozzle_clean": "Clean toolhead left nozzle (H2D)",
+                    "left_nozzle_replace": "Toolhead left nozzle replaced – reset hours counter (H2D)",
+                    "right_nozzle_clean": "Clean toolhead right nozzle (H2D)",
+                    "right_nozzle_replace": "Toolhead right nozzle replaced – reset hours counter (H2D)",
+                    "filament_cutter": "Check / replace toolhead filament cutter",
+                    "ptfe_tube": "Check / replace toolhead PTFE tube",
+                    "heatbreak": "Clean toolhead hotend / heatbreak",
+                    "lube_linear": "Clean & preserve Y/Z linear rods",
+                    "lube_z": "Lubricate Z lead screws",
+                    "carbon_rods": "Clean carbon rods – IPA only, no oil! (X1/X1C/X1E/P1S)",
+                    "belt": "Check belt tension (X & Y)",
+                    "extruder_gear": "Clean toolhead extruder gear",
+                    "toolhead_cable": "Inspect toolhead cable",
+                    "clean_bed": "Clean print bed",
+                    "fans_clean": "Clean all fans",
+                    "hepa_filter": "Replace chamber HEPA filter (X1/X1C/X1E)",
+                    "carbon_filter": "Replace activated carbon filter (X1/X1C/X1E/P1S/H2D)",
+                    "ams_wiper": "Clean purge wiper (AMS)",
+                    "ams_gears": "Clean AMS gears / rollers (AMS)",
+                    "resonance_cal": "Resonance compensation calibration",
+                    "flow_cal": "Flow rate calibration",
+                    "laser_lens": "Clean laser head lens & fan (H2D)",
+                    "laser_deep": "Deep clean laser head (H2D)",
+                    "laser_bed": "Clean laser bed",
+                    "laser_safety": "Check laser safety window (H2D)",
+                    "vortek_lube": "Lubricate rack guides (H2C)",
+                    "vortek_wear": "Check hotend slots for wear (H2C)"
                 },
                 "data_description": {
-                    "nozzle_clean": "Reinigungsintervall in Düsen-Druckstunden. Setzt nur die Erinnerung zurück, nicht den Stundenzähler.",
-                    "nozzle_replace": "Intervall für Düsenwechsel in Druckstunden. Setzt beim Quittieren den gesamten Düsen-Stundenzähler auf 0.",
-                    "left_nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",
-                    "left_nozzle_replace": "Trigger: Düsen-Druckstunden. Setzt beim Quittieren den Stundenzähler der linken Düse auf 0.",
-                    "right_nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",
-                    "right_nozzle_replace": "Trigger: Düsen-Druckstunden. Setzt beim Quittieren den Stundenzähler der rechten Düse auf 0.",
-                    "filament_cutter": "Trigger: Anzahl Drucke | Wiki: Bambu – Filament Cutter",
-                    "ptfe_tube": "Trigger: Druckstunden",
-                    "heatbreak": "Trigger: Druckstunden | Wiki: Bambu – Hotend Cleaning",
-                    "lube_linear": "Trigger: Druckstunden | Wiki: Bambu – Linear Rods",
-                    "lube_z": "Trigger: Druckstunden | Wiki: Bambu – Lead Screws",
-                    "carbon_rods": "Trigger: Druckstunden | Wiki: Bambu – Carbon Rods",
-                    "belt": "Trigger: Druckstunden | Wiki: Bambu – Belt Tension",
-                    "extruder_gear": "Trigger: Druckstunden | Wiki: Bambu – Extruder",
-                    "toolhead_cable": "Trigger: Druckstunden",
-                    "clean_bed": "Trigger: Anzahl Drucke",
-                    "fans_clean": "Trigger: Druckstunden | Wiki: Bambu – Part Cooling Fans",
-                    "hepa_filter": "Trigger: Gesamtstunden",
-                    "carbon_filter": "Trigger: Gesamtstunden | Wiki: Bambu – Carbon Filter",
-                    "ams_wiper": "Trigger: Anzahl Drucke",
-                    "ams_gears": "Trigger: Druckstunden | Wiki: Bambu – AMS Maintenance",
-                    "resonance_cal": "Trigger: Druckstunden",
-                    "flow_cal": "Trigger: Druckstunden",
-                    "laser_lens": "Trigger: Laserstunden",
-                    "laser_deep": "Trigger: Laserstunden",
-                    "laser_bed": "Trigger: Laseraufträge",
-                    "laser_safety": "Trigger: Laserstunden",
-                    "vortek_lube": "Trigger: Gesamtstunden",
-                    "vortek_wear": "Trigger: Gesamtstunden"
+                    "nozzle_clean": "Trigger: nozzle print hours. Resets reminder only, not the hours counter.",
+                    "nozzle_replace": "Trigger: nozzle print hours. Resets the full nozzle hours counter to 0 when acknowledged.",
+                    "left_nozzle_clean": "Trigger: nozzle print hours. Resets reminder only.",
+                    "left_nozzle_replace": "Trigger: nozzle print hours. Resets left nozzle hours counter to 0 when acknowledged.",
+                    "right_nozzle_clean": "Trigger: nozzle print hours. Resets reminder only.",
+                    "right_nozzle_replace": "Trigger: nozzle print hours. Resets right nozzle hours counter to 0 when acknowledged.",
+                    "filament_cutter": "Trigger: print count | Wiki → Bambu: Filament Cutter",
+                    "ptfe_tube": "Trigger: print hours",
+                    "heatbreak": "Trigger: print hours | Wiki → Bambu: Hotend Cleaning",
+                    "lube_linear": "Trigger: print hours | Wiki → Bambu: Linear Rods & Bearings",
+                    "lube_z": "Trigger: print hours | Wiki → Bambu: Lead Screws",
+                    "carbon_rods": "Trigger: print hours | Wiki → Bambu: Carbon Rods",
+                    "belt": "Trigger: print hours | Wiki → Bambu: Belt Tension",
+                    "extruder_gear": "Trigger: print hours | Wiki → Bambu: Extruder",
+                    "toolhead_cable": "Trigger: print hours",
+                    "clean_bed": "Trigger: print count",
+                    "fans_clean": "Trigger: print hours | Wiki → Bambu: Part Cooling Fans",
+                    "hepa_filter": "Trigger: total hours",
+                    "carbon_filter": "Trigger: total hours | Wiki → Bambu: Carbon Filter",
+                    "ams_wiper": "Trigger: print count",
+                    "ams_gears": "Trigger: print hours | Wiki → Bambu: AMS Maintenance",
+                    "resonance_cal": "Trigger: print hours",
+                    "flow_cal": "Trigger: print hours",
+                    "laser_lens": "Trigger: laser hours",
+                    "laser_deep": "Trigger: laser hours",
+                    "laser_bed": "Trigger: laser jobs",
+                    "laser_safety": "Trigger: laser hours",
+                    "vortek_lube": "Trigger: total hours",
+                    "vortek_wear": "Trigger: total hours"
                 }
             },
             "texts": {
-                "title": "Benachrichtigungstexte anpassen",
-                "description": "Passe Titel, Nachrichtentext und Schaltflächenbeschriftungen für jede Benachrichtigung an. Platzhalter: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
+                "title": "Customise notification texts",
+                "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
                 "data": {
-                    "text_start_title": "Gestartet – Titel",
-                    "text_start_msg": "Gestartet – Nachricht",
-                    "text_progress_title": "Fortschritt – Titel",
-                    "text_done_title": "Fertig – Titel",
-                    "text_error_title": "Fehler – Titel",
-                    "text_maint_title": "Wartung – Titel",
-                    "text_reset_title": "Wartung zurücksetzen – Titel",
-                    "text_progress_msg": "Fortschritt – Nachricht",
-                    "text_done_msg": "Fertig – Nachricht",
-                    "text_error_msg": "Fehler – Nachricht",
-                    "text_maint_msg": "Wartung – Nachricht",
-                    "text_reset_msg": "Wartung zurücksetzen – Nachricht",
-                    "text_btn_done": "Schaltfläche: Erledigt",
-                    "text_btn_snooze": "Schaltfläche: Erinnern",
-                    "text_btn_cancel": "Schaltfläche: Abbrechen",
-                    "text_btn_reset_confirm": "Schaltfläche: Bestätigen",
-                    "text_btn_reset_cancel": "Schaltfläche: Abbrechen (Reset)",
-                    "text_btn_camera": "Schaltfläche: Kamera"
+                    "text_start_title": "Print started \u2013 title",
+                    "text_start_msg": "Print started \u2013 message",
+                    "text_progress_title": "Progress \u2013 title",
+                    "text_done_title": "Done \u2013 title",
+                    "text_error_title": "Error \u2013 title",
+                    "text_maint_title": "Maintenance \u2013 title",
+                    "text_reset_title": "Reset maintenance \u2013 title",
+                    "text_progress_msg": "Progress \u2013 message",
+                    "text_done_msg": "Done \u2013 message",
+                    "text_error_msg": "Error \u2013 message",
+                    "text_maint_msg": "Maintenance \u2013 message",
+                    "text_reset_msg": "Reset maintenance \u2013 message",
+                    "text_btn_done": "Button: Done",
+                    "text_btn_snooze": "Button: Snooze",
+                    "text_btn_cancel": "Button: Cancel",
+                    "text_btn_reset_confirm": "Button: Confirm reset",
+                    "text_btn_reset_cancel": "Button: Cancel reset",
+                    "text_btn_camera": "Button: Camera"
                 }
             },
             "general": {
-                "title": "Allgemeine Einstellungen",
-                "description": "Allgemeine Einstellungen für Bambu Companion.",
+                "title": "General settings",
+                "description": "General settings for Bambu Companion.",
                 "data": {
-                    "max_history": "Max. gespeicherte Drucke (Verlauf)"
+                    "max_history": "Max. stored prints (history)"
                 },
                 "data_description": {
-                    "max_history": "Maximale Anzahl von Druckaufträgen, die im Verlauf gespeichert werden. 0 = unbegrenzt."
+                    "max_history": "Maximum number of print jobs stored in the history. 0 = unlimited."
                 }
+            }
+        }
+    },
+    "entity": {
+        "select": {
+            "maintenance_task_select": {
+                "name": "Maintenance Task"
+            }
+        },
+        "button": {
+            "reset_selected_task": {
+                "name": "Reset Maintenance Task"
             }
         }
     }
