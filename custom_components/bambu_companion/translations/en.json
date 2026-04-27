@@ -200,5 +200,17 @@
                 }
             }
         }
+    },
+    "entity": {
+        "select": {
+            "maintenance_task_select": {
+                "name": "Maintenance Task"
+            }
+        },
+        "button": {
+            "reset_selected_task": {
+                "name": "Reset Maintenance Task"
+            }
+        }
     }
 }
