@@ -4,11 +4,13 @@ All entity lookups use unique_id patterns to avoid language-dependent entity IDs
 """
 from __future__ import annotations
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity import DeviceInfo
 
-from .const import BAMBU_LAB_DOMAIN
+from .const import BAMBU_LAB_DOMAIN, DOMAIN
 
 
 def get_bambu_devices(hass: HomeAssistant) -> list[dict]:
@@ -36,6 +38,10 @@ def get_bambu_devices(hass: HomeAssistant) -> list[dict]:
 
 def _extract_serial(device: dr.DeviceEntry) -> str:
     """Extract serial number from device identifiers."""
+    for domain, identifier in device.identifiers:
+        if domain == BAMBU_LAB_DOMAIN:
+            return identifier
+    # Fallback: return first identifier if bambu_lab domain not found
     for _domain, identifier in device.identifiers:
         return identifier
     return ""
@@ -141,3 +147,13 @@ def get_entity_float(
         return float(raw)
     except (ValueError, TypeError):
         return None
+
+
+def device_info(entry: ConfigEntry, serial: str) -> DeviceInfo:
+    """Return DeviceInfo for a Bambu Companion entry."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, serial)},
+        name=entry.data.get("printer_display_name", "Bambu Print Tracker"),
+        manufacturer="Bambu Lab",
+        model=entry.data.get("model", ""),
+    )
