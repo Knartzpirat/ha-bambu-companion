@@ -72,7 +72,9 @@ Each record includes:
 | `bed_type` | Print bed surface |
 | `avg_bed_temp` / `avg_nozzle_temp` | Temperatures at print end |
 | `layer_count` / `current_layer` | Layer data |
-| `gcode_file` | G-code filename |
+| `gcode_file` | G-code filename (full path as reported by ha-bambulab) |
+| `project_name` | Project name extracted from the file path (e.g. `MyModel`) |
+| `plate` | Plate label extracted from the file path (e.g. `Plate 2`) |
 | `cover_image_entity` | Entity ID of the cover image from ha-bambulab |
 
 ---
@@ -129,13 +131,13 @@ The `total_prints` sensor carries the full print history as an attribute (`histo
 
 | Model | Chamber Fan | Dual Nozzle | Laser | AMS Lite | Vortek |
 |---|---|---|---|---|---|
-| X1 / X1C | ✅ | ❌ | ❌ | ❌ | ❌ |
-| X1E | ✅ | ❌ | ❌ | ❌ | ❌ |
-| P1P / P1S | ❌ | ❌ | ❌ | ❌ | ❌ |
-| P2S | ❌ | ❌ | ❌ | ❌ | ❌ |
-| A1 / A1 Mini | ❌ | ❌ | ❌ | ✅ | ❌ |
+| X1 / X1C *(Untested)* | ✅ | ❌ | ❌ | ❌ | ❌ |
+| X1E *(Untested)* | ✅ | ❌ | ❌ | ❌ | ❌ |
+| P1P / P1S *(Untested)* | ❌ | ❌ | ❌ | ❌ | ❌ |
+| P2S *(Untested)* | ❌ | ❌ | ❌ | ❌ | ❌ |
+| A1 / A1 Mini *(Untested)* | ❌ | ❌ | ❌ | ✅ | ❌ |
 | H2D | ✅ | ✅ | ✅ | ❌ | ❌ |
-| H2C | ✅ | ❌ | ❌ | ❌ | ✅ |
+| H2C *(Untested)* | ✅ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -187,11 +189,11 @@ Navigate to **Settings → Integrations → Bambu Companion → Configure**.
 
 | Tab | Settings |
 |---|---|
-| **Kosten & Energie** | Electricity price, dynamic price sensor, smart plug sensor, filament cost per kg, currency, display unit |
-| **Benachrichtigungen** | Notification targets, progress interval, quiet hours, display name, events per channel |
-| **Texte anpassen** | All notification titles, messages, and button labels (with variable placeholders) |
-| **Wartungspläne** | Individual interval for each of the 29 maintenance tasks |
-| **Allgemein** | Max history entries (0 = unlimited) |
+| **Costs & Energy** | Electricity price, dynamic price sensor, smart plug sensor, filament cost per kg, currency, display unit |
+| **Notifications** | Notification targets, progress interval, quiet hours, display name, events per channel |
+| **Customize Texts** | All notification titles, messages, and button labels (with variable placeholders) |
+| **Maintenance Plans** | Individual interval for each of the 29 maintenance tasks |
+| **General** | Max history entries (0 = unlimited) |
 
 ---
 
@@ -365,13 +367,13 @@ Prefix: `sensor.bc_{serial}_*`
 
 | Model | Chamber Fan | Dual Nozzle | Laser | AMS Lite | Vortek |
 |---|---|---|---|---|---|
-| X1 / X1C | ✅ | ❌ | ❌ | ❌ | ❌ |
-| X1E | ✅ | ❌ | ❌ | ❌ | ❌ |
-| P1P / P1S | ❌ | ❌ | ❌ | ❌ | ❌ |
-| P2S | ❌ | ❌ | ❌ | ❌ | ❌ |
-| A1 / A1 Mini | ❌ | ❌ | ❌ | ✅ | ❌ |
+| X1 / X1C *(Untested)* | ✅ | ❌ | ❌ | ❌ | ❌ |
+| X1E *(Untested)* | ✅ | ❌ | ❌ | ❌ | ❌ |
+| P1P / P1S *(Untested)* | ❌ | ❌ | ❌ | ❌ | ❌ |
+| P2S *(Untested)* | ❌ | ❌ | ❌ | ❌ | ❌ |
+| A1 / A1 Mini *(Untested)* | ❌ | ❌ | ❌ | ✅ | ❌ |
 | H2D | ✅ | ✅ | ✅ | ❌ | ❌ |
-| H2C | ✅ | ❌ | ❌ | ❌ | ✅ |
+| H2C *(Untested)* | ✅ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -423,11 +425,11 @@ All settings can be changed later via **Settings → Integrations → Bambu Comp
 
 | Tab | Settings |
 |---|---|
-| **Kosten & Energie** | Electricity price, dynamic price sensor, smart plug sensor, filament cost, currency, unit |
-| **Benachrichtigungen** | Notification targets, progress interval, quiet hours, display name |
-| **Texte anpassen** | All notification titles, messages, and button labels (with variable placeholders) |
-| **Wartungspläne** | Individual interval for each of the 33 maintenance tasks |
-| **Allgemein** | Max history entries, low filament threshold |
+| **Costs & Energy** | Electricity price, dynamic price sensor, smart plug sensor, filament cost, currency, unit |
+| **Notifications** | Notification targets, progress interval, quiet hours, display name |
+| **Customize Texts** | All notification titles, messages, and button labels (with variable placeholders) |
+| **Maintenance Plans** | Individual interval for each of the 29 maintenance tasks |
+| **General** | Max history entries, low filament threshold |
 
 ---
 
