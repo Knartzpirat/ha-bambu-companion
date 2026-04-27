@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.3";
+const VERSION = "1.3.4";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -124,7 +124,6 @@ class BambuCompanionOverviewCard extends HTMLElement {
     constructor() { super(); this.attachShadow({ mode: "open" }); }
 
     setConfig(config) {
-        if (!config.serial) throw new Error("Bambu Companion Overview: 'serial' is required");
         this._config = config;
     }
 
@@ -133,6 +132,10 @@ class BambuCompanionOverviewCard extends HTMLElement {
     _e(key) { return `sensor.bc_${this._config.serial}_${key}`; }
 
     _render() {
+        if (!this._config?.serial) {
+            this.shadowRoot.innerHTML = `<ha-card><div style="padding:16px;color:var(--secondary-text-color)">Bitte einen Drucker in den Karteneinstellungen auswählen.</div></ha-card>`;
+            return;
+        }
         if (!this._hass || !this._config) return;
         const h = this._hass;
         const { serial, currency = "€", printer_name = serial } = this._config;
@@ -289,7 +292,6 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
     constructor() { super(); this.attachShadow({ mode: "open" }); }
 
     setConfig(config) {
-        if (!config.serial) throw new Error("Bambu Companion Maintenance: 'serial' is required");
         this._config = config;
     }
 
@@ -297,6 +299,10 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
 
     _render() {
         if (!this._hass || !this._config) return;
+        if (!this._config.serial) {
+            this.shadowRoot.innerHTML = `<ha-card><div style="padding:16px;color:var(--secondary-text-color)">Bitte einen Drucker in den Karteneinstellungen auswählen.</div></ha-card>`;
+            return;
+        }
         const h = this._hass;
         const { serial } = this._config;
         const prefix = `sensor.bc_${serial}_maint_`;
@@ -405,7 +411,6 @@ class BambuCompanionHistoryCard extends HTMLElement {
     constructor() { super(); this.attachShadow({ mode: "open" }); }
 
     setConfig(config) {
-        if (!config.serial) throw new Error("Bambu Companion History: 'serial' is required");
         this._config = config;
     }
 
@@ -413,6 +418,10 @@ class BambuCompanionHistoryCard extends HTMLElement {
 
     _render() {
         if (!this._hass || !this._config) return;
+        if (!this._config.serial) {
+            this.shadowRoot.innerHTML = `<ha-card><div style="padding:16px;color:var(--secondary-text-color)">Bitte einen Drucker in den Karteneinstellungen auswählen.</div></ha-card>`;
+            return;
+        }
         const h = this._hass;
         const { serial, max_entries = 20, max_height = 400 } = this._config;
 
