@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.2";
+const VERSION = "1.3.3";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -72,45 +72,35 @@ function _findPrinters(hass) {
     const result = [];
     const seen = new Set();
 
-    function getLabel(entityId, deviceId) {
-        if (deviceId && hass.devices) {
-            const device = hass.devices[deviceId];
-            if (device) return device.name_by_user || device.name || null;
-        }
-        // Fallback: strip suffix from friendly_name
-        const fn = hass.states[entityId]?.attributes?.friendly_name ?? "";
-        const stripped = fn.replace(/\s*Druckstatus\s*$/i, "").trim();
-        return stripped || null;
-    }
-
-    // Primary: entity registry filtered by integration platform (works even before states load)
-    if (hass.entities) {
-        for (const entity of Object.values(hass.entities)) {
-            if (entity.platform !== "bambu_companion") continue;
-            // Match by entity_id pattern (new installs with explicit entity_id set)
-            let m = entity.entity_id.match(/^sensor\.bc_(.+?)_print_status$/);
-            // Fallback: match by unique_id (older installs where entity_id was generated from name)
-            if (!m) {
-                const uid = entity.unique_id?.match(/^bc_(.+?)_print_status$/);
-                if (uid) m = [null, uid[1].toLowerCase()];
+    // Method 1 (most reliable): scan device registry for devices owned by bambu_companion.
+    // Every install has a device with identifiers = [["bambu_companion", serial]].
+    if (hass.devices) {
+        for (const device of Object.values(hass.devices)) {
+            for (const [domain, identifier] of (device.identifiers ?? [])) {
+                if (domain !== "bambu_companion" || seen.has(identifier)) continue;
+                seen.add(identifier);
+                result.push({
+                    serial: identifier,
+                    label: device.name_by_user || device.name || identifier,
+                });
             }
-            if (!m || seen.has(m[1])) continue;
-            seen.add(m[1]);
-            result.push({ serial: m[1], label: getLabel(entity.entity_id, entity.device_id) || m[1] });
         }
     }
 
-    // Fallback: scan hass.states directly (older HA or entity registry not populated)
-    for (const entityId of Object.keys(hass.states)) {
-        const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/);
+    // Method 2: scan hass.states for bc_ entity_id pattern (new installs, or when devices not populated)
+    for (const entityId of Object.keys(hass.states ?? {})) {
+        const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/i);
         if (!m || seen.has(m[1])) continue;
         seen.add(m[1]);
-        let deviceId = null;
-        if (hass.entities) {
-            const entry = Object.values(hass.entities).find(e => e.entity_id === entityId);
-            deviceId = entry?.device_id ?? null;
+        let label = m[1];
+        if (hass.entities && hass.devices) {
+            const entry = hass.entities[entityId];
+            if (entry?.device_id) {
+                const device = hass.devices[entry.device_id];
+                if (device) label = device.name_by_user || device.name || m[1];
+            }
         }
-        result.push({ serial: m[1], label: getLabel(entityId, deviceId) || m[1] });
+        result.push({ serial: m[1], label });
     }
 
     result.sort((a, b) => a.label.localeCompare(b.label));
