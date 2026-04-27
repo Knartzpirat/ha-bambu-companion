@@ -9,8 +9,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, PRINTER_FEATURES
 from .coordinator import BambuPrintTrackerCoordinator
+from .entity_helper import device_info
 from .maintenance import get_applicable_tasks
-from .sensor import _device_info
 
 
 async def async_setup_entry(
@@ -83,8 +83,9 @@ class BcResetButton(ButtonEntity):
         self._action = action
         self._attr_name = f"BC {name}"
         self._attr_unique_id = f"bc_{serial}_{button_key}"
+        self.entity_id = f"button.bc_{serial.lower()}_{button_key}"
         self._attr_icon = icon
-        self._attr_device_info = _device_info(entry, serial)
+        self._attr_device_info = device_info(entry, serial)
 
     async def async_press(self) -> None:
         await self._action()
@@ -104,8 +105,9 @@ class BcMaintenanceResetButton(ButtonEntity):
         self._task_key = task["key"]
         self._attr_name = f"BC Reset: {task['name']}"
         self._attr_unique_id = f"bc_{serial}_reset_maint_{task['key']}"
+        self.entity_id = f"button.bc_{serial.lower()}_reset_maint_{task['key']}"
         self._attr_icon = "mdi:restore"
-        self._attr_device_info = _device_info(entry, serial)
+        self._attr_device_info = device_info(entry, serial)
 
     async def async_press(self) -> None:
         await self._coordinator.async_reset_maintenance_task(self._task_key)
