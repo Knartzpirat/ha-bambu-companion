@@ -85,11 +85,11 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 vol.Required("tab", default="energy"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "energy", "label": "Kosten & Energie"},
-                            {"value": "notify", "label": "Benachrichtigungen"},
-                            {"value": "texts", "label": "Texte anpassen"},
-                            {"value": "maintenance", "label": "Wartungspläne"},
-                            {"value": "general", "label": "Allgemein"},
+                            {"value": "energy", "label": "Costs & Energy"},
+                            {"value": "notify", "label": "Notifications"},
+                            {"value": "texts", "label": "Customize Texts"},
+                            {"value": "maintenance", "label": "Maintenance Plans"},
+                            {"value": "general", "label": "General"},
                         ],
                         mode=selector.SelectSelectorMode.LIST,
                     )
@@ -205,11 +205,11 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "start", "label": "Druck gestartet"},
-                            {"value": "progress", "label": "Fortschrittsupdate"},
-                            {"value": "done", "label": "Druck abgeschlossen"},
-                            {"value": "error", "label": "Druckfehler"},
-                            {"value": "maintenance", "label": "Wartung fällig"},
+                            {"value": "start", "label": "Print started"},
+                            {"value": "progress", "label": "Progress update"},
+                            {"value": "done", "label": "Print complete"},
+                            {"value": "error", "label": "Print failed"},
+                            {"value": "maintenance", "label": "Maintenance due"},
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,
@@ -221,11 +221,11 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "start", "label": "Druck gestartet"},
-                            {"value": "progress", "label": "Fortschrittsupdate"},
-                            {"value": "done", "label": "Druck abgeschlossen"},
-                            {"value": "error", "label": "Druckfehler"},
-                            {"value": "maintenance", "label": "Wartung fällig"},
+                            {"value": "start", "label": "Print started"},
+                            {"value": "progress", "label": "Progress update"},
+                            {"value": "done", "label": "Print complete"},
+                            {"value": "error", "label": "Print failed"},
+                            {"value": "maintenance", "label": "Maintenance due"},
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,
