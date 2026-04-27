@@ -87,7 +87,13 @@ function _findPrinters(hass) {
     if (hass.entities) {
         for (const entity of Object.values(hass.entities)) {
             if (entity.platform !== "bambu_companion") continue;
-            const m = entity.entity_id.match(/^sensor\.bc_(.+?)_print_status$/);
+            // Match by entity_id pattern (new installs with explicit entity_id set)
+            let m = entity.entity_id.match(/^sensor\.bc_(.+?)_print_status$/);
+            // Fallback: match by unique_id (older installs where entity_id was generated from name)
+            if (!m) {
+                const uid = entity.unique_id?.match(/^bc_(.+?)_print_status$/);
+                if (uid) m = [null, uid[1].toLowerCase()];
+            }
             if (!m || seen.has(m[1])) continue;
             seen.add(m[1]);
             result.push({ serial: m[1], label: getLabel(entity.entity_id, entity.device_id) || m[1] });
