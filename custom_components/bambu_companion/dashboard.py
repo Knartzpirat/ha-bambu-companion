@@ -1,4 +1,10 @@
-"""Dashboard generator for Bambu Companion – writes card YAML to HA config directory."""
+"""Dashboard generator for Bambu Companion – writes card YAML to HA config directory.
+
+.. deprecated::
+    This module is no longer called by the integration. Lovelace cards are now
+    served as registered JS resources via ``frontend/bambu-companion-cards.js``.
+    This file is kept for reference only and will be removed in a future version.
+"""
 from __future__ import annotations
 
 import os
