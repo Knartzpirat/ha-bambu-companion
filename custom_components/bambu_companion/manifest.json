@@ -1,7 +1,7 @@
 {
   "domain": "bambu_companion",
   "name": "Bambu Companion",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "documentation": "https://github.com/Knartzpirat/ha-bambu-companion",
   "issue_tracker": "https://github.com/Knartzpirat/ha-bambu-companion/issues",
   "requirements": [],
