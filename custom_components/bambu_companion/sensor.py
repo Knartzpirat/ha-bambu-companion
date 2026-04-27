@@ -8,12 +8,12 @@ from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfEnergy, UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MAINTENANCE_TASKS, PRINTER_FEATURES
 from .coordinator import BambuPrintTrackerCoordinator
+from .entity_helper import device_info
 from .maintenance import get_applicable_tasks
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,15 +74,6 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-def _device_info(entry: ConfigEntry, serial: str) -> DeviceInfo:
-    return DeviceInfo(
-        identifiers={(DOMAIN, serial)},
-        name=entry.data.get("printer_display_name", "Bambu Print Tracker"),
-        manufacturer="Bambu Lab",
-        model=entry.data.get("model", ""),
-    )
-
-
 class BcStatSensor(CoordinatorEntity, SensorEntity):
     """Generic stat sensor for Bambu Print Tracker."""
 
@@ -102,10 +93,11 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         self._stat_key = stat_key
         self._attr_name = name
         self._attr_unique_id = f"bc_{serial}_{stat_key}"
+        self.entity_id = f"sensor.bc_{serial.lower()}_{stat_key}"
         self._attr_icon = icon
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit
-        self._attr_device_info = _device_info(entry, serial)
+        self._attr_device_info = device_info(entry, serial)
 
     @property
     def native_value(self) -> Any:
@@ -171,8 +163,9 @@ class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
         self._task = task
         self._attr_name = f"Wartung: {task['name']}"
         self._attr_unique_id = f"bc_{serial}_maint_{task['key']}"
+        self.entity_id = f"sensor.bc_{serial.lower()}_maint_{task['key']}"
         self._attr_icon = "mdi:wrench"
-        self._attr_device_info = _device_info(entry, serial)
+        self._attr_device_info = device_info(entry, serial)
 
     @property
     def native_value(self) -> str:
@@ -182,7 +175,7 @@ class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
         key = self._task["key"]
         entry = maint.get(key, {})
         value = float(entry.get("value", 0) if isinstance(entry, dict) else entry)
-        intervals = self.coordinator._options.get("maintenance_intervals", {})
+        intervals = self.coordinator.options.get("maintenance_intervals", {})
         interval = float(intervals.get(key, self._task["default_interval"]))
         return "warning" if value >= interval else "ok"
 
@@ -194,7 +187,7 @@ class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
         key = self._task["key"]
         entry = maint.get(key, {})
         value = float(entry.get("value", 0) if isinstance(entry, dict) else entry)
-        intervals = self.coordinator._options.get("maintenance_intervals", {})
+        intervals = self.coordinator.options.get("maintenance_intervals", {})
         interval = float(intervals.get(key, self._task["default_interval"]))
         return {
             "current_value": value,
