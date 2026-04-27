@@ -53,9 +53,7 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Step 1: Select printer from bambu_lab devices."""
         errors: dict[str, str] = {}
 
-        self._bambu_devices = await self.hass.async_add_executor_job(
-            get_bambu_devices, self.hass
-        )
+        self._bambu_devices = get_bambu_devices(self.hass)
 
         if not self._bambu_devices:
             return self.async_abort(reason="no_bambu_devices")
@@ -108,9 +106,7 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_ams(self, user_input=None):
         """Step 2: Select AMS devices."""
         device_id = self._data[CONF_DEVICE_ID]
-        ams_devices = await self.hass.async_add_executor_job(
-            get_ams_devices, self.hass, device_id
-        )
+        ams_devices = get_ams_devices(self.hass, device_id)
 
         if not ams_devices:
             # No AMS – skip this step
