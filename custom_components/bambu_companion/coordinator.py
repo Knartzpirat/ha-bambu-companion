@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ACTIVE_PRINT_STATUSES,
@@ -19,7 +20,6 @@ from .const import (
     CONF_ELECTRICITY_SENSOR,
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
-    CONF_FILAMENT_UNIT,
     CONF_PRINTER_DISPLAY_NAME,
     DEFAULT_CURRENCY,
     DEFAULT_ELECTRICITY_PRICE,
@@ -30,6 +30,7 @@ from .const import (
     PRINT_STATUS_FAILED,
     PRINT_STATUS_FINISH,
     PRINT_STATUS_IDLE,
+    PRINT_STATUS_PAUSE,
     PRINT_STATUS_PRINTING,
     PRINTER_FEATURES,
     TERMINAL_PRINT_STATUSES,
@@ -97,6 +98,20 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self.data: dict[str, Any] = {}
 
     # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
+
+    @property
+    def options(self) -> dict:
+        """Merged view of entry data + options (options take precedence)."""
+        return self._options
+
+    @property
+    def _printer_name(self) -> str:
+        """Display name of the printer as configured by the user."""
+        return self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+
+    # ------------------------------------------------------------------
     # Setup / Teardown
     # ------------------------------------------------------------------
 
@@ -125,7 +140,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     @callback
     def _handle_state_change(self, event) -> None:  # noqa: ANN001
         """Trigger coordinator refresh on any tracked entity change."""
-        self.hass.async_create_task(self.async_refresh())
+        self.async_request_refresh()
 
     # ------------------------------------------------------------------
     # Core update
@@ -170,10 +185,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if prev == PRINT_STATUS_IDLE and new_status == PRINT_STATUS_PRINTING:
             await self._on_print_start()
 
-        elif prev in (PRINT_STATUS_PRINTING, "pause") and new_status == PRINT_STATUS_FINISH:
+        elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE) and new_status == PRINT_STATUS_FINISH:
             await self._on_print_finish()
 
-        elif prev in (PRINT_STATUS_PRINTING, "pause") and new_status == PRINT_STATUS_FAILED:
+        elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE) and new_status == PRINT_STATUS_FAILED:
             await self._on_print_failed()
 
         elif new_status == PRINT_STATUS_PRINTING and prev != PRINT_STATUS_PRINTING:
@@ -182,7 +197,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 await self._on_print_start()
 
         if new_status in TERMINAL_PRINT_STATUSES or new_status == PRINT_STATUS_IDLE:
-            if prev in ACTIVE_PRINT_STATUSES | {PRINT_STATUS_PRINTING}:
+            if prev in ACTIVE_PRINT_STATUSES:
                 self._notify.reset_progress_tracker()
                 self._print_start_time = None
                 self._energy_at_start = None
@@ -194,7 +209,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             if self._notify.should_notify_progress(progress):
                 remaining_raw = get_entity_float(self.hass, self._entities, "remaining_time") or 0
                 remaining = _format_minutes(int(remaining_raw))
-                printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+                printer_name = self._printer_name
                 print_name = self._last_print_name
                 await self._notify.notify_progress(
                     {
@@ -208,9 +223,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._print_status = new_status
 
     async def _on_print_start(self) -> None:
-        self._print_start_time = datetime.now()
+        self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
-        printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+        printer_name = self._printer_name
         await self._notify.notify_start(
             {"drucker": printer_name, "name": self._last_print_name}
         )
@@ -236,7 +251,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._store.increment_counter("total_energy_cost", record.get("energy_cost", 0))
         await self._store.async_save()
 
-        printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+        printer_name = self._printer_name
         currency = self._options.get(CONF_CURRENCY, DEFAULT_CURRENCY)
         variables = {
             "drucker": printer_name,
@@ -255,7 +270,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._store.increment_counter("failed_prints", 1)
         await self._store.async_save()
 
-        printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+        printer_name = self._printer_name
         progress_raw = get_entity_float(self.hass, self._entities, "print_progress")
         await self._notify.notify_error(
             {
@@ -267,7 +282,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         )
 
     def _build_print_record(self, success: bool) -> dict:
-        now = datetime.now()
+        now = dt_util.now()
         start = self._print_start_time or now
         duration_min = int((now - start).total_seconds() / 60)
 
@@ -316,11 +331,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     pass
 
         filament_cost_per_kg = float(self._options.get(CONF_FILAMENT_COST, DEFAULT_FILAMENT_COST_PER_KG))
-        filament_unit = self._options.get(CONF_FILAMENT_UNIT, "kg")
-        if filament_unit == "g":
-            filament_cost_per_g = filament_cost_per_kg / 1000
-        else:
-            filament_cost_per_g = filament_cost_per_kg / 1000
+        filament_cost_per_g = filament_cost_per_kg / 1000
 
         energy_cost = energy_kwh * electricity_price
         filament_cost = filament_weight * filament_cost_per_g
@@ -362,16 +373,19 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     async def _update_runtime_trackers(self, print_status: str) -> None:
         interval_h = UPDATE_INTERVAL.total_seconds() / 3600
+        changed = False
 
         # Print hours
         if print_status == PRINT_STATUS_PRINTING:
             self._store.increment_counter("print_hours", interval_h)
+            changed = True
 
         # Nozzle hours (single nozzle)
         if not self._features.get("dual_nozzle"):
             nozzle_temp = get_entity_float(self.hass, self._entities, "nozzle_temperature") or 0
             if nozzle_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
                 self._store.increment_counter("nozzle_hours", interval_h)
+                changed = True
 
         # Nozzle hours (dual nozzle, H2D)
         if self._features.get("dual_nozzle"):
@@ -379,16 +393,27 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             right_temp = get_entity_float(self.hass, self._entities, "right_nozzle_temperature") or 0
             if left_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
                 self._store.increment_counter("left_nozzle_hours", interval_h)
+                changed = True
             if right_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
                 self._store.increment_counter("right_nozzle_hours", interval_h)
+                changed = True
 
-        # Laser hours (H2D)
+        # Laser hours and jobs (H2D)
         if self._features.get("laser"):
             tool_state = get_entity_state(self.hass, self._entities, "tool_module_state")
-            if tool_state == "laser":
+            was_lasering = getattr(self, "_was_lasering", False)
+            is_lasering = tool_state == "laser"
+            if is_lasering:
                 self._store.increment_counter("laser_hours", interval_h)
+                changed = True
+            if was_lasering and not is_lasering:
+                # Transition: laser job completed
+                self._store.increment_counter("laser_jobs", 1)
+                changed = True
+            self._was_lasering = is_lasering
 
-        await self._store.async_save()
+        if changed:
+            await self._store.async_save()
 
     # ------------------------------------------------------------------
     # Maintenance
@@ -397,6 +422,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     async def _update_maintenance_values(self) -> None:
         """Sync maintenance counters from global counters and fire notifications."""
         counters = self._store.counters
+        bambu_total_hours = self.data.get("bambu_total_hours") if self.data else None
         has_ams = bool(self._ams_device_ids)
         tasks = get_applicable_tasks(self._model, has_ams)
         maint_intervals = self._options.get("maintenance_intervals", {})
@@ -407,7 +433,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             default_interval = task["default_interval"]
             interval = float(maint_intervals.get(key, default_interval))
 
-            current_value = self._get_trigger_value(trigger, counters)
+            current_value = self._get_trigger_value(trigger, counters, bambu_total_hours)
             # Current value since last reset
             last_reset_value = float(self._store.get_maintenance().get(key, {}).get("baseline", 0))
             since_reset = max(0.0, current_value - last_reset_value)
@@ -417,8 +443,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Notification
             if is_maintenance_due(since_reset, interval):
                 last_notified = self._maint_notified.get(key)
-                if last_notified is None or (datetime.now() - last_notified).total_seconds() > 3600:
-                    printer_name = self._options.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab")
+                if last_notified is None or (dt_util.now() - last_notified).total_seconds() > 3600:
+                    printer_name = self._printer_name
                     await self._notify.notify_maintenance(
                         {
                             "drucker": printer_name,
@@ -427,16 +453,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                             "intervall": f"{interval:.0f}",
                         }
                     )
-                    self._maint_notified[key] = datetime.now()
+                    self._maint_notified[key] = dt_util.now()
 
-    def _get_trigger_value(self, trigger: str, counters: dict) -> float:
+    def _get_trigger_value(self, trigger: str, counters: dict, bambu_total_hours: float | None = None) -> float:
+        if trigger == "total_hours" and bambu_total_hours is not None:
+            return bambu_total_hours
         mapping = {
             "print_hours": "print_hours",
             "nozzle_hours": "nozzle_hours",
             "laser_hours": "laser_hours",
             "laser_jobs": "laser_jobs",
             "print_count": "successful_prints",
-            "total_hours": "print_hours",  # fallback; ideally from total_usage_hours sensor
+            "total_hours": "print_hours",  # fallback when bambu sensor unavailable
         }
         counter_key = mapping.get(trigger, trigger)
         return float(counters.get(counter_key, 0))
@@ -487,7 +515,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             maint[task_key] = {}
         maint[task_key]["baseline"] = current
         maint[task_key]["value"] = 0
-        maint[task_key]["last_reset"] = datetime.now().isoformat()
+        maint[task_key]["last_reset"] = dt_util.now().isoformat()
         self._maint_notified.pop(task_key, None)
         await self._store.async_save()
         await self.async_refresh()
