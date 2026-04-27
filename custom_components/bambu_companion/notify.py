@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, time
+from datetime import time
 
+from homeassistant.components.persistent_notification import async_create
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_NOTIFY_HA_EVENTS,
@@ -40,7 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 def _in_quiet_hours(quiet_from: str, quiet_to: str) -> bool:
     """Return True if current time is within quiet hours."""
     try:
-        now = datetime.now().time()
+        now = dt_util.now().time()
         t_from = time.fromisoformat(quiet_from)
         t_to = time.fromisoformat(quiet_to)
 
@@ -110,7 +112,6 @@ class NotifyManager:
 
         # --- HA persistent notification channel ---
         if event_key in ha_events:
-            from homeassistant.components.persistent_notification import async_create
             async_create(
                 self._hass,
                 message,
