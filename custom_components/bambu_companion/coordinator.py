@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -95,6 +96,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Maintenance notification cooldown: task_key → last notified datetime
         self._maint_notified: dict[str, datetime] = {}
 
+        # Graceful-degradation flags
+        self._entities_missing_logged: bool = False  # throttle "no entities" warning
+        self._printer_offline: bool = False  # True while status entity is unavailable
+
         self.data: dict[str, Any] = {}
 
     # ------------------------------------------------------------------
@@ -151,7 +156,48 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Refresh entity maps in case entities changed
         self._refresh_entity_maps()
 
-        new_status = get_entity_state(self.hass, self._entities, "print_status") or PRINT_STATUS_IDLE
+        # --- Graceful degradation: no entities yet (ha-bambulab not loaded) ---
+        if not self._entities:
+            if not self._entities_missing_logged:
+                _LOGGER.warning(
+                    "No ha-bambulab entities found for device %s. "
+                    "Waiting for ha-bambulab to load.",
+                    self._device_id,
+                )
+                self._entities_missing_logged = True
+            # Return cached data (or empty dict on first call)
+            return self.data or {}
+        else:
+            self._entities_missing_logged = False  # reset once entities are available
+
+        # --- Graceful degradation: printer offline ---
+        status_entity_id = self._entities.get("print_status")
+        raw_status_state = (
+            self.hass.states.get(status_entity_id) if status_entity_id else None
+        )
+        printer_is_offline = raw_status_state is None or raw_status_state.state in (
+            "unavailable",
+            "unknown",
+        )
+
+        if printer_is_offline:
+            if not self._printer_offline:
+                _LOGGER.warning(
+                    "Printer %s is offline or unavailable — holding current state.",
+                    self._serial,
+                )
+                self._printer_offline = True
+            # Hold current state: don't advance the state machine
+            # Return last known data enriched with an offline marker
+            result = dict(self.data) if self.data else {}
+            result["printer_offline"] = True
+            return result
+        else:
+            if self._printer_offline:
+                _LOGGER.info("Printer %s is back online.", self._serial)
+                self._printer_offline = False
+
+        new_status = raw_status_state.state if raw_status_state else PRINT_STATUS_IDLE
         await self._run_state_machine(new_status)
 
         # Track nozzle/laser hours
@@ -172,6 +218,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "history": self._store.get_history(),
             "monthly": self._store.get_monthly_stats(),
             "last_print": self._store.get_last_print(),
+            "printer_offline": False,
         }
         return result
 
@@ -297,6 +344,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         bed_type = get_entity_state(self.hass, self._entities, "print_bed_type") or ""
         name = get_entity_state(self.hass, self._entities, "subtask_name") or self._last_print_name
         gcode_file = get_entity_state(self.hass, self._entities, "gcode_file") or ""
+        plate, project_name = _extract_plate_info(gcode_file)
         # Active tray / filament slot snapshot
         active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
         active_tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
@@ -342,6 +390,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "timestamp_end": now.isoformat(),
             "name": name,
             "gcode_file": gcode_file,
+            "project_name": project_name,
+            "plate": plate,
             "status": "success" if success else "failed",
             "duration_min": duration_min,
             "progress_at_end": int(progress_raw),
@@ -519,6 +569,45 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._maint_notified.pop(task_key, None)
         await self._store.async_save()
         await self.async_refresh()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _extract_plate_info(gcode_file: str) -> tuple[str | None, str | None]:
+    """Extract plate label and project name from a Bambu gcode_file path.
+
+    Bambu paths look like:
+      cache/MyModel/Metadata/plate_2.gcode.3mf
+      cache/MyModel/plate_1.gcode
+      /sdcard/gcodes/plate_3.gcode.3mf
+
+    Returns (plate, project_name), both None when not determinable.
+    """
+    if not gcode_file:
+        return None, None
+
+    # Plate number
+    plate: str | None = None
+    m = re.search(r'plate[_\s]?(\d+)', gcode_file, re.IGNORECASE)
+    if m:
+        plate = f"Plate {m.group(1)}"
+
+    # Project name: directory component just below cache/
+    # e.g. cache/MyModel/Metadata/plate_2.gcode.3mf  →  "MyModel"
+    project_name: str | None = None
+    parts = re.split(r'[\\/]', gcode_file)
+    try:
+        cache_idx = next(i for i, p in enumerate(parts) if p.lower() in ("cache", "gcodes"))
+        candidate = parts[cache_idx + 1] if cache_idx + 1 < len(parts) else None
+        # Skip if the candidate looks like a filename itself
+        if candidate and not re.search(r'\.(gcode|3mf|gcode\.3mf)$', candidate, re.IGNORECASE):
+            project_name = candidate
+    except StopIteration:
+        pass
+
+    return plate, project_name
 
 
 # ------------------------------------------------------------------
