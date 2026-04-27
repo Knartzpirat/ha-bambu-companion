@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_MAX_HISTORY, DOMAIN, STORAGE_VERSION
 
@@ -96,11 +97,16 @@ class PrintHistoryStore:
         return self._data.setdefault("maintenance", {})
 
     def reset_maintenance_task(self, task_key: str) -> None:
-        """Reset a maintenance task counter to 0."""
+        """Reset a maintenance task counter to 0 (without baseline tracking).
+
+        NOTE: The coordinator uses _reset_with_baseline() which also updates
+        the baseline counter so hours are tracked relative to the reset point.
+        This method is kept for direct storage-level resets only.
+        """
         maint = self.get_maintenance()
         maint[task_key] = {
             "value": 0,
-            "last_reset": datetime.now().isoformat(),
+            "last_reset": dt_util.now().isoformat(),
         }
 
     def get_maintenance_value(self, task_key: str) -> float:
@@ -116,7 +122,7 @@ class PrintHistoryStore:
 
     def get_monthly_stats(self) -> dict:
         """Compute current-month stats from history."""
-        now = datetime.now()
+        now = dt_util.now()
         month_prints = 0
         month_cost = 0.0
 
