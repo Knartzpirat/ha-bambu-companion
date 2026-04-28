@@ -211,7 +211,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         if printer_is_offline:
             if not self._printer_offline:
-                _LOGGER.warning(
+                _LOGGER.info(
                     "Printer %s is offline or unavailable — holding current state.",
                     self._serial,
                 )
