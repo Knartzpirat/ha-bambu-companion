@@ -195,8 +195,31 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     self._serial,
                 )
                 self._entities_missing_logged = True
-            # Return cached data (or empty dict on first call)
-            return self.data or {}
+            # Return last cached coordinator data if available, otherwise build
+            # from store so persistent counters are always visible in the UI.
+            if self.data:
+                return dict(self.data)
+            return {
+                "print_status": PRINT_STATUS_IDLE,
+                "entities": {},
+                "counters": dict(self._store.counters),
+                "bambu_total_hours": None,
+                "maintenance": dict(self._store.get_maintenance()),
+                "history": self._store.get_history(),
+                "monthly": self._store.get_monthly_stats(),
+                "last_print": self._store.get_last_print(),
+                "printer_offline": True,
+                "nozzle_slots": {
+                    "single": dict(self._store.get_nozzle_slots("single")),
+                    "left": dict(self._store.get_nozzle_slots("left")),
+                    "right": dict(self._store.get_nozzle_slots("right")),
+                    "active": {
+                        "single": self._store.get_active_nozzle_slot("single"),
+                        "left": self._store.get_active_nozzle_slot("left"),
+                        "right": self._store.get_active_nozzle_slot("right"),
+                    },
+                },
+            }
         else:
             self._entities_missing_logged = False  # reset once entities are available
 

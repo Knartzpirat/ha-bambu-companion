@@ -4,6 +4,8 @@ All entity lookups use unique_id patterns to avoid language-dependent entity IDs
 """
 from __future__ import annotations
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -11,6 +13,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import BAMBU_LAB_DOMAIN, DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def get_bambu_devices(hass: HomeAssistant) -> list[dict]:
@@ -100,10 +104,21 @@ def get_printer_entities(hass: HomeAssistant, device_id: str) -> dict[str, str]:
     ent_reg = er.async_get(hass)
     result: dict[str, str] = {}
 
-    for entry in er.async_entries_for_device(ent_reg, device_id):
+    all_entries = er.async_entries_for_device(ent_reg, device_id)
+    platforms_found = {e.platform for e in all_entries}
+    _LOGGER.debug(
+        "get_printer_entities: device_id=%s, total entries=%d, platforms=%s",
+        device_id, len(all_entries), platforms_found
+    )
+
+    for entry in all_entries:
         if entry.platform == BAMBU_LAB_DOMAIN and entry.translation_key:
             result[entry.translation_key] = entry.entity_id
 
+    _LOGGER.debug(
+        "get_printer_entities: matched %d entities for platform '%s'",
+        len(result), BAMBU_LAB_DOMAIN
+    )
     return result
 
 
