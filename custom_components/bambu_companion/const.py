@@ -292,4 +292,4 @@ MAINTENANCE_TASKS: list[dict] = [
 # Nozzle temperature threshold for nozzle_hours tracking
 NOZZLE_ACTIVE_TEMP_THRESHOLD = 100  # °C
 
-PLATFORMS = ["sensor", "button", "select"]
+PLATFORMS = ["sensor", "button", "select", "text"]

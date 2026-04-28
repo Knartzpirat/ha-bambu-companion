@@ -153,7 +153,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     @callback
     def _handle_state_change(self, event) -> None:  # noqa: ANN001
         """Trigger coordinator refresh on any tracked entity change."""
-        self.async_request_refresh()
+        self.hass.async_create_task(self.async_request_refresh())
 
     def _setup_mobile_action_listener(self) -> None:
         """Listen for mobile_app_notification_action events to handle nozzle-slot selection."""
@@ -721,6 +721,12 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     async def async_reset_active_nozzle_slot(self, position: str) -> None:
         """Reset hours of the currently active nozzle slot to 0."""
         self._store.reset_nozzle_slot_hours(position)
+        await self._store.async_save()
+        await self.async_refresh()
+
+    async def async_rename_nozzle_slot(self, position: str, slot_id: str, new_label: str) -> None:
+        """Rename a specific nozzle slot and refresh."""
+        self._store.rename_nozzle_slot(position, slot_id, new_label)
         await self._store.async_save()
         await self.async_refresh()
 

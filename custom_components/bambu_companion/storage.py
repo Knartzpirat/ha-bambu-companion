@@ -169,6 +169,12 @@ class PrintHistoryStore:
         if active in slots:
             slots[active]["hours"] = 0.0
 
+    def rename_nozzle_slot(self, position: str, slot_id: str, new_label: str) -> None:
+        """Rename a specific slot."""
+        slots = self.get_nozzle_slots(position)
+        if slot_id in slots:
+            slots[slot_id]["label"] = new_label
+
     # ------------------------------------------------------------------
     # Monthly stats
     # ------------------------------------------------------------------
