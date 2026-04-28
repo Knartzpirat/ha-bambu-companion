@@ -235,6 +235,7 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             {"value": "done", "label": "Druck abgeschlossen"},
                             {"value": "error", "label": "Druckfehler"},
                             {"value": "maintenance", "label": "Wartung fällig"},
+                            {"value": "nozzle_change", "label": "Düsenwechsel erkannt"},
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,
@@ -247,10 +248,10 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.SelectSelectorConfig(
                         options=[
                             {"value": "start", "label": "Druck gestartet"},
-                            {"value": "progress", "label": "Fortschrittsupdate"},
                             {"value": "done", "label": "Druck abgeschlossen"},
                             {"value": "error", "label": "Druckfehler"},
                             {"value": "maintenance", "label": "Wartung fällig"},
+                            {"value": "nozzle_change", "label": "Düsenwechsel erkannt"},
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,

@@ -223,7 +223,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=[
                             {"value": "start", "label": "Print started"},
-                            {"value": "progress", "label": "Progress update"},
                             {"value": "done", "label": "Print complete"},
                             {"value": "error", "label": "Print failed"},
                             {"value": "maintenance", "label": "Maintenance due"},
