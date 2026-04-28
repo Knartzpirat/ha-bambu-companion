@@ -189,9 +189,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if not self._entities:
             if not self._entities_missing_logged:
                 _LOGGER.warning(
-                    "No ha-bambulab entities found for device %s. "
+                    "No ha-bambulab entities found for device %s (serial=%s). "
                     "Waiting for ha-bambulab to load.",
                     self._device_id,
+                    self._serial,
                 )
                 self._entities_missing_logged = True
             # Return cached data (or empty dict on first call)
@@ -201,6 +202,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         # --- Graceful degradation: printer offline ---
         status_entity_id = self._entities.get("print_status")
+        _LOGGER.debug(
+            "Printer %s: status entity_id=%s, entities found=%d",
+            self._serial, status_entity_id, len(self._entities)
+        )
         raw_status_state = (
             self.hass.states.get(status_entity_id) if status_entity_id else None
         )
