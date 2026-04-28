@@ -216,9 +216,32 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     self._serial,
                 )
                 self._printer_offline = True
-            # Hold current state: don't advance the state machine
-            # Return last known data enriched with an offline marker
-            result = dict(self.data) if self.data else {}
+            # Hold current state: don't advance the state machine.
+            # If we have cached coordinator data, use it; otherwise build from store
+            # so persistent counters are visible even on first load while offline.
+            if self.data:
+                result = dict(self.data)
+            else:
+                result = {
+                    "print_status": PRINT_STATUS_IDLE,
+                    "entities": self._entities,
+                    "counters": dict(self._store.counters),
+                    "bambu_total_hours": None,
+                    "maintenance": dict(self._store.get_maintenance()),
+                    "history": self._store.get_history(),
+                    "monthly": self._store.get_monthly_stats(),
+                    "last_print": self._store.get_last_print(),
+                    "nozzle_slots": {
+                        "single": dict(self._store.get_nozzle_slots("single")),
+                        "left": dict(self._store.get_nozzle_slots("left")),
+                        "right": dict(self._store.get_nozzle_slots("right")),
+                        "active": {
+                            "single": self._store.get_active_nozzle_slot("single"),
+                            "left": self._store.get_active_nozzle_slot("left"),
+                            "right": self._store.get_active_nozzle_slot("right"),
+                        },
+                    },
+                }
             result["printer_offline"] = True
             return result
         else:
