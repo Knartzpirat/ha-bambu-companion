@@ -50,7 +50,7 @@ CONF_NOTIFY_MOBILE_EVENTS = "notify_mobile_events"   # events sent to phone
 CONF_NOTIFY_HA_EVENTS = "notify_ha_events"            # events shown in HA notifications
 
 DEFAULT_NOTIFY_MOBILE_EVENTS: list[str] = []
-DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done"]
+DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done", "nozzle_change"]
 
 # Custom text keys
 CONF_TEXT_START_TITLE = "text_start_title"
