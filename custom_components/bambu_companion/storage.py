@@ -120,6 +120,59 @@ class PrintHistoryStore:
             maint[task_key] = {}
         maint[task_key]["value"] = value
 
+    # ------------------------------------------------------------------
+    # Nozzle slots (per-physical-nozzle hour tracking)
+    # ------------------------------------------------------------------
+
+    def get_nozzle_slots(self, position: str = "single") -> dict:
+        """Return slot dict for a nozzle position (single / left / right)."""
+        slots_root = self._data.setdefault("nozzle_slots", {})
+        if position not in slots_root:
+            label = {"single": "Düse 1", "left": "Linke Düse 1", "right": "Rechte Düse 1"}.get(position, f"Düse 1")
+            slots_root[position] = {"1": {"hours": 0.0, "label": label}}
+        return slots_root[position]
+
+    def get_active_nozzle_slot(self, position: str = "single") -> str:
+        """Return the currently active slot id for a position."""
+        active_root = self._data.setdefault("active_nozzle", {})
+        return active_root.get(position, "1")
+
+    def set_active_nozzle_slot(self, position: str, slot_id: str) -> None:
+        self._data.setdefault("active_nozzle", {})[position] = slot_id
+
+    def add_nozzle_slot(self, position: str = "single") -> str:
+        """Add a new slot, set it as active, return its slot_id."""
+        slots = self.get_nozzle_slots(position)
+        existing_nums = [int(k) for k in slots if k.isdigit()]
+        new_id = str(max(existing_nums, default=0) + 1)
+        prefix = {"single": "Düse", "left": "Linke Düse", "right": "Rechte Düse"}.get(position, "Düse")
+        slots[new_id] = {"hours": 0.0, "label": f"{prefix} {new_id}"}
+        self.set_active_nozzle_slot(position, new_id)
+        return new_id
+
+    def increment_nozzle_slot_hours(self, position: str, value: float) -> None:
+        """Increment hours for the currently active slot."""
+        slots = self.get_nozzle_slots(position)
+        active = self.get_active_nozzle_slot(position)
+        if active in slots:
+            slots[active]["hours"] = slots[active].get("hours", 0.0) + value
+
+    def get_active_nozzle_slot_hours(self, position: str = "single") -> float:
+        slots = self.get_nozzle_slots(position)
+        active = self.get_active_nozzle_slot(position)
+        return float(slots.get(active, {}).get("hours", 0.0))
+
+    def reset_nozzle_slot_hours(self, position: str) -> None:
+        """Reset hours of the active slot to 0."""
+        slots = self.get_nozzle_slots(position)
+        active = self.get_active_nozzle_slot(position)
+        if active in slots:
+            slots[active]["hours"] = 0.0
+
+    # ------------------------------------------------------------------
+    # Monthly stats
+    # ------------------------------------------------------------------
+
     def get_monthly_stats(self) -> dict:
         """Compute current-month stats from history."""
         now = dt_util.now()
