@@ -33,18 +33,18 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = [
         BcStatSensor(coordinator, entry, serial, "print_status", "Druckstatus", "mdi:printer-3d-nozzle", None, None),
-        BcStatSensor(coordinator, entry, serial, "total_prints", "Drucke gesamt", "mdi:printer-3d", None, "prints"),
-        BcStatSensor(coordinator, entry, serial, "successful_prints", "Erfolgreiche Drucke", "mdi:check-circle", None, "prints"),
-        BcStatSensor(coordinator, entry, serial, "failed_prints", "Fehlgeschlagene Drucke", "mdi:close-circle", None, "prints"),
+        BcStatSensor(coordinator, entry, serial, "total_prints", "Drucke gesamt", "mdi:printer-3d", None, "Drucke"),
+        BcStatSensor(coordinator, entry, serial, "successful_prints", "Erfolgreiche Drucke", "mdi:check-circle", None, "Drucke"),
+        BcStatSensor(coordinator, entry, serial, "failed_prints", "Fehlgeschlagene Drucke", "mdi:close-circle", None, "Drucke"),
         BcStatSensor(coordinator, entry, serial, "total_print_time", "Druckzeit gesamt", "mdi:clock-outline", SensorStateClass.TOTAL_INCREASING, UnitOfTime.HOURS),
         BcStatSensor(coordinator, entry, serial, "total_energy", "Energie gesamt", "mdi:lightning-bolt", SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR),
         BcStatSensor(coordinator, entry, serial, "total_filament", "Filament gesamt", "mdi:weight-gram", SensorStateClass.TOTAL_INCREASING, "g"),
         BcStatSensor(coordinator, entry, serial, "total_cost", "Kosten gesamt", "mdi:currency-eur", SensorStateClass.TOTAL_INCREASING, currency),
         BcStatSensor(coordinator, entry, serial, "monthly_cost", "Kosten diesen Monat", "mdi:calendar-month", None, currency),
-        BcStatSensor(coordinator, entry, serial, "monthly_prints", "Drucke diesen Monat", "mdi:calendar-month", None, "prints"),
+        BcStatSensor(coordinator, entry, serial, "monthly_prints", "Drucke diesen Monat", "mdi:calendar-month", None, "Drucke"),
         BcStatSensor(coordinator, entry, serial, "last_print_duration", "Dauer letzter Druck", "mdi:timer-outline", None, UnitOfTime.MINUTES),
-        BcStatSensor(coordinator, entry, serial, "last_print_cost", "Kosten letzter Druck", "mdi:receipt", None, currency),
-        BcStatSensor(coordinator, entry, serial, "total_filament_cost", "Filamentkosten gesamt", "mdi:spool", SensorStateClass.TOTAL_INCREASING, currency),
+        BcStatSensor(coordinator, entry, serial, "last_print_cost", "Kosten letzter Druck", "mdi:currency-eur", None, currency),
+        BcStatSensor(coordinator, entry, serial, "total_filament_cost", "Filamentkosten gesamt", "mdi:currency-eur", SensorStateClass.TOTAL_INCREASING, currency),
         BcStatSensor(coordinator, entry, serial, "total_energy_cost", "Energiekosten gesamt", "mdi:lightning-bolt-circle", SensorStateClass.TOTAL_INCREASING, currency),
     ]
 
@@ -134,18 +134,48 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
             "last_print_cost": round(last.get("total_cost", 0), 2) if last else None,
             "total_filament_cost": round(counters.get("total_filament_cost", 0), 2),
             "total_energy_cost": round(counters.get("total_energy_cost", 0), 2),
-            "nozzle_hours": round(counters.get("nozzle_hours", 0), 2),
-            "left_nozzle_hours": round(counters.get("left_nozzle_hours", 0), 2),
-            "right_nozzle_hours": round(counters.get("right_nozzle_hours", 0), 2),
+            "nozzle_hours": self._active_slot_hours(data, "single"),
+            "left_nozzle_hours": self._active_slot_hours(data, "left"),
+            "right_nozzle_hours": self._active_slot_hours(data, "right"),
             "laser_hours": round(counters.get("laser_hours", 0), 2),
         }
         return mapping.get(self._stat_key)
 
+    @staticmethod
+    def _active_slot_hours(data: dict, position: str) -> float:
+        """Return hours of the active nozzle slot; fall back to legacy counter."""
+        nozzle_slots = data.get("nozzle_slots", {})
+        slots = nozzle_slots.get(position, {})
+        active_id = nozzle_slots.get("active", {}).get(position, "1")
+        slot_hours = slots.get(active_id, {}).get("hours")
+        if slot_hours is not None:
+            return round(slot_hours, 2)
+        # Legacy fallback
+        counters = data.get("counters", {})
+        key = "nozzle_hours" if position == "single" else f"{position}_nozzle_hours"
+        return round(counters.get(key, 0), 2)
+
     @property
     def extra_state_attributes(self) -> dict:
-        if self._stat_key != "total_prints" or self.coordinator.data is None:
+        if self.coordinator.data is None:
             return {}
-        return {"history": self.coordinator.data.get("history", [])}
+        if self._stat_key == "total_prints":
+            return {"history": self.coordinator.data.get("history", [])}
+        # Expose all nozzle slots as attributes for the three nozzle sensors
+        position_map = {"nozzle_hours": "single", "left_nozzle_hours": "left", "right_nozzle_hours": "right"}
+        if self._stat_key in position_map:
+            position = position_map[self._stat_key]
+            nozzle_slots = self.coordinator.data.get("nozzle_slots", {})
+            slots = nozzle_slots.get(position, {})
+            active_id = nozzle_slots.get("active", {}).get(position, "1")
+            return {
+                "alle_düsen": {
+                    v["label"]: round(v.get("hours", 0), 2)
+                    for v in slots.values()
+                },
+                "aktive_düse": slots.get(active_id, {}).get("label", "Düse 1"),
+            }
+        return {}
 
 
 class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
