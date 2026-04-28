@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.4";
+const VERSION = "1.3.5";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -129,7 +129,7 @@ class BambuCompanionOverviewCard extends HTMLElement {
 
     set hass(hass) { this._hass = hass; this._render(); }
 
-    _e(key) { return `sensor.bc_${this._config.serial}_${key}`; }
+    _e(key) { return `sensor.bc_${this._config.serial.toLowerCase()}_${key}`; }
 
     _render() {
         if (!this._config?.serial) {
@@ -304,7 +304,8 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
             return;
         }
         const h = this._hass;
-        const { serial } = this._config;
+        const { serial: _serial } = this._config;
+        const serial = _serial.toLowerCase();
         const prefix = `sensor.bc_${serial}_maint_`;
 
         const tasks = Object.entries(h.states)
@@ -423,7 +424,8 @@ class BambuCompanionHistoryCard extends HTMLElement {
             return;
         }
         const h = this._hass;
-        const { serial, max_entries = 20, max_height = 400 } = this._config;
+        const { serial: _serial2, max_entries = 20, max_height = 400 } = this._config;
+        const serial = _serial2.toLowerCase();
 
         // Read currency from sensor unit_of_measurement (set by integration config)
         const currency = h.states[`sensor.bc_${serial}_total_cost`]?.attributes?.unit_of_measurement ?? "€";
