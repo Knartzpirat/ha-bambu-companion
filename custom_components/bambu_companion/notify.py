@@ -155,3 +155,66 @@ class NotifyManager:
         message = _render(_get_text(self._options, CONF_TEXT_MAINT_MSG), variables)
         await self._send("maintenance", title, message)
 
+    async def notify_nozzle_change(self, variables: dict) -> None:
+        """Notify the user that a nozzle change was detected and ask them to confirm the slot."""
+        drucker = variables.get("drucker", "Drucker")
+        serial = variables.get("serial", "")
+        position = variables.get("position", "single")
+        diameter = variables.get("diameter")
+        nozzle_type = variables.get("nozzle_type", "")
+        labels: list[str] = variables.get("labels", [])
+        active = variables.get("active", "")
+
+        diameter_str = f"{diameter:.2f} mm" if diameter else "?"
+        type_str = f" ({nozzle_type})" if nozzle_type else ""
+        title = f"🔧 {drucker} – Düsenwechsel erkannt"
+        select_entity = f"select.bc_{serial}_nozzle_{position}"
+        message = (
+            f"Neue Düse erkannt: **{diameter_str}{type_str}**\n\n"
+            f"Welche physische Düse ist jetzt eingebaut? "
+            f"Bitte wähle den Slot über die Entität `{select_entity}` "
+            f"oder tippe auf die passende Schaltfläche (aktiv: {active})."
+        )
+
+        mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
+        ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+
+        # Mobile push with action buttons (one per slot)
+        if "nozzle_change" in mobile_events:
+            targets = self._targets()
+            if targets and not self._is_quiet():
+                action_buttons = [
+                    {
+                        "action": f"bc_nozzle_slot_{serial}_{position}_{label}",
+                        "title": f"{'✅ ' if label == active else ''}{label}",
+                    }
+                    for label in labels
+                ]
+                for target in targets:
+                    try:
+                        service_domain, service_name = target.rsplit(".", 1)
+                        await self._hass.services.async_call(
+                            service_domain,
+                            service_name,
+                            {
+                                "title": title,
+                                "message": message,
+                                "data": {
+                                    "actions": action_buttons,
+                                    "tag": f"bc_nozzle_change_{serial}_{position}",
+                                },
+                            },
+                            blocking=False,
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        _LOGGER.warning("Failed to send nozzle change notification to %s: %s", target, exc)
+
+        # HA persistent notification
+        if "nozzle_change" in ha_events:
+            async_create(
+                self._hass,
+                message,
+                title=title,
+                notification_id=f"bambu_companion_{serial}_nozzle_change_{position}",
+            )
+
