@@ -589,9 +589,19 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             interval = float(maint_intervals.get(key, default_interval))
 
             current_value = self._get_trigger_value(trigger, counters, bambu_total_hours)
-            # Current value since last reset
-            last_reset_value = float(self._store.get_maintenance().get(key, {}).get("baseline", 0))
-            since_reset = max(0.0, current_value - last_reset_value)
+
+            maint_entry = self._store.get_maintenance().get(key)
+            if maint_entry is None:
+                # First time seeing this task – set baseline to current value so
+                # the counter starts at 0 (avoids false maintenance alerts on first
+                # setup with a printer that already has many hours).
+                self._store.set_maintenance_baseline(key, current_value)
+                await self._store.async_save()
+                since_reset = 0.0
+            else:
+                # Current value since last reset
+                last_reset_value = float(maint_entry.get("baseline", 0))
+                since_reset = max(0.0, current_value - last_reset_value)
 
             self._store.set_maintenance_value(key, since_reset)
 
