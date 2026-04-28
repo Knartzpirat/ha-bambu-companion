@@ -96,6 +96,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Maintenance notification cooldown: task_key → last notified datetime
         self._maint_notified: dict[str, datetime] = {}
 
+        # Nozzle change detection
+        self._last_nozzle_diameter: float | None = None
+        self._last_nozzle_type: str | None = None
+        self._nozzle_change_initialized: bool = False
+        # Per-position tracking for dual-nozzle printers {position: {"diameter": x, "type": y}}
+        self._last_nozzle_state: dict[str, dict] = {}
+
         # Graceful-degradation flags
         self._entities_missing_logged: bool = False  # throttle "no entities" warning
         self._printer_offline: bool = False  # True while status entity is unavailable
@@ -125,6 +132,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         await self._store.async_load()
         self._refresh_entity_maps()
         self._setup_state_listeners()
+        self._setup_mobile_action_listener()
 
     def _refresh_entity_maps(self) -> None:
         self._entities = get_printer_entities(self.hass, self._device_id)
@@ -146,6 +154,27 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     def _handle_state_change(self, event) -> None:  # noqa: ANN001
         """Trigger coordinator refresh on any tracked entity change."""
         self.async_request_refresh()
+
+    def _setup_mobile_action_listener(self) -> None:
+        """Listen for mobile_app_notification_action events to handle nozzle-slot selection."""
+        @callback
+        def _on_mobile_action(event) -> None:
+            action: str = event.data.get("action", "")
+            prefix = f"bc_nozzle_slot_{self._serial}_"
+            if not action.startswith(prefix):
+                return
+            rest = action[len(prefix):]          # e.g. "single_Düse 2"
+            parts = rest.split("_", 1)
+            if len(parts) != 2:
+                return
+            position, label = parts
+            self.hass.async_create_task(
+                self.async_select_nozzle_slot(position, label)
+            )
+
+        self._entry.async_on_unload(
+            self.hass.bus.async_listen("mobile_app_notification_action", _on_mobile_action)
+        )
 
     # ------------------------------------------------------------------
     # Core update
@@ -206,8 +235,19 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Update maintenance sensor values
         await self._update_maintenance_values()
 
-        # Read total_usage_hours from ha-bambulab and prefer it over the internal counter
-        bambu_total_hours = get_entity_float(self.hass, self._entities, "total_usage_hours")
+        # Detect nozzle type/size change and notify user
+        await self._detect_nozzle_change()
+
+        # Read total_usage_hours from ha-bambulab and prefer it over the internal counter.
+        # If the entity is unavailable or temporarily 0 (e.g. during printer shutdown /
+        # reconnect), keep the last known non-zero value to prevent the sensor from
+        # resetting to 0.
+        _new_bambu_hours = get_entity_float(self.hass, self._entities, "total_usage_hours")
+        _last_bambu_hours = (self.data or {}).get("bambu_total_hours")
+        if _new_bambu_hours:
+            bambu_total_hours = _new_bambu_hours
+        else:
+            bambu_total_hours = _last_bambu_hours  # preserve last known value (may be None)
 
         result = {
             "print_status": new_status,
@@ -219,6 +259,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "monthly": self._store.get_monthly_stats(),
             "last_print": self._store.get_last_print(),
             "printer_offline": False,
+            "nozzle_slots": {
+                "single": dict(self._store.get_nozzle_slots("single")),
+                "left": dict(self._store.get_nozzle_slots("left")),
+                "right": dict(self._store.get_nozzle_slots("right")),
+                "active": {
+                    "single": self._store.get_active_nozzle_slot("single"),
+                    "left": self._store.get_active_nozzle_slot("left"),
+                    "right": self._store.get_active_nozzle_slot("right"),
+                },
+            },
         }
         return result
 
@@ -434,6 +484,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if not self._features.get("dual_nozzle"):
             nozzle_temp = get_entity_float(self.hass, self._entities, "nozzle_temperature") or 0
             if nozzle_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
+                self._store.increment_nozzle_slot_hours("single", interval_h)
+                # Keep legacy counter in sync so existing maintenance baselines still work
                 self._store.increment_counter("nozzle_hours", interval_h)
                 changed = True
 
@@ -442,9 +494,11 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             left_temp = get_entity_float(self.hass, self._entities, "left_nozzle_temperature") or 0
             right_temp = get_entity_float(self.hass, self._entities, "right_nozzle_temperature") or 0
             if left_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
+                self._store.increment_nozzle_slot_hours("left", interval_h)
                 self._store.increment_counter("left_nozzle_hours", interval_h)
                 changed = True
             if right_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
+                self._store.increment_nozzle_slot_hours("right", interval_h)
                 self._store.increment_counter("right_nozzle_hours", interval_h)
                 changed = True
 
@@ -504,6 +558,67 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                         }
                     )
                     self._maint_notified[key] = dt_util.now()
+
+    # ------------------------------------------------------------------
+    # Nozzle change detection
+    # ------------------------------------------------------------------
+
+    async def _detect_nozzle_change(self) -> None:
+        """Detect nozzle diameter/type changes per position and notify the user."""
+        # Map position → (diameter_key, type_key) using ha-bambulab translation_keys.
+        # For H2D: left uses "left_nozzle_size", right uses "right_nozzle_size".
+        # For single-nozzle: "nozzle_size" with "nozzle_diameter" as fallback.
+        if self._features.get("dual_nozzle"):
+            positions = {
+                "left": ("left_nozzle_size", "left_nozzle_type"),
+                "right": ("right_nozzle_size", "right_nozzle_type"),
+            }
+        else:
+            positions = {
+                "single": ("nozzle_size", "nozzle_type"),
+            }
+
+        for position, (diameter_key, type_key) in positions.items():
+            diameter = get_entity_float(self.hass, self._entities, diameter_key)
+            # Fallback for single-nozzle printers that report "nozzle_diameter"
+            if diameter is None and position == "single":
+                diameter = get_entity_float(self.hass, self._entities, "nozzle_diameter")
+            nozzle_type = get_entity_state(self.hass, self._entities, type_key) or ""
+
+            if diameter is None:
+                continue  # entity not yet available
+
+            prev = self._last_nozzle_state.get(position)
+            if prev is None:
+                # First run – memorise without notifying
+                self._last_nozzle_state[position] = {"diameter": diameter, "type": nozzle_type}
+                continue
+
+            diameter_changed = prev["diameter"] != diameter
+            type_changed = nozzle_type != "" and prev["type"] != nozzle_type
+
+            if diameter_changed or type_changed:
+                _LOGGER.info(
+                    "Nozzle change detected on %s (%s): %.2fmm %s → %.2fmm %s",
+                    self._serial, position,
+                    prev["diameter"] or 0, prev["type"],
+                    diameter, nozzle_type,
+                )
+                self._last_nozzle_state[position] = {"diameter": diameter, "type": nozzle_type}
+
+                labels = self.get_nozzle_slot_labels(position)
+                active = self.get_active_nozzle_label(position)
+                await self._notify.notify_nozzle_change(
+                    {
+                        "drucker": self._printer_name,
+                        "serial": self._serial,
+                        "position": position,
+                        "diameter": diameter,
+                        "nozzle_type": nozzle_type,
+                        "labels": labels,
+                        "active": active,
+                    }
+                )
 
     def _get_trigger_value(self, trigger: str, counters: dict, bambu_total_hours: float | None = None) -> float:
         if trigger == "total_hours" and bambu_total_hours is not None:
@@ -567,6 +682,45 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         maint[task_key]["value"] = 0
         maint[task_key]["last_reset"] = dt_util.now().isoformat()
         self._maint_notified.pop(task_key, None)
+        await self._store.async_save()
+        await self.async_refresh()
+
+    # ------------------------------------------------------------------
+    # Nozzle slot management (called by select / button entities)
+    # ------------------------------------------------------------------
+
+    def get_nozzle_slot_labels(self, position: str) -> list[str]:
+        """Return ordered list of slot labels for the given position."""
+        slots = self._store.get_nozzle_slots(position)
+        return [slots[k]["label"] for k in sorted(slots.keys(), key=lambda x: int(x) if x.isdigit() else 0)]
+
+    def get_active_nozzle_label(self, position: str) -> str | None:
+        """Return the label of the currently active slot."""
+        slots = self._store.get_nozzle_slots(position)
+        active_id = self._store.get_active_nozzle_slot(position)
+        return slots.get(active_id, {}).get("label")
+
+    async def async_select_nozzle_slot(self, position: str, label: str) -> None:
+        """Activate the slot with the given label."""
+        slots = self._store.get_nozzle_slots(position)
+        for slot_id, slot_data in slots.items():
+            if slot_data["label"] == label:
+                self._store.set_active_nozzle_slot(position, slot_id)
+                await self._store.async_save()
+                await self.async_refresh()
+                return
+
+    async def async_add_nozzle_slot(self, position: str) -> str:
+        """Add a new nozzle slot, activate it, return its label."""
+        new_id = self._store.add_nozzle_slot(position)
+        new_label = self._store.get_nozzle_slots(position)[new_id]["label"]
+        await self._store.async_save()
+        await self.async_refresh()
+        return new_label
+
+    async def async_reset_active_nozzle_slot(self, position: str) -> None:
+        """Reset hours of the currently active nozzle slot to 0."""
+        self._store.reset_nozzle_slot_hours(position)
         await self._store.async_save()
         await self.async_refresh()
 
