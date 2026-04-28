@@ -5,7 +5,6 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.components.persistent_notification import async_create
 
 from .const import (
     CONF_CURRENCY,
@@ -40,32 +39,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         registration = BambuCompanionCardRegistration(hass)
         await registration.async_register()
         hass.data[DOMAIN]["card_registration"] = registration
-        _notify_cards_ready(hass, entry)
 
     return True
-
-
-def _notify_cards_ready(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Send a one-time persistent notification telling the user how to add cards."""
-    opts = {**entry.data, **entry.options}
-    printer_name = opts.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME)
-    serial = entry.data.get("serial", "")
-    currency = opts.get(CONF_CURRENCY, DEFAULT_CURRENCY)
-
-    async_create(
-        hass,
-        (
-            f"Die Bambu Companion Karten sind jetzt verfügbar.\n\n"
-            "Öffne ein beliebiges Dashboard im **Bearbeitungsmodus**, klicke auf "
-            "**Karte hinzufügen** und suche nach **Bambu Companion**.\n\n"
-            "Folgende Karten stehen zur Verfügung:\n"
-            "- **Bambu Companion – Übersicht** (`serial: " + serial + "`, `currency: " + currency + "`)\n"
-            "- **Bambu Companion – Wartung** (`serial: " + serial + "`)\n"
-            "- **Bambu Companion – Druckverlauf** (`serial: " + serial + "`)"
-        ),
-        title="Bambu Companion – Karten bereit",
-        notification_id=f"bambu_companion_cards_{serial}",
-    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
