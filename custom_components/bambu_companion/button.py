@@ -26,11 +26,22 @@ async def async_setup_entry(
     model = entry.data.get("model", "")
     has_ams = bool(entry.data.get("ams_device_ids", []))
     applicable_tasks = get_applicable_tasks(model, has_ams)
+    features = coordinator._features
+
+    entities = []
 
     if applicable_tasks:
-        async_add_entities([
-            BcResetSelectedTaskButton(coordinator, entry, serial, applicable_tasks)
-        ])
+        entities.append(BcResetSelectedTaskButton(coordinator, entry, serial, applicable_tasks))
+
+    # Nozzle slot reset buttons
+    if features.get("dual_nozzle"):
+        entities.append(BcResetActiveNozzleButton(coordinator, entry, serial, "left", "Aktive Linke Düse zurücksetzen"))
+        entities.append(BcResetActiveNozzleButton(coordinator, entry, serial, "right", "Aktive Rechte Düse zurücksetzen"))
+    else:
+        entities.append(BcResetActiveNozzleButton(coordinator, entry, serial, "single", "Aktive Düse zurücksetzen"))
+
+    if entities:
+        async_add_entities(entities)
 
 
 class BcResetSelectedTaskButton(ButtonEntity):
@@ -69,4 +80,28 @@ class BcResetSelectedTaskButton(ButtonEntity):
             )
             return
         await self._coordinator.async_reset_maintenance_task(task_key)
+
+
+class BcResetActiveNozzleButton(ButtonEntity):
+    """Resets the hour counter of the currently active nozzle slot."""
+
+    def __init__(
+        self,
+        coordinator: BambuPrintTrackerCoordinator,
+        entry: ConfigEntry,
+        serial: str,
+        position: str,
+        name: str,
+    ) -> None:
+        self._coordinator = coordinator
+        self._serial = serial
+        self._position = position
+        self._attr_name = name
+        self._attr_unique_id = f"bc_{serial}_reset_nozzle_{position}"
+        self.entity_id = f"button.bc_{serial.lower()}_reset_nozzle_{position}"
+        self._attr_icon = "mdi:restart"
+        self._attr_device_info = device_info(entry, serial)
+
+    async def async_press(self) -> None:
+        await self._coordinator.async_reset_active_nozzle_slot(self._position)
 
