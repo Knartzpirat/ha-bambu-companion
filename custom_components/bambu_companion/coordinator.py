@@ -107,8 +107,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._entities_missing_logged: bool = False  # throttle "no entities" warning
         self._printer_offline: bool = False  # True while status entity is unavailable
 
-        self.data: dict[str, Any] = {}
-
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
@@ -182,6 +180,38 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Refresh all tracked values and run state machine."""
+        try:
+            return await self._async_update_data_inner()
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Unexpected error updating Bambu Companion data for %s", self._serial)
+            # Return store-based fallback so the config entry stays loaded
+            # and sensors remain available with their last known values.
+            if self.data:
+                return dict(self.data)
+            return {
+                "print_status": PRINT_STATUS_IDLE,
+                "entities": self._entities,
+                "counters": dict(self._store.counters),
+                "bambu_total_hours": None,
+                "maintenance": dict(self._store.get_maintenance()),
+                "history": self._store.get_history(),
+                "monthly": self._store.get_monthly_stats(),
+                "last_print": self._store.get_last_print(),
+                "printer_offline": True,
+                "nozzle_slots": {
+                    "single": dict(self._store.get_nozzle_slots("single")),
+                    "left": dict(self._store.get_nozzle_slots("left")),
+                    "right": dict(self._store.get_nozzle_slots("right")),
+                    "active": {
+                        "single": self._store.get_active_nozzle_slot("single"),
+                        "left": self._store.get_active_nozzle_slot("left"),
+                        "right": self._store.get_active_nozzle_slot("right"),
+                    },
+                },
+            }
+
+    async def _async_update_data_inner(self) -> dict[str, Any]:
+        """Inner update – exceptions here are caught by _async_update_data."""
         # Refresh entity maps in case entities changed
         self._refresh_entity_maps()
 
