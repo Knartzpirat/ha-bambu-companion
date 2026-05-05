@@ -5,12 +5,23 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.5";
+const VERSION = "1.3.6";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+// Case-insensitive entity resolver – handles uppercase serials stored in HA registry
+function resolveEntityId(hass, target) {
+    if (hass.states[target]) return target;
+    const lower = target.toLowerCase();
+    for (const eid of Object.keys(hass.states)) {
+        if (eid.toLowerCase() === lower) return eid;
+    }
+    return target; // fallback (will be "unavailable")
+}
+
 function getState(hass, entityId) {
-    return hass.states[entityId]?.state ?? "unavailable";
+    const resolved = resolveEntityId(hass, entityId);
+    return hass.states[resolved]?.state ?? "unavailable";
 }
 
 function getNum(hass, entityId) {
@@ -130,6 +141,8 @@ class BambuCompanionOverviewCard extends HTMLElement {
     set hass(hass) { this._hass = hass; this._render(); }
 
     _e(key) { return `sensor.bc_${this._config.serial.toLowerCase()}_${key}`; }
+
+    _resolved(key) { return resolveEntityId(this._hass, this._e(key)); }
 
     _render() {
         if (!this._config?.serial) {
@@ -306,7 +319,16 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         const h = this._hass;
         const { serial: _serial } = this._config;
         const serial = _serial.toLowerCase();
-        const prefix = `sensor.bc_${serial}_maint_`;
+        // Case-insensitive prefix scan for maintenance sensors
+        const prefixTarget = `sensor.bc_${serial}_maint_`;
+        const prefix = (() => {
+            for (const eid of Object.keys(h.states)) {
+                if (eid.toLowerCase().startsWith(prefixTarget)) {
+                    return eid.slice(0, eid.toLowerCase().indexOf('_maint_') + 7);
+                }
+            }
+            return prefixTarget;
+        })();
 
         const tasks = Object.entries(h.states)
             .filter(([id]) => id.startsWith(prefix))
@@ -428,9 +450,10 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const serial = _serial2.toLowerCase();
 
         // Read currency from sensor unit_of_measurement (set by integration config)
-        const currency = h.states[`sensor.bc_${serial}_total_cost`]?.attributes?.unit_of_measurement ?? "€";
+        const currencyEid = resolveEntityId(h, `sensor.bc_${serial}_total_cost`);
+        const currency = h.states[currencyEid]?.attributes?.unit_of_measurement ?? "€";
 
-        const entityId = `sensor.bc_${serial}_total_prints`;
+        const entityId = resolveEntityId(h, `sensor.bc_${serial}_total_prints`);
         const fullHistory = h.states[entityId]?.attributes?.history ?? [];
         const history = max_entries > 0 ? fullHistory.slice(0, max_entries) : fullHistory;
         const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "overflow-y:auto;";
