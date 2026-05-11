@@ -33,6 +33,7 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = [
         BcStatSensor(coordinator, entry, serial, "print_status", "Druckstatus", "mdi:printer-3d-nozzle", None, None),
+        BcStatSensor(coordinator, entry, serial, "print_progress", "Druckfortschritt", "mdi:progress-clock", None, "%"),
         BcStatSensor(coordinator, entry, serial, "total_prints", "Drucke gesamt", "mdi:printer-3d", None, "Drucke"),
         BcStatSensor(coordinator, entry, serial, "successful_prints", "Erfolgreiche Drucke", "mdi:check-circle", None, "Drucke"),
         BcStatSensor(coordinator, entry, serial, "failed_prints", "Fehlgeschlagene Drucke", "mdi:close-circle", None, "Drucke"),
@@ -121,6 +122,7 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         )
 
         mapping = {
+            "print_progress": data.get("print_progress", 0),
             "total_prints": counters.get("total_prints", 0),
             "successful_prints": counters.get("successful_prints", 0),
             "failed_prints": counters.get("failed_prints", 0),

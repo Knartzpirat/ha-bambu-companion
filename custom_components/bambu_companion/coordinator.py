@@ -330,8 +330,11 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         else:
             bambu_total_hours = _last_bambu_hours  # preserve last known value (may be None)
 
+        print_progress = int(get_entity_float(self.hass, self._entities, "print_progress") or 0)
+
         result = {
             "print_status": new_status,
+            "print_progress": print_progress,
             "entities": self._entities,
             "counters": dict(self._store.counters),
             "bambu_total_hours": bambu_total_hours,

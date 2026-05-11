@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.6";
+const VERSION = "1.3.7";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -459,11 +459,15 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "overflow-y:auto;";
 
         const rows = history.map(p => {
-            const ok = p.success !== false;
-            const dateStr = p.end_time ? new Date(p.end_time * 1000).toLocaleString() : "–";
+            const ok = p.status === "success" || p.success === true;
+            const ts = p.timestamp_end || p.end_time;
+            const dateStr = ts
+                ? (typeof ts === "number" ? new Date(ts * 1000) : new Date(ts)).toLocaleString()
+                : "–";
             const duration = p.duration_min != null ? `${Math.round(p.duration_min)} min` : "–";
             const cost = p.total_cost != null ? `${parseFloat(p.total_cost).toFixed(2)} ${currency}` : "–";
-            const fil = p.total_filament_g != null ? `${parseFloat(p.total_filament_g).toFixed(1)} g` : "–";
+            const fil = (p.filament_weight_g ?? p.total_filament_g) != null
+                ? `${parseFloat(p.filament_weight_g ?? p.total_filament_g).toFixed(1)} g` : "–";
             return `
         <tr>
           <td>${ok ? "✅" : "❌"}</td>
