@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.7";
+const VERSION = "1.3.8";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,40 @@ function resolveEntityId(hass, target) {
         if (eid.toLowerCase() === lower) return eid;
     }
     return target; // fallback (will be "unavailable")
+}
+
+/**
+ * Build a {stat_key: entity_id} map for a given serial by scanning hass.entities
+ * (the entity registry). This works even if HA assigned a different entity_id
+ * than the code expected (e.g. due to an old registry entry from a previous install).
+ *
+ * Falls back to the standard bc_ pattern if hass.entities is not available.
+ */
+function buildEntityMap(hass, serial) {
+    const map = {};
+    if (!hass || !serial) return map;
+    const serialLower = serial.toLowerCase();
+
+    if (hass.entities) {
+        // Regex: sensor.<any_prefix>_<serial>_<key>
+        // Handles bc_, bpt_, or any future prefix
+        const re = new RegExp(
+            `^sensor\\.[a-z_]+_${serialLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_(.+)$`
+        );
+        for (const [eid, entry] of Object.entries(hass.entities)) {
+            if (entry.platform !== "bambu_companion") continue;
+            const m = eid.toLowerCase().match(re);
+            if (m) map[m[1]] = eid; // stat_key -> actual entity_id
+        }
+    }
+
+    // If hass.entities is unavailable or yielded nothing, fall back to pattern
+    // (used in older HA versions or first render before registry is loaded)
+    if (!Object.keys(map).length) {
+        // Return empty map — _e() will fall back to the bc_ pattern itself
+    }
+
+    return map;
 }
 
 function getState(hass, entityId) {
@@ -98,7 +132,28 @@ function _findPrinters(hass) {
         }
     }
 
-    // Method 2: scan hass.states for bc_ entity_id pattern (new installs, or when devices not populated)
+    // Method 2: scan hass.entities (entity registry) for bambu_companion sensors
+    // This catches entities where HA assigned a different entity_id than expected
+    if (hass.entities) {
+        for (const [eid, entry] of Object.entries(hass.entities)) {
+            if (entry.platform !== "bambu_companion") continue;
+            const m = eid.match(/^sensor\.[a-z_]+_(.+?)_print_status$/i);
+            if (!m) continue;
+            const serial = m[1];
+            const serialUpper = serial.toUpperCase();
+            if (seen.has(serial) || seen.has(serialUpper)) continue;
+            // Resolve label via device registry
+            let label = serial;
+            if (entry.device_id && hass.devices) {
+                const device = hass.devices[entry.device_id];
+                if (device) label = device.name_by_user || device.name || serial;
+            }
+            seen.add(serial);
+            result.push({ serial, label });
+        }
+    }
+
+    // Method 3: scan hass.states for bc_ entity_id pattern (fallback for older HA versions)
     for (const entityId of Object.keys(hass.states ?? {})) {
         const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/i);
         if (!m || seen.has(m[1])) continue;
@@ -136,13 +191,23 @@ class BambuCompanionOverviewCard extends HTMLElement {
 
     setConfig(config) {
         this._config = config;
+        this._entityMap = {};
     }
 
-    set hass(hass) { this._hass = hass; this._render(); }
+    set hass(hass) {
+        this._hass = hass;
+        // Rebuild entity map on each hass update so we always use the actual entity_ids
+        if (this._config?.serial) {
+            this._entityMap = buildEntityMap(hass, this._config.serial);
+        }
+        this._render();
+    }
 
-    _e(key) { return `sensor.bc_${this._config.serial.toLowerCase()}_${key}`; }
-
-    _resolved(key) { return resolveEntityId(this._hass, this._e(key)); }
+    /** Return the actual entity_id for a stat key, with fallback to bc_ pattern. */
+    _e(key) {
+        return this._entityMap?.[key]
+            ?? resolveEntityId(this._hass, `sensor.bc_${this._config.serial.toLowerCase()}_${key}`);
+    }
 
     _render() {
         if (!this._config?.serial) {
@@ -153,7 +218,20 @@ class BambuCompanionOverviewCard extends HTMLElement {
         const h = this._hass;
         const { serial, currency = "€", printer_name = serial } = this._config;
 
-        const status = getState(h, this._e("print_status"));
+        const statusEid = this._e("print_status");
+        const status = getState(h, statusEid);
+
+        // Diagnostic: log entity lookup info to browser console when entity is missing
+        if (status === "unavailable" && !h.states[statusEid]) {
+            const entityCount = Object.keys(this._entityMap || {}).length;
+            console.warn(
+                `[BambuCompanion] Sensor '${statusEid}' nicht in hass.states gefunden.\n` +
+                `  Serial: ${serial}\n` +
+                `  Entity-Map hat ${entityCount} Einträge (via hass.entities).\n` +
+                `  Tipp: Integration neu laden oder HA-Log auf Fehler prüfen.`
+            );
+        }
+
         const progress = getNum(h, this._e("print_progress"));
         const totalPrints = getNum(h, this._e("total_prints"));
         const successPrints = getNum(h, this._e("successful_prints"));
@@ -166,6 +244,26 @@ class BambuCompanionOverviewCard extends HTMLElement {
         const monthlyCost = getNum(h, this._e("monthly_cost"));
         const lastDuration = getNum(h, this._e("last_print_duration"));
         const lastCost = getNum(h, this._e("last_print_cost"));
+
+        // Show diagnostic card when entity is truly missing
+        if (status === "unavailable" && !h.states[statusEid]) {
+            this.shadowRoot.innerHTML = `
+      <style>${SHARED_STYLE}</style>
+      <ha-card>
+        <div class="card-header">⚠️ ${printer_name}</div>
+        <div style="padding:0 0 12px;color:var(--error-color,#f44336);font-size:0.85em">
+          Sensor nicht gefunden: <code>${statusEid}</code>
+        </div>
+        <div style="font-size:0.8em;color:var(--secondary-text-color)">
+          Mögliche Ursachen:<br>
+          • Integration noch nicht vollständig geladen (HA neu starten)<br>
+          • Sensor deaktiviert (HA → Einstellungen → Geräte & Dienste → Entitäten)<br>
+          • Falscher Drucker in der Kartenkonfiguration<br>
+          • Entitätsname durch HA-Registry geändert (prüfe entity_id in HA)
+        </div>
+      </ha-card>`;
+            return;
+        }
 
         const color = statusColor(status);
         const isPrinting = status === "printing" || status === "pause";
@@ -435,9 +533,21 @@ class BambuCompanionHistoryCard extends HTMLElement {
 
     setConfig(config) {
         this._config = config;
+        this._entityMap = {};
     }
 
-    set hass(hass) { this._hass = hass; this._render(); }
+    set hass(hass) {
+        this._hass = hass;
+        if (this._config?.serial) {
+            this._entityMap = buildEntityMap(hass, this._config.serial);
+        }
+        this._render();
+    }
+
+    _e(key) {
+        return this._entityMap?.[key]
+            ?? resolveEntityId(this._hass, `sensor.bc_${this._config.serial.toLowerCase()}_${key}`);
+    }
 
     _render() {
         if (!this._hass || !this._config) return;
@@ -450,11 +560,11 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const serial = _serial2.toLowerCase();
 
         // Read currency from sensor unit_of_measurement (set by integration config)
-        const currencyEid = resolveEntityId(h, `sensor.bc_${serial}_total_cost`);
+        const currencyEid = this._e("total_cost");
         const currency = h.states[currencyEid]?.attributes?.unit_of_measurement ?? "€";
 
-        const entityId = resolveEntityId(h, `sensor.bc_${serial}_total_prints`);
-        const fullHistory = h.states[entityId]?.attributes?.history ?? [];
+        const totalPrintsEid = this._e("total_prints");
+        const fullHistory = h.states[totalPrintsEid]?.attributes?.history ?? [];
         const history = max_entries > 0 ? fullHistory.slice(0, max_entries) : fullHistory;
         const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "overflow-y:auto;";
 

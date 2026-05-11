@@ -101,6 +101,11 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = device_info(entry, serial)
 
     @property
+    def available(self) -> bool:
+        """Available as long as coordinator has any data (cached values used on error)."""
+        return self.coordinator.data is not None
+
+    @property
     def native_value(self) -> Any:
         if self.coordinator.data is None:
             return None
@@ -198,6 +203,11 @@ class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
         self.entity_id = f"sensor.bc_{serial.lower()}_maint_{task['key']}"
         self._attr_icon = "mdi:wrench"
         self._attr_device_info = device_info(entry, serial)
+
+    @property
+    def available(self) -> bool:
+        """Available as long as coordinator has any data."""
+        return self.coordinator.data is not None
 
     @property
     def native_value(self) -> str:

@@ -190,6 +190,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 return dict(self.data)
             return {
                 "print_status": PRINT_STATUS_IDLE,
+                "print_progress": 0,
                 "entities": self._entities,
                 "counters": dict(self._store.counters),
                 "bambu_total_hours": None,
@@ -231,6 +232,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 return dict(self.data)
             return {
                 "print_status": PRINT_STATUS_IDLE,
+                "print_progress": 0,
                 "entities": {},
                 "counters": dict(self._store.counters),
                 "bambu_total_hours": None,
@@ -282,6 +284,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             else:
                 result = {
                     "print_status": PRINT_STATUS_IDLE,
+                    "print_progress": 0,
                     "entities": self._entities,
                     "counters": dict(self._store.counters),
                     "bambu_total_hours": None,
