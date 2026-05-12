@@ -4,6 +4,17 @@ All notable changes to the Bambu Companion project will be documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.0.7] — 2026-05-12
+
+### Fixed
+- **Benachrichtigungs-Defaults korrigiert:** `DEFAULT_NOTIFY_HA_EVENTS` enthielt kein `"maintenance"` (Wartungsmeldungen erschienen nie in der HA-UI). `DEFAULT_NOTIFY_MOBILE_EVENTS` war leer (keine Handy-Benachrichtigung für Druckende). Neue Defaults: HA = `["done", "maintenance", "error", "nozzle_change"]`, Mobile = `["start", "done", "error"]`.
+- **Migration bestehender Installationen:** Beim HA-Start werden bestehende Config-Entries automatisch gepatcht – `"maintenance"` wird zu `notify_ha_events` hinzugefügt falls fehlend, leere `notify_mobile_events` werden auf den neuen Default gesetzt (ohne explizit konfigurierte Werte zu überschreiben).
+- **JS Entity-Map: Falsches Gerät in Strategy 0:** `buildEntityMap` konnte fälschlicherweise das ha-bambulab-Gerät statt des bambu_companion-Geräts auswählen (beide tragen die gleiche Serial als Identifier). Gefixte Strategy 0 filtert nun explizit nach `domain === "bambu_companion"` – verhindert, dass alle Zähler 0 zeigen bei alten Installationen.
+- **Diagnose-Logging für Print-Abschluss:** `_on_print_finish` und `_on_print_failed` loggen jetzt `INFO`-Nachrichten beim Aufruf und nach dem Speichern, sodass Fehler im HA-Log sichtbar werden. `async_save` hat einen eigenen try/except mit `exception`-Log.
+
+### Changed
+- **Karten-Version:** `bambu-companion-cards.js` auf v1.4.5 angehoben.
+
 ## [0.0.6] — 2026-04-28
 
 ### Added

@@ -9,8 +9,12 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import (
     CONF_CURRENCY,
+    CONF_NOTIFY_HA_EVENTS,
+    CONF_NOTIFY_MOBILE_EVENTS,
     CONF_PRINTER_DISPLAY_NAME,
     DEFAULT_CURRENCY,
+    DEFAULT_NOTIFY_HA_EVENTS,
+    DEFAULT_NOTIFY_MOBILE_EVENTS,
     DEFAULT_PRINTER_NAME,
     DOMAIN,
     PLATFORMS,
@@ -78,12 +82,48 @@ async def _async_migrate_sensor_entity_ids(hass: HomeAssistant, entry: ConfigEnt
         ent_reg.async_update_entity(current_entity_id, new_entity_id=expected_entity_id)
 
 
+async def _async_migrate_notify_defaults(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Patch saved options that were stored before notify defaults were fixed.
+
+    - Adds ``maintenance`` to ``notify_ha_events`` if it was missing (old default lacked it).
+    - Replaces empty ``notify_mobile_events`` with the new default list.
+    Only touches entries that still carry the exact old default values; explicit
+    user customisations are left untouched.
+    """
+    options = dict(entry.options)
+    changed = False
+
+    # Patch HA events: add "maintenance" if missing and list was never customised
+    ha_events: list[str] = options.get(CONF_NOTIFY_HA_EVENTS, list(DEFAULT_NOTIFY_HA_EVENTS))
+    if "maintenance" not in ha_events:
+        ha_events = list(ha_events) + ["maintenance"]
+        options[CONF_NOTIFY_HA_EVENTS] = ha_events
+        changed = True
+
+    # Patch mobile events: if empty (old default or never set), use new default
+    if CONF_NOTIFY_MOBILE_EVENTS not in options or options[CONF_NOTIFY_MOBILE_EVENTS] == []:
+        options[CONF_NOTIFY_MOBILE_EVENTS] = list(DEFAULT_NOTIFY_MOBILE_EVENTS)
+        changed = True
+
+    if changed:
+        _LOGGER.info(
+            "Patching notify defaults for entry %s: ha_events=%s mobile_events=%s",
+            entry.entry_id,
+            options[CONF_NOTIFY_HA_EVENTS],
+            options[CONF_NOTIFY_MOBILE_EVENTS],
+        )
+        hass.config_entries.async_update_entry(entry, options=options)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Bambu Print Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
     # Migrate old entity_ids before platforms are set up
     await _async_migrate_sensor_entity_ids(hass, entry)
+
+    # Patch notification defaults for existing installs
+    await _async_migrate_notify_defaults(hass, entry)
 
     coordinator = BambuPrintTrackerCoordinator(hass, entry)
     await coordinator.async_setup()

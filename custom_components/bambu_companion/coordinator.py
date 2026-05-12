@@ -461,6 +461,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     self._energy_at_start = None
 
     async def _on_print_finish(self) -> None:
+        _LOGGER.info(
+            "[%s] Print finished – recording result (start_time=%s)",
+            self._serial, self._print_start_time,
+        )
         record = self._build_print_record(success=True)
         self._store.add_print(record)
         self._store.increment_counter("total_prints", 1)
@@ -471,7 +475,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._store.increment_counter("total_cost", record.get("total_cost", 0))
         self._store.increment_counter("total_filament_cost", record.get("filament_cost", 0))
         self._store.increment_counter("total_energy_cost", record.get("energy_cost", 0))
-        await self._store.async_save()
+        try:
+            await self._store.async_save()
+        except Exception:
+            _LOGGER.exception("[%s] Failed to persist print record to storage", self._serial)
 
         printer_name = self._printer_name
         currency = self._options.get(CONF_CURRENCY, DEFAULT_CURRENCY)
@@ -483,9 +490,17 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "energy": f"{record.get('energy_kwh', 0):.3f} kWh",
             "cost": f"{currency}{record.get('total_cost', 0):.2f}",
         }
+        _LOGGER.info(
+            "[%s] Print record saved – total_prints now %s, sending notifications",
+            self._serial, self._store.counters.get("total_prints"),
+        )
         await self._notify.notify_done(variables)
 
     async def _on_print_failed(self) -> None:
+        _LOGGER.info(
+            "[%s] Print failed – recording result (start_time=%s)",
+            self._serial, self._print_start_time,
+        )
         record = self._build_print_record(success=False)
         self._store.add_print(record)
         self._store.increment_counter("total_prints", 1)

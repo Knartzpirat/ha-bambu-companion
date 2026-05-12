@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.4.4";
+const VERSION = "1.4.5";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -72,8 +72,8 @@ function buildEntityMap(hass, serial) {
     if (hass.entities && hass.devices) {
         let targetDeviceId = null;
         for (const [did, device] of Object.entries(hass.devices)) {
-            for (const [, identifier] of (device.identifiers ?? [])) {
-                if (String(identifier).toLowerCase() === serialLower) {
+            for (const [domain, identifier] of (device.identifiers ?? [])) {
+                if (domain === "bambu_companion" && String(identifier).toLowerCase() === serialLower) {
                     targetDeviceId = did;
                     break;
                 }
@@ -333,8 +333,8 @@ class BambuCompanionOverviewCard extends HTMLElement {
             let diagDeviceId = null;
             if (h.devices) {
                 for (const [did, device] of Object.entries(h.devices)) {
-                    for (const [, identifier] of (device.identifiers ?? [])) {
-                        if (String(identifier).toLowerCase() === serialLower) { diagDeviceId = did; break; }
+                    for (const [domain, identifier] of (device.identifiers ?? [])) {
+                        if (domain === "bambu_companion" && String(identifier).toLowerCase() === serialLower) { diagDeviceId = did; break; }
                     }
                     if (diagDeviceId) break;
                 }
