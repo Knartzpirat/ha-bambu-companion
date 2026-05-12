@@ -257,13 +257,14 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         # --- Graceful degradation: printer offline ---
         status_entity_id = self._entities.get("print_status")
-        _LOGGER.info(
-            "[%s] Poll: entity_map=%d keys, print_status_eid=%s, tracked_state=%s, start_time=%s",
-            self._serial, len(self._entities), status_entity_id,
-            self._print_status, self._print_start_time,
-        )
         raw_status_state = (
             self.hass.states.get(status_entity_id) if status_entity_id else None
+        )
+        _LOGGER.info(
+            "[%s] Poll: entity_map=%d keys, print_status_eid=%s, raw_state=%s, tracked=%s, start_time=%s",
+            self._serial, len(self._entities), status_entity_id,
+            raw_status_state.state if raw_status_state else None,
+            self._print_status, self._print_start_time,
         )
         printer_is_offline = raw_status_state is None or raw_status_state.state in (
             "unavailable",
@@ -367,8 +368,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     async def _run_state_machine(self, new_status: str) -> None:
         prev = self._print_status
         _LOGGER.info(
-            "[%s] State machine: %s → %s (start_time=%s)",
+            "[%s] State machine: '%s' → '%s'  (start_time=%s, entity_map_keys=%s)",
             self._serial, prev, new_status, self._print_start_time,
+            list(self._entities.keys()),
         )
 
         if prev == PRINT_STATUS_IDLE and new_status == PRINT_STATUS_PRINTING:
@@ -383,15 +385,14 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 await self._on_print_finish()
             elif self._print_start_time is not None:
                 _LOGGER.info(
-                    "Printer %s: finish state seen with prev=%s but start was tracked "
-                    "— recording as successful print.",
+                    "[%s] finish state seen with prev='%s' but start was tracked — recording.",
                     self._serial, prev,
                 )
                 await self._on_print_finish()
             else:
-                _LOGGER.debug(
-                    "Printer %s: finish state seen but no print was tracked (prev=%s) "
-                    "— skipping record.",
+                _LOGGER.warning(
+                    "[%s] finish state seen but no print was tracked (prev='%s') — skipping. "
+                    "If this happens after a real print, the start transition was missed.",
                     self._serial, prev,
                 )
 
@@ -405,21 +406,34 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Treat this as a successful print completion.
             if self._print_start_time is not None:
                 _LOGGER.info(
-                    "Printer %s: status jumped %s → idle (finish state missed by poll interval). "
+                    "[%s] status jumped '%s' → idle (finish state missed by poll interval). "
                     "Recording as successful print.",
                     self._serial, prev,
                 )
                 await self._on_print_finish()
             else:
-                _LOGGER.debug(
-                    "Printer %s: %s → idle but no start was tracked — skipping record.",
+                _LOGGER.warning(
+                    "[%s] '%s' → idle but _print_start_time is None — skipping record. "
+                    "This means _on_print_start() was never called for this print. "
+                    "Check that the 'printing' state was seen before this transition.",
                     self._serial, prev,
                 )
 
         elif new_status == PRINT_STATUS_PRINTING and prev != PRINT_STATUS_PRINTING:
             # Resumed from pause or other state
+            _LOGGER.info("[%s] '%s' → printing — treating as resumed/started.", self._serial, prev)
             if self._print_start_time is None:
                 await self._on_print_start()
+
+        else:
+            _LOGGER.info(
+                "[%s] No branch matched for '%s' → '%s' (start_time=%s). "
+                "Known statuses: idle=%r printing=%r pause=%r finish=%r failed=%r. "
+                "If this is unexpected, the status value from ha-bambulab may differ.",
+                self._serial, prev, new_status, self._print_start_time,
+                PRINT_STATUS_IDLE, PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE,
+                PRINT_STATUS_FINISH, PRINT_STATUS_FAILED,
+            )
 
         if new_status in TERMINAL_PRINT_STATUSES or new_status == PRINT_STATUS_IDLE:
             # Always clear the tracked start time when a terminal/idle state is reached,
@@ -755,23 +769,20 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     async def _detect_nozzle_change(self) -> None:
         """Detect nozzle diameter/type changes per position and notify the user."""
         # Map position → (diameter_key, type_key) using ha-bambulab translation_keys.
-        # For H2D: left uses "left_nozzle_size", right uses "right_nozzle_size".
-        # For single-nozzle: "nozzle_size" with "nozzle_diameter" as fallback.
+        # Source: github.com/greghesp/ha-bambulab definitions.py
+        # Keys are "nozzle_diameter" / "left_nozzle_diameter" / "right_nozzle_diameter".
         if self._features.get("dual_nozzle"):
             positions = {
-                "left": ("left_nozzle_size", "left_nozzle_type"),
-                "right": ("right_nozzle_size", "right_nozzle_type"),
+                "left": ("left_nozzle_diameter", "left_nozzle_type"),
+                "right": ("right_nozzle_diameter", "right_nozzle_type"),
             }
         else:
             positions = {
-                "single": ("nozzle_size", "nozzle_type"),
+                "single": ("nozzle_diameter", "nozzle_type"),
             }
 
         for position, (diameter_key, type_key) in positions.items():
             diameter = get_entity_float(self.hass, self._entities, diameter_key)
-            # Fallback for single-nozzle printers that report "nozzle_diameter"
-            if diameter is None and position == "single":
-                diameter = get_entity_float(self.hass, self._entities, "nozzle_diameter")
             nozzle_type = get_entity_state(self.hass, self._entities, type_key) or ""
 
             if diameter is None:

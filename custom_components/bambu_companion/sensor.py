@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MAINTENANCE_TASKS, PRINTER_FEATURES
+from .const import CONF_IMPORT_TOTAL_HOURS, DOMAIN, MAINTENANCE_TASKS, PRINTER_FEATURES
 from .coordinator import BambuPrintTrackerCoordinator
 from .entity_helper import device_info
 from .maintenance import get_applicable_tasks
@@ -118,13 +118,18 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         monthly = data.get("monthly", {})
         last = data.get("last_print") or {}
 
-        # Prefer total_usage_hours from ha-bambulab; fall back to internal counter
+        # total_print_time: respect CONF_IMPORT_TOTAL_HOURS flag.
+        # True (default): use bambu_total_hours from printer firmware (full lifetime).
+        # False: use only hours tracked since integration setup (internal counter).
         bambu_total_hours = data.get("bambu_total_hours")
-        total_print_time = (
-            round(bambu_total_hours, 2)
-            if bambu_total_hours is not None
-            else round(counters.get("total_print_time_min", 0) / 60, 2)
+        import_total_hours = self.coordinator.config_entry.data.get(
+            CONF_IMPORT_TOTAL_HOURS,
+            self.coordinator.config_entry.options.get(CONF_IMPORT_TOTAL_HOURS, True),
         )
+        if import_total_hours and bambu_total_hours is not None:
+            total_print_time = round(bambu_total_hours, 2)
+        else:
+            total_print_time = round(counters.get("total_print_time_min", 0) / 60, 2)
 
         mapping = {
             "print_progress": data.get("print_progress", 0),

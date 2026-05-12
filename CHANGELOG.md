@@ -4,6 +4,15 @@ All notable changes to the Bambu Companion project will be documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.0.8] — 2025-07-13
+
+### Fixed
+- **ROOT CAUSE: Drucke wurden nie gezählt** — `PRINT_STATUS_PRINTING` war `"printing"`, ha-bambulab sendet jedoch `"running"`. Der State Machine Branch `idle → printing` wurde deshalb nie ausgelöst und kein einziger Druck je erfasst. Fix: `PRINT_STATUS_PRINTING = "running"`.
+- **Düsenwechsel-Erkennung funktionierte nie** — Die Entitätschlüssel `nozzle_size` / `left_nozzle_size` / `right_nozzle_size` existieren in ha-bambulab nicht. Korrigiert zu `nozzle_diameter` / `left_nozzle_diameter` / `right_nozzle_diameter` (gemäß ha-bambulab `definitions.py`).
+
+### Added
+- Pre-Print-Status-Konstanten (`PRINT_STATUS_PREPARE`, `PRINT_STATUS_INIT`, `PRINT_STATUS_SLICING`) und `PRE_PRINT_STATUSES`-Set in `const.py` — alle bekannten ha-bambulab `gcode_state`-Werte sind nun dokumentiert.
+
 ## [0.0.7] — 2026-05-12
 
 ### Fixed

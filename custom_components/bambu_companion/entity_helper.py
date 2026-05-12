@@ -106,7 +106,7 @@ def get_printer_entities(hass: HomeAssistant, device_id: str) -> dict[str, str]:
 
     all_entries = er.async_entries_for_device(ent_reg, device_id)
     platforms_found = {e.platform for e in all_entries}
-    _LOGGER.debug(
+    _LOGGER.info(
         "get_printer_entities: device_id=%s, total entries=%d, platforms=%s",
         device_id, len(all_entries), platforms_found
     )
@@ -115,9 +115,9 @@ def get_printer_entities(hass: HomeAssistant, device_id: str) -> dict[str, str]:
         if entry.platform == BAMBU_LAB_DOMAIN and entry.translation_key:
             result[entry.translation_key] = entry.entity_id
 
-    _LOGGER.debug(
-        "get_printer_entities: matched %d entities for platform '%s'",
-        len(result), BAMBU_LAB_DOMAIN
+    _LOGGER.info(
+        "get_printer_entities: matched %d entities for platform '%s': keys=%s",
+        len(result), BAMBU_LAB_DOMAIN, sorted(result.keys()),
     )
     return result
 

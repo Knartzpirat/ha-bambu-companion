@@ -50,6 +50,7 @@ from .const import (
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
     DEFAULT_TEXTS,
+    CONF_IMPORT_TOTAL_HOURS,
     MAINTENANCE_TASKS,
 )
 from .maintenance import get_applicable_tasks
@@ -301,6 +302,14 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(min=0, max=500, step=10, mode=selector.NumberSelectorMode.BOX)
                 ),
+                vol.Required(
+                    CONF_IMPORT_TOTAL_HOURS,
+                    default=current.get(CONF_IMPORT_TOTAL_HOURS, True),
+                ): selector.BooleanSelector(),
+                vol.Required(
+                    CONF_IMPORT_TOTAL_HOURS,
+                    default=current.get(CONF_IMPORT_TOTAL_HOURS, True),
+                ): selector.BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="general", data_schema=schema)

@@ -48,6 +48,7 @@ CONF_MAINTENANCE_INTERVALS = "maintenance_intervals"
 # Each list contains event keys: "start", "progress", "done", "error", "maintenance"
 CONF_NOTIFY_MOBILE_EVENTS = "notify_mobile_events"   # events sent to phone
 CONF_NOTIFY_HA_EVENTS = "notify_ha_events"            # events shown in HA notifications
+CONF_IMPORT_TOTAL_HOURS = "import_total_hours"        # True = show printer firmware lifetime hours
 
 DEFAULT_NOTIFY_MOBILE_EVENTS: list[str] = ["start", "done", "error"]
 DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done", "maintenance", "error", "nozzle_change"]
@@ -93,14 +94,20 @@ DEFAULT_TEXTS = {
     CONF_TEXT_BTN_CAMERA: "📷 Kamera",
 }
 
-# Print status values
+# Print status values (from ha-bambulab gcode_state.lower())
+# Source: github.com/greghesp/ha-bambulab – pybambu/const.py GCODE_STATE_OPTIONS
 PRINT_STATUS_IDLE = "idle"
-PRINT_STATUS_PRINTING = "printing"
+PRINT_STATUS_PRINTING = "running"   # Bambu uses "running" for active print!
 PRINT_STATUS_PAUSE = "pause"
 PRINT_STATUS_FAILED = "failed"
 PRINT_STATUS_FINISH = "finish"
+# Pre-print states (prepare, init, slicing) – treat like printing for session tracking
+PRINT_STATUS_PREPARE = "prepare"
+PRINT_STATUS_INIT = "init"
+PRINT_STATUS_SLICING = "slicing"
 
 ACTIVE_PRINT_STATUSES = {PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE}
+PRE_PRINT_STATUSES = {PRINT_STATUS_PREPARE, PRINT_STATUS_INIT, PRINT_STATUS_SLICING}
 TERMINAL_PRINT_STATUSES = {PRINT_STATUS_FAILED, PRINT_STATUS_FINISH}
 
 # Printer model features

@@ -14,6 +14,7 @@ from .const import (
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
+    CONF_IMPORT_TOTAL_HOURS,
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_MOBILE_EVENTS,
     CONF_NOTIFY_HA_EVENTS,
@@ -187,8 +188,7 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Step 4: Notification configuration."""
         if user_input is not None:
             self._data.update(user_input)
-            title = self._data.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab Printer")
-            return self.async_create_entry(title=title, data=self._data)
+            return await self.async_step_import()
 
         # Build list of HA Companion App devices (mobile_app integration only)
         mobile_options = []
@@ -261,3 +261,26 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         return self.async_show_form(step_id="notify", data_schema=schema)
+
+    async def async_step_import(self, user_input=None):
+        """Step 5: Choose whether to import total printer hours or start at 0."""
+        if user_input is not None:
+            self._data[CONF_IMPORT_TOTAL_HOURS] = bool(user_input.get(CONF_IMPORT_TOTAL_HOURS, True))
+            title = self._data.get(CONF_PRINTER_DISPLAY_NAME, "Bambu Lab Printer")
+            return self.async_create_entry(title=title, data=self._data)
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_IMPORT_TOTAL_HOURS, default=True): selector.BooleanSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="import",
+            data_schema=schema,
+            description_placeholders={
+                "import_hint": (
+                    "Aktiviert: Sensor zeigt die Gesamtbetriebsstunden laut Drucker-Firmware.\n"
+                    "Deaktiviert: Sensor zählt nur die Stunden, die seit dieser Einrichtung erfasst wurden."
+                )
+            },
+        )
