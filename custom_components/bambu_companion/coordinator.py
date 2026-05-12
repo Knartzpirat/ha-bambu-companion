@@ -257,9 +257,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         # --- Graceful degradation: printer offline ---
         status_entity_id = self._entities.get("print_status")
-        _LOGGER.debug(
-            "Printer %s: status entity_id=%s, entities found=%d",
-            self._serial, status_entity_id, len(self._entities)
+        _LOGGER.info(
+            "[%s] Poll: entity_map=%d keys, print_status_eid=%s, tracked_state=%s, start_time=%s",
+            self._serial, len(self._entities), status_entity_id,
+            self._print_status, self._print_start_time,
         )
         raw_status_state = (
             self.hass.states.get(status_entity_id) if status_entity_id else None
@@ -365,6 +366,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     async def _run_state_machine(self, new_status: str) -> None:
         prev = self._print_status
+        _LOGGER.info(
+            "[%s] State machine: %s → %s (start_time=%s)",
+            self._serial, prev, new_status, self._print_start_time,
+        )
 
         if prev == PRINT_STATUS_IDLE and new_status == PRINT_STATUS_PRINTING:
             await self._on_print_start()
@@ -447,6 +452,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     async def _on_print_start(self) -> None:
         self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
+        _LOGGER.info(
+            "[%s] Print started: name='%s', start_time=%s",
+            self._serial, self._last_print_name, self._print_start_time,
+        )
         printer_name = self._printer_name
         await self._notify.notify_start(
             {"drucker": printer_name, "name": self._last_print_name}
@@ -682,10 +691,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             current_value = self._get_trigger_value(trigger, counters, bambu_total_hours)
 
             maint_entry = self._store.get_maintenance().get(key)
-            if maint_entry is None:
-                # First time seeing this task – set baseline to current value so
-                # the counter starts at 0 (avoids false maintenance alerts on first
-                # setup with a printer that already has many hours).
+            if maint_entry is None or "baseline" not in maint_entry:
+                # First time seeing this task, OR migrating from old storage
+                # that predates the baseline-tracking feature.  In both cases
+                # we re-baseline to the current value so no false alert fires.
+                if maint_entry is not None:
+                    _LOGGER.info(
+                        "Migrating maintenance task '%s' for %s: "
+                        "old storage has no baseline field – re-baselining to %.1f",
+                        key, self._serial, current_value,
+                    )
                 self._store.set_maintenance_baseline(key, current_value, from_bambu=uses_bambu)
                 await self._store.async_save()
                 since_reset = 0.0

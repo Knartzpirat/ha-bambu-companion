@@ -90,17 +90,23 @@ class NotifyManager:
         """Route notification to configured channels based on per-event settings."""
         mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
         ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+        targets = self._targets()
+
+        _LOGGER.info(
+            "[%s] _send(%s): mobile_events=%s ha_events=%s targets=%s quiet=%s",
+            self._serial, event_key, mobile_events, ha_events, targets, self._is_quiet(),
+        )
 
         # --- Mobile channel ---
         if event_key in mobile_events:
-            targets = self._targets()
             if targets:
                 if self._is_quiet():
-                    _LOGGER.debug("Suppressed mobile notification (quiet hours): %s", title)
+                    _LOGGER.info("[%s] Suppressed mobile push (quiet hours): %s", self._serial, title)
                 else:
                     for target in targets:
                         try:
                             service_domain, service_name = target.rsplit(".", 1)
+                            _LOGGER.info("[%s] Sending mobile push to %s: %s", self._serial, target, title)
                             await self._hass.services.async_call(
                                 service_domain,
                                 service_name,
@@ -108,16 +114,23 @@ class NotifyManager:
                                 blocking=False,
                             )
                         except Exception as exc:  # noqa: BLE001
-                            _LOGGER.warning("Failed to send notification to %s: %s", target, exc)
+                            _LOGGER.warning("[%s] Failed to send notification to %s: %s", self._serial, target, exc)
+            else:
+                _LOGGER.info("[%s] Event '%s' in mobile_events but NO targets configured", self._serial, event_key)
+        else:
+            _LOGGER.info("[%s] Event '%s' NOT in mobile_events — skipping mobile push", self._serial, event_key)
 
         # --- HA persistent notification channel ---
         if event_key in ha_events:
+            _LOGGER.info("[%s] Creating HA persistent notification for event '%s'", self._serial, event_key)
             async_create(
                 self._hass,
                 message,
                 title=title,
                 notification_id=f"bambu_companion_{self._serial}_{event_key}",
             )
+        else:
+            _LOGGER.info("[%s] Event '%s' NOT in ha_events — skipping HA notification", self._serial, event_key)
 
     def should_notify_progress(self, progress: int) -> bool:
         interval: int = int(self._options.get(CONF_NOTIFY_INTERVAL, 5))
