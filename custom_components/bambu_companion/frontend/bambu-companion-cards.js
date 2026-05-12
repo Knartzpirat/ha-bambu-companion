@@ -710,10 +710,14 @@ class BambuCompanionHistoryCard extends HTMLElement {
             const fil = (p.filament_weight_g ?? p.total_filament_g) != null
                 ? `${parseFloat(p.filament_weight_g ?? p.total_filament_g).toFixed(1)} g` : "–";
             const energy = p.energy_kwh != null ? `${parseFloat(p.energy_kwh).toFixed(3)} kWh` : "–";
-            const printName = p.name || p.project_name || "";
-            // cover_image_url is a snapshot taken at print completion.
-            // Older records may only have cover_image_entity (entity_id) — fall back to
-            // the current entity picture so at least recent prints show an image.
+            // Name: try all possible fields, last resort: extract from gcode_file path
+            let printName = p.name || p.project_name || p.subtask_name || "";
+            if (!printName && p.gcode_file) {
+                // e.g. "ftp:///something/My_Print.gcode.3mf" → "My_Print.gcode"
+                const fname = p.gcode_file.split("/").pop() || "";
+                printName = fname.replace(/\.[^.]+$/, "").replace(/_/g, " ");
+            }
+            // Cover image: use saved URL snapshot, fall back to live entity state for older records
             let imgUrl = p.cover_image_url || "";
             if (!imgUrl && p.cover_image_entity) {
                 imgUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";

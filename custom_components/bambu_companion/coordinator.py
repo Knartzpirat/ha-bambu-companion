@@ -83,6 +83,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._energy_at_start: float | None = None
         self._last_progress: int = 0
         self._last_print_name: str = ""
+        self._last_cover_image_url: str = ""
 
         # Accumulated per-session seconds for nozzle/laser tracking
         self._nozzle_session_start: datetime | None = None
@@ -314,6 +315,20 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         new_status = raw_status_state.state if raw_status_state else PRINT_STATUS_IDLE
         await self._run_state_machine(new_status)
+
+        # While printing: continuously refresh name and cover image so we always
+        # have the latest values even if they were unavailable at print start.
+        if new_status in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE):
+            live_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
+            if live_name:
+                self._last_print_name = live_name
+            cover_img_eid = self._entities.get("cover_image", "")
+            if cover_img_eid:
+                cov_state = self.hass.states.get(cover_img_eid)
+                if cov_state:
+                    url = cov_state.attributes.get("entity_picture", "")
+                    if url:
+                        self._last_cover_image_url = url
 
         # Track nozzle/laser hours
         await self._update_runtime_trackers(new_status)
@@ -562,6 +577,14 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         bed_type = get_entity_state(self.hass, self._entities, "print_bed_type") or ""
         name = get_entity_state(self.hass, self._entities, "subtask_name") or self._last_print_name
         gcode_file = get_entity_state(self.hass, self._entities, "gcode_file") or ""
+        # Last resort: extract filename from gcode_file path if name is still empty
+        if not name and gcode_file:
+            import os
+            name = os.path.splitext(os.path.basename(gcode_file))[0]
+        _LOGGER.info(
+            "[%s] _build_print_record: name=%r, cover_image_url=%r, cover_image_entity=%r",
+            self._serial, name, cover_image_url, cover_image_entity,
+        )
         plate, project_name = _extract_plate_info(gcode_file)
         # Active tray / filament slot snapshot
         active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
@@ -570,13 +593,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
         active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
         cover_image_entity = self._entities.get("cover_image", "")
-        # Snapshot the entity_picture URL at print completion so history can display
-        # the correct image even after a new print is started.
-        cover_image_url = ""
-        if cover_image_entity:
-            img_state = self.hass.states.get(cover_image_entity)
-            if img_state:
-                cover_image_url = img_state.attributes.get("entity_picture", "")
+        # Use the URL cached during the print (captured every poll), falling back to
+        # a live lookup at finish time in case polling missed it.
+        cover_image_url = self._last_cover_image_url or ""
+        if not cover_image_url and cover_image_entity:
+            cov_state = self.hass.states.get(cover_image_entity)
+            if cov_state:
+                cover_image_url = cov_state.attributes.get("entity_picture", "")
 
         # Energy calculation
         energy_kwh = 0.0
@@ -642,6 +665,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_url,
         }
+        # Reset cached cover image after recording so next print starts fresh.
+        self._last_cover_image_url = ""
 
     # ------------------------------------------------------------------
     # Runtime trackers (nozzle/laser hours)
