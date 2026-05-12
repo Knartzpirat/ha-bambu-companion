@@ -120,6 +120,24 @@ class PrintHistoryStore:
             maint[task_key] = {}
         maint[task_key]["value"] = value
 
+    def get_maintenance_last_notified(self, task_key: str) -> datetime | None:
+        """Return the datetime of the last maintenance notification, or None."""
+        maint = self.get_maintenance()
+        raw = maint.get(task_key, {}).get("last_notified")
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(raw)
+        except (ValueError, TypeError):
+            return None
+
+    def set_maintenance_last_notified(self, task_key: str, when: datetime) -> None:
+        """Persist the timestamp of the last maintenance notification."""
+        maint = self.get_maintenance()
+        if task_key not in maint:
+            maint[task_key] = {}
+        maint[task_key]["last_notified"] = when.isoformat()
+
     def set_maintenance_baseline(
         self, task_key: str, baseline: float, from_bambu: bool = False
     ) -> None:

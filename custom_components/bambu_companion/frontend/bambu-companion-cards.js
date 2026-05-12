@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.4.3";
+const VERSION = "1.4.4";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

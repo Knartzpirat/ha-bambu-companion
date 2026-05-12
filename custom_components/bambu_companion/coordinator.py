@@ -698,10 +698,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
             self._store.set_maintenance_value(key, since_reset)
 
-            # Notification
+            # Notification – max once per 24 hours, persisted across HA restarts
             if is_maintenance_due(since_reset, interval):
-                last_notified = self._maint_notified.get(key)
-                if last_notified is None or (dt_util.now() - last_notified).total_seconds() > 3600:
+                now = dt_util.now()
+                # Check in-memory cache first (fast path), then fall back to storage
+                last_notified = self._maint_notified.get(key) or self._store.get_maintenance_last_notified(key)
+                cooldown_seconds = 24 * 3600  # 24 h
+                if last_notified is None or (now - last_notified).total_seconds() > cooldown_seconds:
                     printer_name = self._printer_name
                     await self._notify.notify_maintenance(
                         {
@@ -711,7 +714,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                             "intervall": f"{interval:.0f}",
                         }
                     )
-                    self._maint_notified[key] = dt_util.now()
+                    self._maint_notified[key] = now
+                    self._store.set_maintenance_last_notified(key, now)
+                    await self._store.async_save()
 
     # ------------------------------------------------------------------
     # Nozzle change detection
