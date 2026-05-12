@@ -5,6 +5,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
     CONF_CURRENCY,
@@ -13,6 +14,7 @@ from .const import (
     DEFAULT_PRINTER_NAME,
     DOMAIN,
     PLATFORMS,
+    PRINTER_FEATURES,
 )
 from .coordinator import BambuPrintTrackerCoordinator
 from .frontend import BambuCompanionCardRegistration
@@ -20,9 +22,68 @@ from .frontend import BambuCompanionCardRegistration
 _LOGGER = logging.getLogger(__name__)
 
 
+# All stat_keys that BcStatSensor may create (order doesn't matter)
+_BASE_STAT_KEYS = [
+    "print_status", "print_progress",
+    "total_prints", "successful_prints", "failed_prints",
+    "total_print_time", "total_energy", "total_filament", "total_cost",
+    "monthly_cost", "monthly_prints",
+    "last_print_duration", "last_print_cost",
+    "total_filament_cost", "total_energy_cost",
+]
+
+
+async def _async_migrate_sensor_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Migrate sensor entity_ids registered without the serial number.
+
+    Older versions stored entity_ids like ``sensor.bc_print_status``.
+    Current code expects ``sensor.bc_<serial>_print_status``.
+    HA respects the registry, so we must update it explicitly.
+    """
+    serial: str = entry.data.get("serial", "")
+    model: str = entry.data.get("model", "")
+    if not serial:
+        return
+
+    serial_lower = serial.lower()
+    features = PRINTER_FEATURES.get(model, {})
+
+    stat_keys = list(_BASE_STAT_KEYS)
+    if features.get("dual_nozzle"):
+        stat_keys += ["left_nozzle_hours", "right_nozzle_hours"]
+    else:
+        stat_keys.append("nozzle_hours")
+    if features.get("laser"):
+        stat_keys.append("laser_hours")
+
+    ent_reg = er.async_get(hass)
+
+    for stat_key in stat_keys:
+        unique_id = f"bc_{serial}_{stat_key}"
+        current_entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
+        if not current_entity_id:
+            continue
+        expected_entity_id = f"sensor.bc_{serial_lower}_{stat_key}"
+        if current_entity_id == expected_entity_id:
+            continue
+        # Ensure the target entity_id is not already occupied by a different entity
+        existing = ent_reg.async_get(expected_entity_id)
+        if existing and existing.unique_id != unique_id:
+            _LOGGER.warning(
+                "Cannot migrate %s → %s: target already used by unique_id=%s",
+                current_entity_id, expected_entity_id, existing.unique_id,
+            )
+            continue
+        _LOGGER.info("Migrating entity_id: %s → %s", current_entity_id, expected_entity_id)
+        ent_reg.async_update_entity(current_entity_id, new_entity_id=expected_entity_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Bambu Print Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Migrate old entity_ids before platforms are set up
+    await _async_migrate_sensor_entity_ids(hass, entry)
 
     coordinator = BambuPrintTrackerCoordinator(hass, entry)
     await coordinator.async_setup()

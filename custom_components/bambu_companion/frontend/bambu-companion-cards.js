@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.4.0";
+const VERSION = "1.4.1";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -87,6 +87,17 @@ function buildEntityMap(hass, serial) {
                 const key = _extractOrSuffix(eid.toLowerCase());
                 if (key && !map[key]) map[key] = eid;
             }
+        }
+        if (Object.keys(map).length) return map;
+    }
+
+    // Strategy 0b: platform-filtered, no device filter, suffix matching
+    // Catches bambu_companion entities not associated with a device (old registry entries)
+    if (hass.entities) {
+        for (const [eid, entry] of Object.entries(hass.entities)) {
+            if (entry.platform !== "bambu_companion") continue;
+            const key = _extractOrSuffix(eid.toLowerCase());
+            if (key && !map[key]) map[key] = eid;
         }
         if (Object.keys(map).length) return map;
     }
