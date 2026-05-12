@@ -261,7 +261,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         raw_status_state = (
             self.hass.states.get(status_entity_id) if status_entity_id else None
         )
-        _LOGGER.info(
+        _LOGGER.debug(
             "[%s] Poll: entity_map=%d keys, print_status_eid=%s, raw_state=%s, tracked=%s, start_time=%s",
             self._serial, len(self._entities), status_entity_id,
             raw_status_state.state if raw_status_state else None,
@@ -441,18 +441,14 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         elif new_status == PRINT_STATUS_PRINTING and prev != PRINT_STATUS_PRINTING:
             # Resumed from pause or other state
-            _LOGGER.info("[%s] '%s' → printing — treating as resumed/started.", self._serial, prev)
+            _LOGGER.debug("[%s] '%s' → printing — treating as resumed/started.", self._serial, prev)
             if self._print_start_time is None:
                 await self._on_print_start()
 
         else:
-            _LOGGER.info(
-                "[%s] No branch matched for '%s' → '%s' (start_time=%s). "
-                "Known statuses: idle=%r printing=%r pause=%r finish=%r failed=%r. "
-                "If this is unexpected, the status value from ha-bambulab may differ.",
+            _LOGGER.debug(
+                "[%s] No action for '%s' → '%s' (start_time=%s).",
                 self._serial, prev, new_status, self._print_start_time,
-                PRINT_STATUS_IDLE, PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE,
-                PRINT_STATUS_FINISH, PRINT_STATUS_FAILED,
             )
 
         if new_status in TERMINAL_PRINT_STATUSES or new_status == PRINT_STATUS_IDLE:
@@ -581,9 +577,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if not name and gcode_file:
             import os
             name = os.path.splitext(os.path.basename(gcode_file))[0]
-        _LOGGER.info(
-            "[%s] _build_print_record: name=%r, cover_image_url=%r, cover_image_entity=%r",
-            self._serial, name, cover_image_url, cover_image_entity,
+        _LOGGER.debug(
+            "[%s] _build_print_record: name=%r, cover_image_url=%r",
+            self._serial, name, cover_image_url,
         )
         plate, project_name = _extract_plate_info(gcode_file)
         # Active tray / filament slot snapshot
