@@ -709,6 +709,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
             const cost = p.total_cost != null ? `${parseFloat(p.total_cost).toFixed(2)} ${currency}` : "–";
             const fil = (p.filament_weight_g ?? p.total_filament_g) != null
                 ? `${parseFloat(p.filament_weight_g ?? p.total_filament_g).toFixed(1)} g` : "–";
+            const energy = p.energy_kwh != null ? `${parseFloat(p.energy_kwh).toFixed(3)} kWh` : "–";
             const printName = p.name || p.project_name || "";
             // cover_image_url is a snapshot taken at print completion.
             // Older records may only have cover_image_entity (entity_id) — fall back to
@@ -729,6 +730,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
           </td>
           <td class="right">${duration}</td>
           <td class="right">${fil}</td>
+          <td class="right">${energy}</td>
           <td class="right">${cost}</td>
         </tr>`;
         }).join("");
@@ -761,6 +763,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
                   <th>Name / Datum</th>
                   <th style="text-align:right">Dauer</th>
                   <th style="text-align:right">Filament</th>
+                  <th style="text-align:right">Energie</th>
                   <th style="text-align:right">Kosten</th>
                 </tr>
               </thead>
