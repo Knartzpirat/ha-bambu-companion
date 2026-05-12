@@ -369,8 +369,26 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if prev == PRINT_STATUS_IDLE and new_status == PRINT_STATUS_PRINTING:
             await self._on_print_start()
 
-        elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE) and new_status == PRINT_STATUS_FINISH:
-            await self._on_print_finish()
+        elif new_status == PRINT_STATUS_FINISH:
+            # Handle finish regardless of prev state.
+            # prev=printing/pause: normal case.
+            # prev=idle with tracked start: HA was reloaded mid-print, missed the printing state
+            #   on a previous poll but did catch it later (start was set).
+            if prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE):
+                await self._on_print_finish()
+            elif self._print_start_time is not None:
+                _LOGGER.info(
+                    "Printer %s: finish state seen with prev=%s but start was tracked "
+                    "— recording as successful print.",
+                    self._serial, prev,
+                )
+                await self._on_print_finish()
+            else:
+                _LOGGER.debug(
+                    "Printer %s: finish state seen but no print was tracked (prev=%s) "
+                    "— skipping record.",
+                    self._serial, prev,
+                )
 
         elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE) and new_status == PRINT_STATUS_FAILED:
             await self._on_print_failed()
@@ -380,12 +398,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # This happens when the "finish" status is only visible for a few seconds
             # and falls between two 30-second polls (common on H2D and other models).
             # Treat this as a successful print completion.
-            _LOGGER.info(
-                "Printer %s: status jumped %s → idle (finish state missed by poll interval). "
-                "Recording as successful print.",
-                self._serial, prev,
-            )
-            await self._on_print_finish()
+            if self._print_start_time is not None:
+                _LOGGER.info(
+                    "Printer %s: status jumped %s → idle (finish state missed by poll interval). "
+                    "Recording as successful print.",
+                    self._serial, prev,
+                )
+                await self._on_print_finish()
+            else:
+                _LOGGER.debug(
+                    "Printer %s: %s → idle but no start was tracked — skipping record.",
+                    self._serial, prev,
+                )
 
         elif new_status == PRINT_STATUS_PRINTING and prev != PRINT_STATUS_PRINTING:
             # Resumed from pause or other state
@@ -393,7 +417,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 await self._on_print_start()
 
         if new_status in TERMINAL_PRINT_STATUSES or new_status == PRINT_STATUS_IDLE:
-            if prev in ACTIVE_PRINT_STATUSES:
+            # Always clear the tracked start time when a terminal/idle state is reached,
+            # regardless of what prev was (covers the idle→finish edge case above).
+            if self._print_start_time is not None or prev in ACTIVE_PRINT_STATUSES:
                 self._notify.reset_progress_tracker()
                 self._print_start_time = None
                 self._energy_at_start = None
