@@ -109,8 +109,8 @@ async def _async_migrate_notify_defaults(hass: HomeAssistant, entry: ConfigEntry
         _LOGGER.info(
             "Patching notify defaults for entry %s: ha_events=%s mobile_events=%s",
             entry.entry_id,
-            options[CONF_NOTIFY_HA_EVENTS],
-            options[CONF_NOTIFY_MOBILE_EVENTS],
+            options.get(CONF_NOTIFY_HA_EVENTS),
+            options.get(CONF_NOTIFY_MOBILE_EVENTS),
         )
         hass.config_entries.async_update_entry(entry, options=options)
 
