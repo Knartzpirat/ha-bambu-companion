@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.3.9";
+const VERSION = "1.4.0";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -20,20 +20,34 @@ function resolveEntityId(hass, target) {
 }
 
 /**
+ * Known stat keys – used for suffix-matching when entity_id has no serial.
+ * Covers all BcStatSensor keys from sensor.py.
+ */
+const KNOWN_STAT_KEYS = [
+    "print_status", "print_progress",
+    "total_prints", "successful_prints", "failed_prints",
+    "total_print_time", "total_energy", "total_filament", "total_cost",
+    "monthly_cost", "monthly_prints",
+    "last_print_duration", "last_print_cost",
+    "total_filament_cost", "total_energy_cost",
+    "left_nozzle_hours", "right_nozzle_hours", "nozzle_hours", "laser_hours",
+];
+
+/**
  * Build a {stat_key: entity_id} map for a given serial.
  *
- * Strategy 1: hass.entities (entity registry) filtered to bambu_companion platform.
- * Strategy 2: hass.entities without platform filter (in case platform field is missing).
- * Strategy 3: hass.states scan (no entity registry needed, catches any prefix).
- *
- * All strategies use substring matching on the serial, so they work with any
- * entity_id prefix (bc_, bpt_, bambu_companion_, ...).
+ * Strategy 0: entity registry filtered by platform=bambu_companion + device_id.
+ *   Uses serial-substring extract OR known-key suffix matching.
+ *   Most robust: works even when HA renamed entity_ids (old registry entries).
+ * Strategy 1: entity registry, platform-filtered, serial-substring only.
+ * Strategy 2: entity registry without platform filter.
+ * Strategy 3: hass.states scan (no entity registry needed).
  */
 function buildEntityMap(hass, serial) {
     const map = {};
     if (!hass || !serial) return map;
     const serialLower = serial.toLowerCase();
-    const needle = "_" + serialLower + "_";   // e.g.  "_01p00a123456789_"
+    const needle = "_" + serialLower + "_";
 
     const _extract = (eidLower) => {
         const idx = eidLower.indexOf(needle);
@@ -42,7 +56,42 @@ function buildEntityMap(hass, serial) {
         return key || null;
     };
 
-    // Strategy 1: entity registry, platform-filtered
+    const _extractOrSuffix = (eidLower) => {
+        // Try serial-substring first
+        const k = _extract(eidLower);
+        if (k) return k;
+        // Fallback: entity_id ends with _<known_key>
+        for (const key of KNOWN_STAT_KEYS) {
+            if (eidLower.endsWith("_" + key)) return key;
+        }
+        return null;
+    };
+
+    // Strategy 0: device-registry match → platform + device_id
+    // Handles cases where HA stored a different entity_id in the registry
+    if (hass.entities && hass.devices) {
+        let targetDeviceId = null;
+        for (const [did, device] of Object.entries(hass.devices)) {
+            for (const [, identifier] of (device.identifiers ?? [])) {
+                if (String(identifier).toLowerCase() === serialLower) {
+                    targetDeviceId = did;
+                    break;
+                }
+            }
+            if (targetDeviceId) break;
+        }
+        if (targetDeviceId) {
+            for (const [eid, entry] of Object.entries(hass.entities)) {
+                if (entry.platform !== "bambu_companion") continue;
+                if (entry.device_id !== targetDeviceId) continue;
+                const key = _extractOrSuffix(eid.toLowerCase());
+                if (key && !map[key]) map[key] = eid;
+            }
+        }
+        if (Object.keys(map).length) return map;
+    }
+
+    // Strategy 1: entity registry, platform-filtered, serial-substring
     if (hass.entities) {
         for (const [eid, entry] of Object.entries(hass.entities)) {
             if (entry.platform !== "bambu_companion") continue;
@@ -251,17 +300,6 @@ class BambuCompanionOverviewCard extends HTMLElement {
         const statusEid = this._e("print_status");
         const status = getState(h, statusEid);
 
-        // Diagnostic: log entity lookup info to browser console when entity is missing
-        if (status === "unavailable" && !h.states[statusEid]) {
-            const entityCount = Object.keys(this._entityMap || {}).length;
-            console.warn(
-                `[BambuCompanion] Sensor '${statusEid}' nicht in hass.states gefunden.\n` +
-                `  Serial: ${serial}\n` +
-                `  Entity-Map hat ${entityCount} Einträge (via hass.entities).\n` +
-                `  Tipp: Integration neu laden oder HA-Log auf Fehler prüfen.`
-            );
-        }
-
         const progress = getNum(h, this._e("print_progress"));
         const totalPrints = getNum(h, this._e("total_prints"));
         const successPrints = getNum(h, this._e("successful_prints"));
@@ -279,38 +317,69 @@ class BambuCompanionOverviewCard extends HTMLElement {
         if (status === "unavailable" && !h.states[statusEid]) {
             const serialLower = serial.toLowerCase();
             const mapKeys = Object.keys(this._entityMap || {});
+
+            // Find device_id for this serial
+            let diagDeviceId = null;
+            if (h.devices) {
+                for (const [did, device] of Object.entries(h.devices)) {
+                    for (const [, identifier] of (device.identifiers ?? [])) {
+                        if (String(identifier).toLowerCase() === serialLower) { diagDeviceId = did; break; }
+                    }
+                    if (diagDeviceId) break;
+                }
+            }
+
+            // Find ALL bambu_companion entities for this device
+            const bcEntities = [];
+            if (h.entities && diagDeviceId) {
+                for (const [eid, entry] of Object.entries(h.entities)) {
+                    if (entry.platform === "bambu_companion" && entry.device_id === diagDeviceId) {
+                        bcEntities.push(eid);
+                    }
+                }
+            }
+
             const candidates = _findCandidates(h, serialLower);
             const mapInfo = mapKeys.length
-                ? `<b>${mapKeys.length} Einträge in Entity-Map:</b><br>${mapKeys.sort().map(k => `&nbsp;&nbsp;${k} → ${this._entityMap[k]}`).join("<br>")}`
-                : `<b>Entity-Map ist leer</b> (kein Eintrag für Serial "${serial}" gefunden)`;
+                ? `<b>${mapKeys.length} Keys in Entity-Map:</b><br>${mapKeys.sort().map(k => `&nbsp;&nbsp;<code>${k}</code> → <code>${this._entityMap[k]}</code>`).join("<br>")}`
+                : `<b>Entity-Map leer</b> – Serial "${serial}" nirgends in entity_id gefunden`;
+            const bcInfo = bcEntities.length
+                ? `<b>${bcEntities.length} bambu_companion-Entities für dieses Gerät:</b><br>${bcEntities.sort().map(e => `&nbsp;&nbsp;<code>${e}</code>`).join("<br>")}`
+                : diagDeviceId
+                    ? `<b>Keine bambu_companion-Entities für device_id=${diagDeviceId}</b>`
+                    : `<b>Gerät mit Serial "${serialLower}" nicht im device-registry gefunden</b>`;
             const candidateInfo = candidates.length
-                ? `<b>${candidates.length} Entitäten mit Serial in entity_id gefunden:</b><br>${candidates.map(e => `&nbsp;&nbsp;<code>${e}</code>`).join("<br>")}`
-                : `<b>Keine Entität mit "${serialLower}" in HA gefunden</b><br>→ Integration möglicherweise nicht geladen`;
+                ? `<b>${candidates.length} Entities mit Serial im entity_id:</b><br>${candidates.map(e => `&nbsp;&nbsp;<code>${e}</code>`).join("<br>")}`
+                : `<b>Keine Entität mit "${serialLower}" im entity_id</b>`;
             console.warn(
                 `[BambuCompanion] Sensor '${statusEid}' nicht in hass.states.\n` +
-                `Serial: ${serial} | entityMap keys: [${mapKeys.join(", ")}]\n` +
+                `Serial: ${serial} | device_id: ${diagDeviceId} | entityMap: [${mapKeys.join(", ")}]\n` +
+                `bc entities: [${bcEntities.join(", ")}]\n` +
                 `Kandidaten: ${candidates.join(", ") || "keine"}`
             );
             this.shadowRoot.innerHTML = `
       <style>${SHARED_STYLE}
-        code { background:var(--secondary-background-color); padding:1px 4px; border-radius:3px; font-size:0.85em; word-break:break-all; }
-        .diag { font-size:0.78em; line-height:1.7; margin-top:8px; }
+        code { background:var(--secondary-background-color); padding:1px 4px; border-radius:3px; font-size:0.82em; word-break:break-all; }
+        .diag { font-size:0.78em; line-height:1.8; margin-top:8px; }
+        hr { border:none; border-top:1px solid var(--divider-color); margin:8px 0; }
       </style>
       <ha-card>
-        <div class="card-header">⚠️ ${printer_name} – Sensor nicht gefunden</div>
-        <div style="font-size:0.82em;color:var(--error-color,#f44336);margin-bottom:8px">
+        <div class="card-header">⚠️ ${printer_name} – print_status nicht gefunden</div>
+        <div style="font-size:0.8em;color:var(--error-color,#f44336);margin-bottom:4px">
           Gesucht: <code>${statusEid}</code>
         </div>
+        <div class="diag">${bcInfo}</div>
+        <hr>
         <div class="diag">${mapInfo}</div>
         <hr>
         <div class="diag">${candidateInfo}</div>
         <hr>
         <div class="diag" style="color:var(--secondary-text-color)">
-          <b>Schritte zur Lösung:</b><br>
-          1. HA neu starten (Integration neu laden)<br>
-          2. HA → Einstellungen → Entitäten → nach "bc_${serialLower}" suchen<br>
-          3. Wenn Entitäten gefunden: prüfe ob sie deaktiviert sind<br>
-          4. Wenn nicht gefunden: HA-Log auf Fehler prüfen (bambu_companion)
+          <b>Nächste Schritte:</b><br>
+          1. HA → Einstellungen → Geräte & Dienste → Bambu Companion → Entitäten prüfen<br>
+          2. Deaktivierte Entitäten aktivieren<br>
+          3. HA neu starten falls Entities fehlen<br>
+          4. HA-Log nach "bambu_companion" durchsuchen
         </div>
       </ha-card>`;
             return;
