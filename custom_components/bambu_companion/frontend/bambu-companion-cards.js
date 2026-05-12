@@ -709,10 +709,24 @@ class BambuCompanionHistoryCard extends HTMLElement {
             const cost = p.total_cost != null ? `${parseFloat(p.total_cost).toFixed(2)} ${currency}` : "–";
             const fil = (p.filament_weight_g ?? p.total_filament_g) != null
                 ? `${parseFloat(p.filament_weight_g ?? p.total_filament_g).toFixed(1)} g` : "–";
+            const printName = p.name || p.project_name || "";
+            // cover_image_url is a snapshot taken at print completion.
+            // Older records may only have cover_image_entity (entity_id) — fall back to
+            // the current entity picture so at least recent prints show an image.
+            let imgUrl = p.cover_image_url || "";
+            if (!imgUrl && p.cover_image_entity) {
+                imgUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";
+            }
+            const thumbHtml = imgUrl
+                ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
+                : `<div style="width:48px;height:48px;border-radius:4px;background:var(--divider-color);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${ok ? "✅" : "❌"}</div>`;
             return `
         <tr>
-          <td>${ok ? "✅" : "❌"}</td>
-          <td class="muted">${dateStr}</td>
+          <td style="width:56px;padding-right:4px">${thumbHtml}</td>
+          <td>
+            <div style="font-weight:500;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${printName || (ok ? "✅ Erfolgreich" : "❌ Fehlgeschlagen")}</div>
+            <div class="muted" style="font-size:0.78em">${dateStr}</div>
+          </td>
           <td class="right">${duration}</td>
           <td class="right">${fil}</td>
           <td class="right">${cost}</td>
@@ -743,8 +757,8 @@ class BambuCompanionHistoryCard extends HTMLElement {
             <table>
               <thead>
                 <tr>
-                  <th></th>
-                  <th>Datum</th>
+                  <th style="width:56px"></th>
+                  <th>Name / Datum</th>
                   <th style="text-align:right">Dauer</th>
                   <th style="text-align:right">Filament</th>
                   <th style="text-align:right">Kosten</th>

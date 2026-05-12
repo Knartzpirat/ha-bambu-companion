@@ -379,9 +379,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         elif new_status == PRINT_STATUS_FINISH:
             # Handle finish regardless of prev state.
             # prev=printing/pause: normal case.
-            # prev=idle with tracked start: HA was reloaded mid-print, missed the printing state
-            #   on a previous poll but did catch it later (start was set).
-            if prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE):
+            # prev=finish: printer stays in finish across multiple polls — silently ignore.
+            # prev=idle with no tracked start: integration started while printer was already
+            #   in finish (or print completed between HA restarts) — nothing to record.
+            # prev=idle with tracked start: HA was reloaded mid-print, missed the printing state.
+            if prev == PRINT_STATUS_FINISH:
+                pass  # Idempotent — printer staying in finish, nothing to do.
+            elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE):
                 await self._on_print_finish()
             elif self._print_start_time is not None:
                 _LOGGER.info(
@@ -390,9 +394,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 )
                 await self._on_print_finish()
             else:
-                _LOGGER.warning(
+                # Expected at startup if printer was already in finish when integration loaded.
+                _LOGGER.debug(
                     "[%s] finish state seen but no print was tracked (prev='%s') — skipping. "
-                    "If this happens after a real print, the start transition was missed.",
+                    "This is normal at startup if the printer was already in finish state.",
                     self._serial, prev,
                 )
 
@@ -565,6 +570,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
         active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
         cover_image_entity = self._entities.get("cover_image", "")
+        # Snapshot the entity_picture URL at print completion so history can display
+        # the correct image even after a new print is started.
+        cover_image_url = ""
+        if cover_image_entity:
+            img_state = self.hass.states.get(cover_image_entity)
+            if img_state:
+                cover_image_url = img_state.attributes.get("entity_picture", "")
 
         # Energy calculation
         energy_kwh = 0.0
@@ -628,6 +640,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "ams": active_tray_ams,
             },
             "cover_image_entity": cover_image_entity,
+            "cover_image_url": cover_image_url,
         }
 
     # ------------------------------------------------------------------
