@@ -120,12 +120,22 @@ class PrintHistoryStore:
             maint[task_key] = {}
         maint[task_key]["value"] = value
 
-    def set_maintenance_baseline(self, task_key: str, baseline: float) -> None:
-        """Set the baseline for a task (used on first init and after reset)."""
+    def set_maintenance_baseline(
+        self, task_key: str, baseline: float, from_bambu: bool = False
+    ) -> None:
+        """Set the baseline for a task (used on first init and after reset).
+
+        Args:
+            from_bambu: True when the baseline value comes from the real
+                bambu_total_hours sensor.  False means a fallback counter
+                (internal print_hours) was used because bambu data was not
+                yet available.
+        """
         maint = self.get_maintenance()
         if task_key not in maint:
             maint[task_key] = {}
         maint[task_key]["baseline"] = baseline
+        maint[task_key]["baseline_from_fallback"] = not from_bambu
         maint[task_key].setdefault("value", 0.0)
 
     # ------------------------------------------------------------------

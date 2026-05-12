@@ -375,6 +375,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE) and new_status == PRINT_STATUS_FAILED:
             await self._on_print_failed()
 
+        elif prev in (PRINT_STATUS_PRINTING, PRINT_STATUS_PAUSE) and new_status == PRINT_STATUS_IDLE:
+            # Printer went directly printing/pause → idle, skipping the "finish" state.
+            # This happens when the "finish" status is only visible for a few seconds
+            # and falls between two 30-second polls (common on H2D and other models).
+            # Treat this as a successful print completion.
+            _LOGGER.info(
+                "Printer %s: status jumped %s → idle (finish state missed by poll interval). "
+                "Recording as successful print.",
+                self._serial, prev,
+            )
+            await self._on_print_finish()
+
         elif new_status == PRINT_STATUS_PRINTING and prev != PRINT_STATUS_PRINTING:
             # Resumed from pause or other state
             if self._print_start_time is None:
@@ -624,6 +636,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             default_interval = task["default_interval"]
             interval = float(maint_intervals.get(key, default_interval))
 
+            # Whether this trigger uses the absolute bambu_total_hours sensor
+            uses_bambu = (trigger == "total_hours" and bambu_total_hours is not None)
             current_value = self._get_trigger_value(trigger, counters, bambu_total_hours)
 
             maint_entry = self._store.get_maintenance().get(key)
@@ -631,13 +645,30 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 # First time seeing this task – set baseline to current value so
                 # the counter starts at 0 (avoids false maintenance alerts on first
                 # setup with a printer that already has many hours).
-                self._store.set_maintenance_baseline(key, current_value)
+                self._store.set_maintenance_baseline(key, current_value, from_bambu=uses_bambu)
                 await self._store.async_save()
                 since_reset = 0.0
             else:
-                # Current value since last reset
-                last_reset_value = float(maint_entry.get("baseline", 0))
-                since_reset = max(0.0, current_value - last_reset_value)
+                # Re-baseline if the previous baseline was set using the internal
+                # fallback counter (bambu_total_hours was None at that time) but
+                # real bambu hours are now available.  Without this, the delta
+                # between 0 h (fallback baseline) and e.g. 1000 h (real bambu
+                # hours) would trigger false maintenance notifications.
+                baseline_from_fallback = maint_entry.get("baseline_from_fallback", False)
+                if baseline_from_fallback and uses_bambu:
+                    _LOGGER.info(
+                        "Re-baselining maintenance task '%s' for %s: "
+                        "replacing fallback baseline %.1f with real bambu_total_hours %.1f",
+                        key, self._serial,
+                        float(maint_entry.get("baseline", 0)), current_value,
+                    )
+                    self._store.set_maintenance_baseline(key, current_value, from_bambu=True)
+                    await self._store.async_save()
+                    since_reset = 0.0
+                else:
+                    # Current value since last reset
+                    last_reset_value = float(maint_entry.get("baseline", 0))
+                    since_reset = max(0.0, current_value - last_reset_value)
 
             self._store.set_maintenance_value(key, since_reset)
 
@@ -767,6 +798,19 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Use explicit counter_key override when provided (e.g. left/right nozzle)
             actual_counter = task_def.get("counter_key", counter_key)
             self._store.set_counter(actual_counter, 0)
+
+        # For total_hours tasks, reset against real bambu_total_hours if available
+        if trigger == "total_hours":
+            bambu_total_hours = (self.data or {}).get("bambu_total_hours")
+            if bambu_total_hours is not None:
+                self._store.set_maintenance_baseline(task_key, bambu_total_hours, from_bambu=True)
+                maint = self._store.get_maintenance()
+                maint[task_key]["value"] = 0
+                maint[task_key]["last_reset"] = dt_util.now().isoformat()
+                self._maint_notified.pop(task_key, None)
+                await self._store.async_save()
+                await self.async_request_refresh()
+                return
 
         await self._reset_with_baseline(task_key, counter_key)
 
