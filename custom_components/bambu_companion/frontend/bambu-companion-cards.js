@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.1";
+const VERSION = "1.5.2";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -574,9 +574,13 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
             }))
             .sort((a, b) => (a.status === "warning" ? -1 : 1));
 
+        console.debug(`BambuCompanion Maintenance [${serial}]: prefix="${prefixTarget}", found ${tasks.length} tasks, warnings=${tasks.filter(t=>t.status==="warning").length}`);
+
+        const selectEntityId = `select.bc_${serialLc}_maintenance_task`;
+        const resetBtnId = `button.bc_${serialLc}_reset_selected_task`;
+
         const rows = tasks.map(t => {
             const warn = t.status === "warning";
-            const btnId = `button.bc_${serialLc}_reset_maint_${t.key}`;
             const trigger = t.attrs.trigger ?? "";
             const cur = t.attrs.current_value ?? 0;
             const itv = t.attrs.interval ?? 0;
@@ -594,7 +598,7 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
               <div class="task-sub ${warn ? "warning" : "muted"}">${subText}</div>
             </div>
           </div>
-          ${warn ? `<button class="reset-btn" data-entity="${btnId}">✅ Erledigt</button>` : ""}
+          ${warn ? `<button class="reset-btn" data-task-name="${t.name}" data-select="${selectEntityId}" data-button="${resetBtnId}">✅ Erledigt</button>` : ""}
         </div>`;
         }).join("");
 
@@ -623,13 +627,22 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
       <ha-card>
         <div class="card-header">🔧 Nächste Wartungen</div>
         ${tasks.length ? rows : '<div class="empty">Keine Wartungsaufgaben gefunden</div>'}
+        <div style="padding:4px 12px 8px;font-size:0.7em;color:var(--secondary-text-color);text-align:right">v${VERSION} · ${tasks.length} Aufgaben (${tasks.filter(t=>t.status==="warning").length} fällig)</div>
       </ha-card>
     `;
 
         this.shadowRoot.querySelectorAll(".reset-btn").forEach(btn => {
-            btn.addEventListener("click", () =>
-                this._hass.callService("button", "press", { entity_id: btn.dataset.entity })
-            );
+            btn.addEventListener("click", async () => {
+                const selectEid = btn.dataset.select;
+                const buttonEid = btn.dataset.button;
+                const taskName = btn.dataset.taskName;
+                try {
+                    await this._hass.callService("select", "select_option", { entity_id: selectEid, option: taskName });
+                    await this._hass.callService("button", "press", { entity_id: buttonEid });
+                } catch (e) {
+                    console.error("BambuCompanion: Fehler beim Zurücksetzen:", e);
+                }
+            });
         });
     }
 
