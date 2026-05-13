@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.image import async_get_image
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -594,7 +595,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         cover_image_data = ""
         if cover_image_entity:
             try:
-                from homeassistant.components.image import async_get_image
                 img = await async_get_image(self.hass, cover_image_entity)
                 if img and img.content:
                     b64 = base64.b64encode(img.content).decode("utf-8")
