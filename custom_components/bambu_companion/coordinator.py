@@ -45,6 +45,7 @@ from .const import (
     TERMINAL_PRINT_STATUSES,
 )
 from .entity_helper import (
+    get_ams_devices,
     get_ams_tray_entities,
     get_entity_attribute,
     get_entity_float,
@@ -758,6 +759,21 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         active_tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
         active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
         active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
+        # AMS model name (e.g. "AMS 2 Pro", "AMS HT", "AMS Lite") from device registry
+        printer_device_id = self._entry.data.get("device_id", "")
+        ams_model = ""
+        if self._ams_device_ids and active_tray_ams is not None:
+            ams_devices = get_ams_devices(self.hass, printer_device_id)
+            # Match by index (AMS devices are ordered by their position)
+            try:
+                ams_idx = int(active_tray_ams)
+                if 0 <= ams_idx < len(ams_devices):
+                    ams_model = ams_devices[ams_idx].get("model", "")
+                elif ams_devices:
+                    ams_model = ams_devices[0].get("model", "")
+            except (TypeError, ValueError):
+                if ams_devices:
+                    ams_model = ams_devices[0].get("model", "")
         cover_image_entity = self._entities.get("cover_image", "")
         # Fetch the raw image bytes from the HA image entity and encode as base64
         # data-URL so the history card can display it without relying on a
@@ -842,6 +858,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "type": active_tray_type,
                 "slot": active_tray_slot,
                 "ams": active_tray_ams,
+                "ams_model": ams_model,
             },
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,

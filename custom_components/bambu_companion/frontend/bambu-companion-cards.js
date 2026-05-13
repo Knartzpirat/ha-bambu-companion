@@ -5,7 +5,36 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.8";
+const VERSION = "1.5.11";
+
+// ── Translation maps (ha-bambulab raw values → human-readable DE) ─────────────
+
+const PLATE_LABELS = {
+    "cool_plate":            "Cool Plate (PLA)",
+    "engineering_plate":     "Engineering Plate (PETG/ABS)",
+    "high_temp_plate":       "High-Temp Plate (ABS/ASA)",
+    "textured_pei_plate":    "Textured PEI Plate",
+    "smooth_pei_plate":      "Smooth PEI Plate",
+    "hot_plate":             "Bambu Cool Plate",
+    "bambu_cool_plate":      "Bambu Cool Plate",
+    "bambu_smooth_pla_plate":"Smooth PLA Plate",
+    "bambu_engineering_plate":"Engineering Plate",
+};
+
+const NOZZLE_TYPE_LABELS = {
+    "hardened_steel":  "Hardened Steel",
+    "stainless_steel": "Edelstahl",
+    "brass":           "Messing",
+};
+
+function translatePlate(raw) {
+    if (!raw) return "–";
+    return PLATE_LABELS[raw.toLowerCase()] ?? raw;
+}
+function translateNozzleType(raw) {
+    if (!raw) return "–";
+    return NOZZLE_TYPE_LABELS[raw.toLowerCase()] ?? raw;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -999,11 +1028,13 @@ class BambuCompanionHistoryCard extends HTMLElement {
 
         const amsIdx = tray.ams;
         const slotIdx = tray.slot;
+        const amsModel = tray.ams_model || "";
         let source = "–";
         if (amsIdx != null && slotIdx != null) {
-            source = `AMS ${parseInt(amsIdx) + 1}, Slot ${parseInt(slotIdx) + 1}`;
+            const amsLabel = amsModel ? `${amsModel} ${parseInt(amsIdx) + 1}` : `AMS ${parseInt(amsIdx) + 1}`;
+            source = `${amsLabel}, Slot ${parseInt(slotIdx) + 1}`;
         } else if (amsIdx != null) {
-            source = `AMS ${parseInt(amsIdx) + 1}`;
+            source = amsModel ? `${amsModel} ${parseInt(amsIdx) + 1}` : `AMS ${parseInt(amsIdx) + 1}`;
         } else if (slotIdx != null) {
             source = `Extern (Slot ${parseInt(slotIdx) + 1})`;
         } else if (trayName && trayName !== "–") {
@@ -1011,7 +1042,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
         }
 
         const nozzleDia = p.nozzle_diameter != null ? `${p.nozzle_diameter} mm` : "–";
-        const nozzleType = p.nozzle_type || "–";
+        const nozzleType = translateNozzleType(p.nozzle_type);
         const nozzleTemp = p.avg_nozzle_temp ? `${Math.round(p.avg_nozzle_temp)} °C` : "–";
         const bedType = p.bed_type || "–";
         const bedTemp = p.avg_bed_temp ? `${Math.round(p.avg_bed_temp)} °C` : "–";
@@ -1025,7 +1056,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const energyKwh = p.energy_kwh != null ? `${parseFloat(p.energy_kwh).toFixed(3)} kWh` : "–";
         const energyCost = p.energy_cost != null ? `${parseFloat(p.energy_cost).toFixed(2)} ${currency}` : "–";
         const totalCost = p.total_cost != null ? `${parseFloat(p.total_cost).toFixed(2)} ${currency}` : "–";
-        const plate = p.plate || "–";
+        const plate = translatePlate(p.plate);
 
         const row2 = (label1, val1, label2, val2) => `
           <div class="detail-item"><label>${label1}</label><span>${val1}</span></div>
@@ -1078,7 +1109,9 @@ class BambuCompanionHistoryCard extends HTMLElement {
             </div>
           </div>`;
 
-        overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+        let _downOnOverlay = false;
+        overlay.addEventListener("mousedown", e => { _downOnOverlay = e.target === overlay; });
+        overlay.addEventListener("mouseup",   e => { if (_downOnOverlay && e.target === overlay) overlay.remove(); });
         overlay.querySelector("#close-modal").addEventListener("click", () => overlay.remove());
         this.shadowRoot.appendChild(overlay);
     }
