@@ -9,7 +9,6 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.components.image import async_get_image
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -595,11 +594,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         cover_image_data = ""
         if cover_image_entity:
             try:
-                img = await async_get_image(self.hass, cover_image_entity)
-                if img and img.content:
-                    b64 = base64.b64encode(img.content).decode("utf-8")
-                    mime = img.content_type or "image/jpeg"
-                    cover_image_data = f"data:{mime};base64,{b64}"
+                # Access the image EntityComponent via hass.data (no module-level import needed)
+                image_component = self.hass.data.get("image")
+                if image_component:
+                    image_entity = image_component.get_entity(cover_image_entity)
+                    if image_entity:
+                        img_bytes = await image_entity.async_image()
+                        if img_bytes:
+                            mime = getattr(image_entity, "content_type", "image/jpeg") or "image/jpeg"
+                            b64 = base64.b64encode(img_bytes).decode("utf-8")
+                            cover_image_data = f"data:{mime};base64,{b64}"
             except Exception:
                 _LOGGER.debug("[%s] Could not fetch cover image bytes", self._serial)
         _LOGGER.info(
