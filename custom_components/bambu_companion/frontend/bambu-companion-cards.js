@@ -720,13 +720,16 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 const fname = p.gcode_file.split("/").pop() || "";
                 printName = fname.replace(/\.[^.]+$/, "").replace(/_/g, " ");
             }
-            // Cover image: new records store a base64 data-URL (token-free).
-            // Old records have a token-based entity_picture URL → try live entity state
-            // for a fresh token, fall back to stored URL as last resort.
-            let imgUrl = p.cover_image_url || "";
-            if (!imgUrl || (imgUrl.startsWith("/api/") && p.cover_image_entity)) {
-                const liveUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";
-                if (liveUrl) imgUrl = liveUrl;
+            // Cover image resolution:
+            // - data: URLs (base64, new records) → use directly, always valid
+            // - /api/ URLs (old records, token rotates) → always fetch fresh from live entity state
+            // - No live entity_picture available → show placeholder (never use stale /api/ URL)
+            let imgUrl = "";
+            const stored = p.cover_image_url || "";
+            if (stored.startsWith("data:")) {
+                imgUrl = stored;
+            } else if (p.cover_image_entity) {
+                imgUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";
             }
             const thumbHtml = imgUrl
                 ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
