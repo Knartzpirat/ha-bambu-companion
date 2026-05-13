@@ -577,10 +577,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if not name and gcode_file:
             import os
             name = os.path.splitext(os.path.basename(gcode_file))[0]
-        _LOGGER.debug(
-            "[%s] _build_print_record: name=%r, cover_image_url=%r",
-            self._serial, name, cover_image_url,
-        )
+            # Also strip .gcode if double-extension like .gcode.3mf
+            name = re.sub(r'\.gcode$', '', name, flags=re.IGNORECASE)
         plate, project_name = _extract_plate_info(gcode_file)
         # Active tray / filament slot snapshot
         active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
@@ -596,6 +594,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             cov_state = self.hass.states.get(cover_image_entity)
             if cov_state:
                 cover_image_url = cov_state.attributes.get("entity_picture", "")
+        _LOGGER.info(
+            "[%s] _build_print_record: name=%r, cover_image_entity=%r, has_image=%s",
+            self._serial, name, cover_image_entity, bool(cover_image_url),
+        )
 
         # Energy calculation
         energy_kwh = 0.0

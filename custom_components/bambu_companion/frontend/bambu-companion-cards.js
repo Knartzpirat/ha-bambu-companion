@@ -717,10 +717,14 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 const fname = p.gcode_file.split("/").pop() || "";
                 printName = fname.replace(/\.[^.]+$/, "").replace(/_/g, " ");
             }
-            // Cover image: use saved URL snapshot, fall back to live entity state for older records
-            let imgUrl = p.cover_image_url || "";
-            if (!imgUrl && p.cover_image_entity) {
+            // Cover image: prefer live entity state (token is always fresh),
+            // fall back to stored URL snapshot for printers without a live entity
+            let imgUrl = "";
+            if (p.cover_image_entity) {
                 imgUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";
+            }
+            if (!imgUrl) {
+                imgUrl = p.cover_image_url || "";
             }
             const thumbHtml = imgUrl
                 ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
