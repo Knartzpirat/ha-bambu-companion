@@ -39,13 +39,13 @@
                     "notify_ha_events": "Events → HA notifications"
                 }            },
             "import": {
-                "title": "Gesamtdruckzeit",
-                "description": "Soll der Sensor \"Druckzeit gesamt\" die Betriebsstunden der Drucker-Firmware \u00fcbernehmen oder bei 0 starten und nur die seit dieser Einrichtung erfassten Stunden z\u00e4hlen?",
+                "title": "Druckzeit-Quelle",
+                "description": "Bambu Companion kann die Druckzeit entweder direkt vom Drucker auslesen oder sie selbst mitzählen. Empfehlung: Eingeschaltet lassen – so siehst du sofort die gesamte Lebenszeit des Druckers.",
                 "data": {
-                    "import_total_hours": "Gesamtdruckzeit \u00fcbernehmen (Firmware-Stunden anzeigen)"
+                    "import_total_hours": "Drucker-Betriebsstunden übernehmen"
                 },
                 "data_description": {
-                    "import_total_hours": "Aktiviert: zeigt die vom Drucker gemeldeten Gesamtbetriebsstunden. Deaktiviert: z\u00e4hlt nur die Stunden, die Bambu Companion selbst erfasst hat."
+                    "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gezählten Gesamtstunden – also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion zählt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
                 }            }
         },
         "abort": {
@@ -198,15 +198,15 @@
                 }
             },
             "general": {
-                "title": "General settings",
-                "description": "General settings for Bambu Companion.",
+                "title": "Allgemeine Einstellungen",
+                "description": "Allgemeine Einstellungen für Bambu Companion.",
                 "data": {
-                    "max_history": "Max. stored prints (history)",
-                    "import_total_hours": "Gesamtdruckzeit \u00fcbernehmen (Firmware-Stunden anzeigen)"
+                    "max_history": "Maximale Anzahl gespeicherter Drucke (Verlauf)",
+                    "import_total_hours": "Drucker-Betriebsstunden übernehmen"
                 },
                 "data_description": {
-                    "max_history": "Maximum number of print jobs stored in the history. 0 = unlimited.",
-                    "import_total_hours": "Aktiviert: Sensor zeigt die Gesamtbetriebsstunden aus der Drucker-Firmware. Deaktiviert: nur seit dieser Einrichtung erfasste Stunden."
+                    "max_history": "Wie viele abgeschlossene Druckjobs im Verlauf gespeichert werden. 0 = unbegrenzt.",
+                    "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gezählten Gesamtstunden – also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion zählt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
                 }
             }
         }

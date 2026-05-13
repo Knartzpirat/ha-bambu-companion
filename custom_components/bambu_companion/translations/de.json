@@ -60,6 +60,16 @@
                     "notify_mobile_events": "Diese Ereignistypen werden als Push-Nachricht an die ausgewählten Geräte gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
                     "notify_ha_events": "Diese Ereignistypen erscheinen im HA-Posteingang (Glocken-Symbol oben rechts). Kein Smartphone oder externe App erforderlich."
                 }
+            },
+            "import": {
+                "title": "Druckzeit-Quelle",
+                "description": "Bambu Companion kann die Druckzeit entweder direkt vom Drucker auslesen oder sie selbst mitzählen. Empfehlung: Eingeschaltet lassen – so siehst du sofort die gesamte Lebenszeit des Druckers.",
+                "data": {
+                    "import_total_hours": "Drucker-Betriebsstunden übernehmen"
+                },
+                "data_description": {
+                    "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gezählten Gesamtstunden – also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion zählt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
+                }
             }
         },
         "abort": {
@@ -215,10 +225,12 @@
                 "title": "Allgemeine Einstellungen",
                 "description": "Allgemeine Einstellungen für Bambu Companion.",
                 "data": {
-                    "max_history": "Max. gespeicherte Drucke (Verlauf)"
+                    "max_history": "Max. gespeicherte Drucke (Verlauf)",
+                    "import_total_hours": "Drucker-Betriebsstunden \u00fcbernehmen"
                 },
                 "data_description": {
-                    "max_history": "Maximale Anzahl von Druckaufträgen, die im Verlauf gespeichert werden. 0 = unbegrenzt."
+                    "max_history": "Maximale Anzahl von Druckauftr\u00e4gen, die im Verlauf gespeichert werden. 0 = unbegrenzt.",
+                    "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gez\u00e4hlten Gesamtstunden \u2013 also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion z\u00e4hlt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
                 }
             }
         }
