@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.2";
+const VERSION = "1.5.3";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -551,33 +551,86 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         }
         const h = this._hass;
         const { serial: _serial } = this._config;
-        const serial = _serial.toLowerCase();
-        // Case-insensitive prefix scan for maintenance sensors
-        const serialLc = serial.toLowerCase();
-        const prefixTarget = `sensor.bc_${serialLc}_maint_`;
-        const prefix = (() => {
-            for (const eid of Object.keys(h.states)) {
-                if (eid.toLowerCase().startsWith(prefixTarget)) {
-                    return eid.slice(0, eid.toLowerCase().indexOf('_maint_') + 7);
+        const serialLc = _serial.toLowerCase();
+
+        // ── Find maintenance sensors via device registry ──────────────────
+        // Uses the same device-registry approach as buildEntityMap() so that
+        // entity IDs that HA auto-assigned (e.g. sensor.h2d_kermit_wartung_*)
+        // are found regardless of their naming.
+        let maintEntityIds = [];
+        let selectEntityId = `select.bc_${serialLc}_maintenance_task`;
+        let resetBtnId     = `button.bc_${serialLc}_reset_selected_task`;
+
+        if (h.entities && h.devices) {
+            // 1. Locate the bambu_companion device for this serial
+            let targetDeviceId = null;
+            for (const [did, device] of Object.entries(h.devices)) {
+                for (const [domain, identifier] of (device.identifiers ?? [])) {
+                    if (domain === "bambu_companion" && String(identifier).toLowerCase() === serialLc) {
+                        targetDeviceId = did;
+                        break;
+                    }
+                }
+                if (targetDeviceId) break;
+            }
+
+            if (targetDeviceId) {
+                // 2. Collect all bambu_companion entities for this device
+                for (const [eid, entry] of Object.entries(h.entities)) {
+                    if (entry.platform !== "bambu_companion") continue;
+                    if (entry.device_id !== targetDeviceId) continue;
+                    const state = h.states[eid];
+                    if (!state) continue;
+                    if (eid.startsWith("sensor.") && state.attributes.task_key !== undefined) {
+                        maintEntityIds.push(eid);
+                    } else if (eid.startsWith("select.") && !eid.includes("nozzle") && state.attributes.options !== undefined) {
+                        // Maintenance task select (not the nozzle select)
+                        selectEntityId = eid;
+                    } else if (eid.startsWith("button.") && !eid.includes("nozzle")) {
+                        // The reset_selected_task button (not a nozzle reset button)
+                        resetBtnId = eid;
+                    }
                 }
             }
-            return prefixTarget;
-        })();
+        }
 
-        const tasks = Object.entries(h.states)
-            .filter(([id]) => id.toLowerCase().startsWith(prefixTarget))
-            .map(([id, state]) => ({
-                key: id.slice(prefix.length),
-                name: (state.attributes.friendly_name ?? id).replace(/^Wartung:\s*/i, ""),
-                status: state.state,
-                attrs: state.attributes,
-            }))
+        // ── Fallback: scan hass.states for sensors with task_key attribute ─
+        if (!maintEntityIds.length) {
+            const prefixFallback = `sensor.bc_${serialLc}_maint_`;
+            for (const [eid, state] of Object.entries(h.states)) {
+                if (!eid.startsWith("sensor.")) continue;
+                if (state.attributes.task_key !== undefined) {
+                    // If we have a serial hint, try to match it (skip unrelated printers)
+                    const eidLc = eid.toLowerCase();
+                    if (eidLc.startsWith(prefixFallback) || eidLc.includes(serialLc)) {
+                        maintEntityIds.push(eid);
+                    }
+                }
+            }
+            // Last resort: all sensors with task_key (single-printer setups)
+            if (!maintEntityIds.length) {
+                for (const [eid, state] of Object.entries(h.states)) {
+                    if (eid.startsWith("sensor.") && state.attributes.task_key !== undefined) {
+                        maintEntityIds.push(eid);
+                    }
+                }
+            }
+        }
+
+        const tasks = maintEntityIds
+            .map(id => {
+                const state = h.states[id];
+                return {
+                    id,
+                    key: state.attributes.task_key ?? id,
+                    name: (state.attributes.friendly_name ?? id).replace(/^Wartung:\s*/i, ""),
+                    status: state.state,
+                    attrs: state.attributes,
+                };
+            })
             .sort((a, b) => (a.status === "warning" ? -1 : 1));
 
-        console.debug(`BambuCompanion Maintenance [${serial}]: prefix="${prefixTarget}", found ${tasks.length} tasks, warnings=${tasks.filter(t=>t.status==="warning").length}`);
-
-        const selectEntityId = `select.bc_${serialLc}_maintenance_task`;
-        const resetBtnId = `button.bc_${serialLc}_reset_selected_task`;
+        console.debug(`BambuCompanion Maintenance [${serialLc}]: found ${tasks.length} tasks (${tasks.filter(t=>t.status==="warning").length} warnings), select="${selectEntityId}", btn="${resetBtnId}"`);
 
         const rows = tasks.map(t => {
             const warn = t.status === "warning";
