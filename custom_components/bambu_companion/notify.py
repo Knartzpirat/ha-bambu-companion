@@ -247,6 +247,46 @@ class NotifyManager:
         message = _render(_get_text(self._options, CONF_TEXT_DONE_MSG), variables)
         await self._send("done", title, message)
 
+    async def notify_poweroff_ask(self, printer_name: str, is_drying: bool) -> None:
+        """Send a push notification asking the user whether to power off or wait for drying."""
+        targets = self._targets()
+        if not targets:
+            return
+        if self._is_quiet():
+            _LOGGER.info("[%s] Poweroff question suppressed (quiet hours)", self._serial)
+            return
+
+        if is_drying:
+            title = f"🔌 {printer_name} – Ausschalten?"
+            message = (
+                "Der Druck ist abgeschlossen, aber die AMS trocknet noch Filament. "
+                "Jetzt ausschalten oder Trocknung abwarten?"
+            )
+        else:
+            title = f"🔌 {printer_name} – Ausschalten?"
+            message = "Der Druck ist fertig. Soll die Steckdose jetzt ausgeschaltet werden?"
+
+        action_buttons = [
+            {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Jetzt ausschalten"},
+            {"action": f"bc_poweroff_wait_{self._serial}", "title": "⏳ Warten / Abbrechen"},
+        ]
+
+        for target in targets:
+            try:
+                service_domain, service_name = target.rsplit(".", 1)
+                await self._hass.services.async_call(
+                    service_domain,
+                    service_name,
+                    {
+                        "title": title,
+                        "message": message,
+                        "data": {"actions": action_buttons},
+                    },
+                    blocking=False,
+                )
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("[%s] Failed to send poweroff question to %s: %s", self._serial, target, exc)
+
     async def notify_error(self, variables: dict) -> None:
         title = _render(_get_text(self._options, CONF_TEXT_ERROR_TITLE), variables)
         message = _render(_get_text(self._options, CONF_TEXT_ERROR_MSG), variables)

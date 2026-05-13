@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for Bambu Print Tracker."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import re
@@ -16,6 +17,10 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ACTIVE_PRINT_STATUSES,
     CONF_AMS_DEVICE_IDS,
+    CONF_AUTO_POWEROFF_DELAY_MIN,
+    CONF_AUTO_POWEROFF_DRY_MODE,
+    CONF_AUTO_POWEROFF_ENABLED,
+    CONF_AUTO_POWEROFF_SWITCH,
     CONF_CURRENCY,
     CONF_DEVICE_ID,
     CONF_ELECTRICITY_PRICE,
@@ -23,6 +28,8 @@ from .const import (
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
     CONF_PRINTER_DISPLAY_NAME,
+    DEFAULT_AUTO_POWEROFF_DELAY_MIN,
+    DEFAULT_AUTO_POWEROFF_DRY_MODE,
     DEFAULT_CURRENCY,
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
@@ -38,6 +45,7 @@ from .const import (
     TERMINAL_PRINT_STATUSES,
 )
 from .entity_helper import (
+    get_ams_tray_entities,
     get_entity_attribute,
     get_entity_float,
     get_entity_state,
@@ -98,6 +106,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         # Maintenance notification cooldown: task_key → last notified datetime
         self._maint_notified: dict[str, datetime] = {}
+
+        # Auto-poweroff timer task (cancelled when a new print starts)
+        self._poweroff_task: asyncio.Task | None = None
 
         # Nozzle change detection
         self._last_nozzle_diameter: float | None = None
@@ -185,9 +196,126 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 self._notify.mute_progress(minutes)
                 return
 
+            # ── Auto-poweroff: user tapped "Power off now" ───────────────
+            if action == f"bc_poweroff_now_{self._serial}":
+                self.hass.async_create_task(self._execute_poweroff())
+                return
+
+            # ── Auto-poweroff: user tapped "Wait / Cancel" ───────────────
+            if action == f"bc_poweroff_wait_{self._serial}":
+                _LOGGER.info("[%s] User cancelled auto-poweroff via notification.", self._serial)
+                self._cancel_poweroff_task()
+                return
+
         self._entry.async_on_unload(
             self.hass.bus.async_listen("mobile_app_notification_action", _on_mobile_action)
         )
+
+    # ------------------------------------------------------------------
+    # Auto-poweroff helpers
+    # ------------------------------------------------------------------
+
+    def _cancel_poweroff_task(self) -> None:
+        """Cancel a pending poweroff timer task if one is running."""
+        if self._poweroff_task and not self._poweroff_task.done():
+            self._poweroff_task.cancel()
+            _LOGGER.info("[%s] Poweroff task cancelled.", self._serial)
+        self._poweroff_task = None
+
+    def _schedule_poweroff(self) -> None:
+        """Schedule the auto-poweroff check after the configured delay."""
+        if not self._options.get(CONF_AUTO_POWEROFF_ENABLED, False):
+            return
+        switch_entity = (self._options.get(CONF_AUTO_POWEROFF_SWITCH) or "").strip()
+        if not switch_entity:
+            _LOGGER.debug("[%s] Auto-poweroff enabled but no switch entity configured.", self._serial)
+            return
+        delay_min = int(self._options.get(CONF_AUTO_POWEROFF_DELAY_MIN, DEFAULT_AUTO_POWEROFF_DELAY_MIN))
+        self._cancel_poweroff_task()
+        self._poweroff_task = self.hass.async_create_task(
+            self._poweroff_timer(delay_min)
+        )
+        _LOGGER.info("[%s] Auto-poweroff scheduled in %d min.", self._serial, delay_min)
+
+    async def _poweroff_timer(self, delay_min: int) -> None:
+        """Wait for delay_min minutes, then run the poweroff logic."""
+        try:
+            await asyncio.sleep(delay_min * 60)
+        except asyncio.CancelledError:
+            _LOGGER.debug("[%s] Poweroff timer cancelled (new print started or user aborted).", self._serial)
+            return
+
+        # Verify printer is still idle after the delay
+        if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
+            _LOGGER.info(
+                "[%s] Poweroff: printer is now in '%s' — skipping poweroff.",
+                self._serial, self._print_status,
+            )
+            return
+
+        dry_mode = (self._options.get(CONF_AUTO_POWEROFF_DRY_MODE) or DEFAULT_AUTO_POWEROFF_DRY_MODE).strip()
+        is_drying = self._ams_is_drying()
+
+        if is_drying and dry_mode == "wait":
+            _LOGGER.info("[%s] Auto-poweroff: AMS is drying — waiting (mode=wait).", self._serial)
+            return
+
+        if is_drying and dry_mode == "ask":
+            _LOGGER.info("[%s] Auto-poweroff: AMS is drying — asking user.", self._serial)
+            await self._notify.notify_poweroff_ask(self._printer_name, is_drying=True)
+            return
+
+        if not is_drying and dry_mode == "ask":
+            # No drying and mode ask → still ask (user can confirm)
+            _LOGGER.info("[%s] Auto-poweroff: no drying — asking user.", self._serial)
+            await self._notify.notify_poweroff_ask(self._printer_name, is_drying=False)
+            return
+
+        # dry_mode == "poweroff" or (not drying and mode != ask/wait)
+        await self._execute_poweroff()
+
+    async def _execute_poweroff(self) -> None:
+        """Turn off the configured smart plug / switch entity."""
+        switch_entity = (self._options.get(CONF_AUTO_POWEROFF_SWITCH) or "").strip()
+        if not switch_entity:
+            return
+        domain = switch_entity.split(".")[0]
+        _LOGGER.info("[%s] Auto-poweroff: turning off '%s'.", self._serial, switch_entity)
+        try:
+            await self.hass.services.async_call(
+                domain,
+                "turn_off",
+                {"entity_id": switch_entity},
+                blocking=False,
+            )
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("[%s] Auto-poweroff: failed to turn off '%s': %s", self._serial, switch_entity, exc)
+
+    def _ams_is_drying(self) -> bool:
+        """Return True if any AMS unit is currently drying filament.
+
+        ha-bambulab exposes a 'drying_remaining_time' sensor per AMS.
+        We check all AMS device entities for any translation_key containing 'drying'
+        and return True if any such entity has a non-zero / truthy state.
+        """
+        for ams_device_id in self._ams_device_ids:
+            ams_entities = get_ams_tray_entities(self.hass, ams_device_id)
+            for key, entity_id in ams_entities.items():
+                if "drying" not in key.lower():
+                    continue
+                state = self.hass.states.get(entity_id)
+                if state is None or state.state in ("unknown", "unavailable", "0", "off", "false", "none"):
+                    continue
+                # Any truthy state (non-zero remaining time, "on", etc.) means drying
+                try:
+                    if float(state.state) > 0:
+                        _LOGGER.debug("[%s] AMS drying detected: %s=%s", self._serial, entity_id, state.state)
+                        return True
+                except (ValueError, TypeError):
+                    if state.state.lower() not in ("0", "off", "false", "none", "idle"):
+                        _LOGGER.debug("[%s] AMS drying detected: %s=%s", self._serial, entity_id, state.state)
+                        return True
+        return False
 
     # ------------------------------------------------------------------
     # Core update
@@ -495,6 +623,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._print_status = new_status
 
     async def _on_print_start(self) -> None:
+        self._cancel_poweroff_task()  # new print started — abort any pending poweroff
         self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
         _LOGGER.info(
@@ -549,6 +678,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             self._serial, self._store.counters.get("total_prints"),
         )
         await self._notify.notify_done(variables)
+        self._schedule_poweroff()
 
     async def _on_print_failed(self) -> None:
         _LOGGER.info(
@@ -571,6 +701,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "duration": _format_minutes(record.get("duration_min", 0)),
             }
         )
+        self._schedule_poweroff()
 
     async def _build_print_record(self, success: bool) -> dict:
         now = dt_util.now()

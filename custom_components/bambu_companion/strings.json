@@ -220,6 +220,22 @@
                     "max_history": "Wie viele abgeschlossene Druckjobs im Verlauf gespeichert werden. 0 = unbegrenzt.",
                     "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gezählten Gesamtstunden – also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion zählt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
                 }
+            },
+            "poweroff": {
+                "title": "Auto-Poweroff",
+                "description": "Schaltet die Steckdose des Druckers automatisch aus, wenn nach einem abgeschlossenen Druck für eine konfigurierbare Zeit kein neuer Auftrag gestartet wird.",
+                "data": {
+                    "auto_poweroff_enabled": "Auto-Poweroff aktivieren",
+                    "auto_poweroff_switch": "Steckdosen-Entity (Switch/Input Boolean)",
+                    "auto_poweroff_delay_min": "Wartezeit nach Druckende (Minuten)",
+                    "auto_poweroff_dry_mode": "Verhalten wenn AMS noch trocknet"
+                },
+                "data_description": {
+                    "auto_poweroff_enabled": "Wenn aktiviert, wird die Steckdose nach Ablauf der Wartezeit ausgeschaltet, sofern kein neuer Druck gestartet wurde.",
+                    "auto_poweroff_switch": "Switch- oder Input-Boolean-Entity der smarten Steckdose, an der der Drucker angeschlossen ist.",
+                    "auto_poweroff_delay_min": "Wie viele Minuten nach Druckende auf einen neuen Auftrag gewartet wird, bevor der Drucker ausgeschaltet wird. Standard: 60 Minuten.",
+                    "auto_poweroff_dry_mode": "'Fragen': Push-Benachrichtigung mit Auswahl senden. 'Immer ausschalten': Steckdose ohne Rückfrage abschalten. 'Trocknung abwarten': Drucker bleibt an, wenn die AMS noch trocknet."
+                }
             }
         }
     },

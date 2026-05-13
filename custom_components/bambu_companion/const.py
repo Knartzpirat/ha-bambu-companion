@@ -85,6 +85,15 @@ CONF_ACTION_BTN_2_FALLBACK_TITLE = "action_btn_2_fallback_title"
 CONF_ACTION_BTN_2_URI = "action_btn_2_uri"       # fallback URI (no camera)
 CONF_ACTION_BTN_3_MODE = "action_btn_3_mode"     # "off" | "mute_progress" | "custom"
 
+# Auto-poweroff after print
+CONF_AUTO_POWEROFF_ENABLED = "auto_poweroff_enabled"
+CONF_AUTO_POWEROFF_DELAY_MIN = "auto_poweroff_delay_min"
+CONF_AUTO_POWEROFF_SWITCH = "auto_poweroff_switch"    # switch/input_boolean entity to turn off
+CONF_AUTO_POWEROFF_DRY_MODE = "auto_poweroff_dry_mode"  # "ask" | "poweroff" | "wait"
+
+DEFAULT_AUTO_POWEROFF_DELAY_MIN = 60
+DEFAULT_AUTO_POWEROFF_DRY_MODE = "ask"
+
 DEFAULT_TEXTS = {
     CONF_TEXT_START_TITLE: "🚀 {drucker} – Druck gestartet",
     CONF_TEXT_START_MSG: "{name} wird jetzt gedruckt.",

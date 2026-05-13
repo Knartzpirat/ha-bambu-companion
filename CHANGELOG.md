@@ -4,7 +4,15 @@ All notable changes to the Bambu Companion project will be documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.0.9] — 2025-07-13
+## [0.1.0] — 2026-05-13
+
+### Added
+- **Auto-Poweroff nach Druckende:** Neuer Einstellungs-Tab "Auto-Poweroff". Nach einer konfigurierbaren Wartezeit (Standard: 60 Min.) ohne neuen Druck wird eine beliebige Switch/Input-Boolean-Entity abgeschaltet (z. B. smarte Steckdose). Wenn die AMS noch Filament trocknet, gibt es drei Verhaltens-Modi:
+  - **Fragen (Standard):** Push-Benachrichtigung mit den Buttons "Jetzt ausschalten" und "Warten / Abbrechen" – Antwort schaltet oder bricht ab.
+  - **Immer ausschalten:** Steckdose wird ohne Rückfrage abgeschaltet, auch während der Trocknung.
+  - **Trocknung abwarten:** Steckdose bleibt an, solange eine AMS-Entität mit `drying` im Translation-Key einen aktiven Wert meldet.
+- Wird während der Wartezeit ein neuer Druck gestartet, wird der Timer automatisch abgebrochen.
+
 
 ### Added
 - **`mute_progress`-Feature:** Die dritte Aktionsschaltfläche in Push-Benachrichtigungen kann jetzt auf "Stummschalten" konfiguriert werden. Bei iOS/Android-Companion-App erscheint eine Texteingabe für die Anzahl der Minuten, für die Fortschritts-Benachrichtigungen unterdrückt werden sollen (`mobile_app_notification_action` → `bc_mute_progress_<serial>`). Die Stummschaltung wird automatisch beim Druckende zurückgesetzt.

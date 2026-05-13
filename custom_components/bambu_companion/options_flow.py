@@ -13,6 +13,10 @@ from .const import (
     CONF_ACTION_BTN_2_FALLBACK_TITLE,
     CONF_ACTION_BTN_2_URI,
     CONF_ACTION_BTN_3_MODE,
+    CONF_AUTO_POWEROFF_DELAY_MIN,
+    CONF_AUTO_POWEROFF_DRY_MODE,
+    CONF_AUTO_POWEROFF_ENABLED,
+    CONF_AUTO_POWEROFF_SWITCH,
     CONF_CURRENCY,
     CONF_DEVICE_ID,
     CONF_ELECTRICITY_PRICE,
@@ -46,6 +50,8 @@ from .const import (
     CONF_TEXT_RESET_TITLE,
     CONF_TEXT_START_MSG,
     CONF_TEXT_START_TITLE,
+    DEFAULT_AUTO_POWEROFF_DELAY_MIN,
+    DEFAULT_AUTO_POWEROFF_DRY_MODE,
     DEFAULT_CURRENCY,
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
@@ -88,6 +94,8 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_maintenance()
             if tab == "general":
                 return await self.async_step_general()
+            if tab == "poweroff":
+                return await self.async_step_poweroff()
 
         schema = vol.Schema(
             {
@@ -99,6 +107,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                             {"value": "texts", "label": "Customize Texts"},
                             {"value": "maintenance", "label": "Maintenance Plans"},
                             {"value": "general", "label": "General"},
+                            {"value": "poweroff", "label": "Auto-Poweroff"},
                         ],
                         mode=selector.SelectSelectorMode.LIST,
                     )
@@ -400,3 +409,44 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             }
         )
         return self.async_show_form(step_id="general", data_schema=schema)
+
+    async def async_step_poweroff(self, user_input=None):
+        current = self._current()
+        if user_input is not None:
+            self._combined.update(user_input)
+            return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_AUTO_POWEROFF_ENABLED,
+                    default=current.get(CONF_AUTO_POWEROFF_ENABLED, False),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_AUTO_POWEROFF_SWITCH,
+                    description={"suggested_value": current.get(CONF_AUTO_POWEROFF_SWITCH)},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain=["switch", "input_boolean"])
+                ),
+                vol.Required(
+                    CONF_AUTO_POWEROFF_DELAY_MIN,
+                    default=current.get(CONF_AUTO_POWEROFF_DELAY_MIN, DEFAULT_AUTO_POWEROFF_DELAY_MIN),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=1, max=480, step=1, mode=selector.NumberSelectorMode.BOX)
+                ),
+                vol.Required(
+                    CONF_AUTO_POWEROFF_DRY_MODE,
+                    default=current.get(CONF_AUTO_POWEROFF_DRY_MODE, DEFAULT_AUTO_POWEROFF_DRY_MODE),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "ask", "label": "Fragen / Ask"},
+                            {"value": "poweroff", "label": "Immer ausschalten / Always power off"},
+                            {"value": "wait", "label": "Trocknung abwarten / Wait for drying"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="poweroff", data_schema=schema)
