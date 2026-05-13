@@ -4,6 +4,11 @@ All notable changes to the Bambu Companion project will be documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.0.9] — 2025-07-13
+
+### Added
+- **`mute_progress`-Feature:** Die dritte Aktionsschaltfläche in Push-Benachrichtigungen kann jetzt auf "Stummschalten" konfiguriert werden. Bei iOS/Android-Companion-App erscheint eine Texteingabe für die Anzahl der Minuten, für die Fortschritts-Benachrichtigungen unterdrückt werden sollen (`mobile_app_notification_action` → `bc_mute_progress_<serial>`). Die Stummschaltung wird automatisch beim Druckende zurückgesetzt.
+
 ## [0.0.8] — 2025-07-13
 
 ### Fixed

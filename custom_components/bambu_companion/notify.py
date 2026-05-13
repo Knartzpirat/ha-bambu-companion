@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import time
+from datetime import datetime, time, timedelta
 
 from homeassistant.components.persistent_notification import async_create
 from homeassistant.core import HomeAssistant
@@ -80,6 +80,30 @@ class NotifyManager:
         self._options = options
         self._device_id = device_id
         self._last_notified_progress: int = -1
+        self._muted_until: datetime | None = None
+
+    def mute_progress(self, minutes: int) -> None:
+        """Mute progress notifications for the given number of minutes."""
+        if minutes > 0:
+            self._muted_until = dt_util.now() + timedelta(minutes=minutes)
+            _LOGGER.info("[%s] Progress muted for %d min (until %s)", self._serial, minutes, self._muted_until)
+        else:
+            self._muted_until = None
+            _LOGGER.info("[%s] Progress mute cleared", self._serial)
+
+    def clear_mute(self) -> None:
+        """Clear any active mute (e.g. when print finishes)."""
+        self._muted_until = None
+
+    def _is_muted(self) -> bool:
+        """Return True when progress notifications are currently muted."""
+        if self._muted_until is None:
+            return False
+        if dt_util.now() < self._muted_until:
+            return True
+        # Expired – auto-clear
+        self._muted_until = None
+        return False
 
     def _targets(self) -> list[str]:
         targets = self._options.get(CONF_NOTIFY_TARGETS, [])
@@ -124,6 +148,18 @@ class NotifyManager:
             btn2_fallback_uri = (self._options.get(CONF_ACTION_BTN_2_URI) or "").strip()
             if btn2_fallback_title and btn2_fallback_uri:
                 buttons.append({"action": "URI", "title": btn2_fallback_title, "uri": btn2_fallback_uri})
+
+        # Button 3: mute progress (textInput behavior on iOS/Android)
+        btn3_mode = (self._options.get(CONF_ACTION_BTN_3_MODE) or "off").strip()
+        if btn3_mode == "mute_progress":
+            mute_action = f"bc_mute_progress_{self._serial}"
+            buttons.append({
+                "action": mute_action,
+                "title": "🔇 Stummschalten",
+                "behavior": "textInput",
+                "textInputButtonTitle": "Stummschalten",
+                "textInputPlaceholder": "Minuten (z.B. 60)",
+            })
 
         return buttons
 
@@ -199,6 +235,9 @@ class NotifyManager:
         await self._send("start", title, message)
 
     async def notify_progress(self, variables: dict) -> None:
+        if self._is_muted():
+            _LOGGER.info("[%s] Progress notification suppressed (muted until %s)", self._serial, self._muted_until)
+            return
         title = _render(_get_text(self._options, CONF_TEXT_PROGRESS_TITLE), variables)
         message = _render(_get_text(self._options, CONF_TEXT_PROGRESS_MSG), variables)
         await self._send("progress", title, message)

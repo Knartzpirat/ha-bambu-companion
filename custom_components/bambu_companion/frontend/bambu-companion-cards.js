@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.4";
+const VERSION = "1.5.5";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -704,7 +704,7 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         <div class="card-body">
           ${visibleTasks.length ? rows : `<div class="empty">${this._showAll ? "Keine Wartungsaufgaben gefunden" : "✅ Keine fälligen Wartungen"}</div>`}
         </div>
-        <div style="padding:0 16px 8px;font-size:0.7em;color:var(--secondary-text-color);text-align:right">v${VERSION}</div>
+        <div style="padding:0 16px 8px;font-size:0.7em;color:var(--secondary-text-color);text-align:right">${tasks.length} Aufgaben (${warnCount} fällig)</div>
       </ha-card>
     `;
 

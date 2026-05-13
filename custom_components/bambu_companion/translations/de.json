@@ -140,7 +140,7 @@
                     "action_btn_2_camera_title": "Text für die zweite Schaltfläche, wenn eine Kamera erkannt wurde. Die URI wird automatisch gebaut (entityId:camera.xxx).",
                     "action_btn_2_fallback_title": "Text für die zweite Schaltfläche, wenn KEINE Kamera gefunden wurde. Leer lassen um Schaltfläche 2 zu deaktivieren.",
                     "action_btn_2_uri": "URI die geöffnet wird, wenn KEINE Kamera vorhanden ist. Voreinstellung wählen oder eigenen Pfad eingeben.",
-                    "action_btn_3_mode": "Funktion der dritten Schaltfläche. 'Stummschalten' = Push-Benachrichtigungen per Minuten-Eingabe stumm schalten. Derzeit nur 'Aus' unterstützt."
+                    "action_btn_3_mode": "Funktion der dritten Schaltfläche. 'Stummschalten' = eine Aktionsschaltfläche in der Benachrichtigung erlaubt die Eingabe der Minuten, für die Fortschritts-Benachrichtigungen unterdrückt werden. Wird beim Druckende automatisch zurückgesetzt."
                 }
             },
             "maintenance": {

@@ -157,21 +157,33 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self.hass.async_create_task(self.async_request_refresh())
 
     def _setup_mobile_action_listener(self) -> None:
-        """Listen for mobile_app_notification_action events to handle nozzle-slot selection."""
+        """Listen for mobile_app_notification_action events."""
         @callback
         def _on_mobile_action(event) -> None:
             action: str = event.data.get("action", "")
-            prefix = f"bc_nozzle_slot_{self._serial}_"
-            if not action.startswith(prefix):
+
+            # ── Nozzle slot selection ────────────────────────────────────
+            nozzle_prefix = f"bc_nozzle_slot_{self._serial}_"
+            if action.startswith(nozzle_prefix):
+                rest = action[len(nozzle_prefix):]          # e.g. "single_Düse 2"
+                parts = rest.split("_", 1)
+                if len(parts) == 2:
+                    position, label = parts
+                    self.hass.async_create_task(
+                        self.async_select_nozzle_slot(position, label)
+                    )
                 return
-            rest = action[len(prefix):]          # e.g. "single_Düse 2"
-            parts = rest.split("_", 1)
-            if len(parts) != 2:
+
+            # ── Mute progress notifications ──────────────────────────────
+            mute_action = f"bc_mute_progress_{self._serial}"
+            if action == mute_action:
+                reply = event.data.get("reply_text", "").strip()
+                try:
+                    minutes = max(1, int(reply))
+                except (ValueError, TypeError):
+                    minutes = 60
+                self._notify.mute_progress(minutes)
                 return
-            position, label = parts
-            self.hass.async_create_task(
-                self.async_select_nozzle_slot(position, label)
-            )
 
         self._entry.async_on_unload(
             self.hass.bus.async_listen("mobile_app_notification_action", _on_mobile_action)
@@ -458,6 +470,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # regardless of what prev was (covers the idle→finish edge case above).
             if self._print_start_time is not None or prev in ACTIVE_PRINT_STATUSES:
                 self._notify.reset_progress_tracker()
+                self._notify.clear_mute()
                 self._print_start_time = None
                 self._energy_at_start = None
 
