@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.4.5";
+const VERSION = "1.5.1";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -553,7 +553,8 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         const { serial: _serial } = this._config;
         const serial = _serial.toLowerCase();
         // Case-insensitive prefix scan for maintenance sensors
-        const prefixTarget = `sensor.bc_${serial}_maint_`;
+        const serialLc = serial.toLowerCase();
+        const prefixTarget = `sensor.bc_${serialLc}_maint_`;
         const prefix = (() => {
             for (const eid of Object.keys(h.states)) {
                 if (eid.toLowerCase().startsWith(prefixTarget)) {
@@ -564,7 +565,7 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         })();
 
         const tasks = Object.entries(h.states)
-            .filter(([id]) => id.startsWith(prefix))
+            .filter(([id]) => id.toLowerCase().startsWith(prefixTarget))
             .map(([id, state]) => ({
                 key: id.slice(prefix.length),
                 name: (state.attributes.friendly_name ?? id).replace(/^Wartung:\s*/i, ""),
@@ -575,17 +576,25 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
 
         const rows = tasks.map(t => {
             const warn = t.status === "warning";
-            const btnId = `button.bc_${serial}_reset_maint_${t.key}`;
+            const btnId = `button.bc_${serialLc}_reset_maint_${t.key}`;
+            const trigger = t.attrs.trigger ?? "";
+            const cur = t.attrs.current_value ?? 0;
+            const itv = t.attrs.interval ?? 0;
+            const fmt = (v) => (trigger === "print_count" || trigger === "laser_jobs")
+                ? `${Math.round(v)} Drucke` : `${parseFloat(v).toFixed(1)} h`;
+            const subText = warn
+                ? `hat ${fmt(cur)} erreicht (Intervall: ${fmt(itv)})`
+                : `${fmt(cur)} / ${fmt(itv)}`;
             return `
         <div class="task ${warn ? "warn" : "ok"}">
           <div class="task-left">
             <span class="task-icon">${warn ? "⚠️" : "✅"}</span>
             <div>
               <div class="task-name">${t.name}</div>
-              <div class="task-sub ${warn ? "warning" : "muted"}">${warn ? "Wartung fällig" : "In Ordnung"}</div>
+              <div class="task-sub ${warn ? "warning" : "muted"}">${subText}</div>
             </div>
           </div>
-          <button class="reset-btn" data-entity="${btnId}">Erledigt</button>
+          ${warn ? `<button class="reset-btn" data-entity="${btnId}">✅ Erledigt</button>` : ""}
         </div>`;
         }).join("");
 

@@ -833,8 +833,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                         {
                             "drucker": printer_name,
                             "wartung": task["name"],
-                            "stunden": f"{since_reset:.1f}",
-                            "intervall": f"{interval:.0f}",
+                            "stunden": f"{since_reset:.1f}",  # legacy, keep for custom templates
+                            "wert": f"{int(since_reset)} Drucke" if trigger in ("print_count", "laser_jobs") else f"{since_reset:.1f} h",
+                            "intervall": f"{int(interval)} Drucke" if trigger in ("print_count", "laser_jobs") else f"{interval:.0f} h",
                         }
                     )
                     self._maint_notified[key] = now

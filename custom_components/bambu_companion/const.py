@@ -8,7 +8,7 @@ URL_BASE = "/bambu_companion_static"
 BAMBU_COMPANION_CARDS = [
     {
         "filename": "bambu-companion-cards.js",
-        "version": "1.5.0",
+        "version": "1.5.1",
         "name": "Bambu Companion Cards",
     }
 ]
@@ -84,8 +84,8 @@ DEFAULT_TEXTS = {
     CONF_TEXT_PROGRESS_MSG: "Fortschritt: {progress}% ⏳ Verbleibend: {remaining}",
     CONF_TEXT_DONE_MSG: "⏱️ Dauer: {duration}\n📊 {weight} · {energy}\n💰 {cost}",
     CONF_TEXT_ERROR_MSG: "⚠️ Abgebrochen bei {progress}%\n⏱️ {duration}",
-    CONF_TEXT_MAINT_MSG: "{wartung} hat {stunden}h erreicht (Intervall: {intervall}h)",
-    CONF_TEXT_RESET_MSG: "{wartung} hat aktuell {stunden}h. Wirklich auf 0 zurücksetzen?",
+    CONF_TEXT_MAINT_MSG: "{wartung} hat {wert} erreicht (Intervall: {intervall})",
+    CONF_TEXT_RESET_MSG: "{wartung} hat aktuell {wert}. Wirklich auf 0 zur\u00fccksetzen?",
     CONF_TEXT_BTN_DONE: "✅ Erledigt",
     CONF_TEXT_BTN_SNOOZE: "⏰ Erinnern in...",
     CONF_TEXT_BTN_CANCEL: "❌ Abbrechen",
