@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for Bambu Print Tracker."""
 from __future__ import annotations
 
+import base64
 import logging
 import re
 from datetime import datetime, timedelta
@@ -587,16 +588,23 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
         active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
         cover_image_entity = self._entities.get("cover_image", "")
-        # Use the URL cached during the print (captured every poll), falling back to
-        # a live lookup at finish time in case polling missed it.
-        cover_image_url = self._last_cover_image_url or ""
-        if not cover_image_url and cover_image_entity:
-            cov_state = self.hass.states.get(cover_image_entity)
-            if cov_state:
-                cover_image_url = cov_state.attributes.get("entity_picture", "")
+        # Fetch the raw image bytes from the HA image entity and encode as base64
+        # data-URL so the history card can display it without relying on a
+        # token-based proxy URL (which expires after the next image update).
+        cover_image_data = ""
+        if cover_image_entity:
+            try:
+                from homeassistant.components.image import async_get_image
+                img = await async_get_image(self.hass, cover_image_entity)
+                if img and img.content:
+                    b64 = base64.b64encode(img.content).decode("utf-8")
+                    mime = img.content_type or "image/jpeg"
+                    cover_image_data = f"data:{mime};base64,{b64}"
+            except Exception:
+                _LOGGER.debug("[%s] Could not fetch cover image bytes", self._serial)
         _LOGGER.info(
             "[%s] _build_print_record: name=%r, cover_image_entity=%r, has_image=%s",
-            self._serial, name, cover_image_entity, bool(cover_image_url),
+            self._serial, name, cover_image_entity, bool(cover_image_data),
         )
 
         # Energy calculation
@@ -661,7 +669,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "ams": active_tray_ams,
             },
             "cover_image_entity": cover_image_entity,
-            "cover_image_url": cover_image_url,
+            "cover_image_url": cover_image_data,
         }
         # Reset cached cover image after recording so next print starts fresh.
         self._last_cover_image_url = ""

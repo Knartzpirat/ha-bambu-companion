@@ -717,14 +717,13 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 const fname = p.gcode_file.split("/").pop() || "";
                 printName = fname.replace(/\.[^.]+$/, "").replace(/_/g, " ");
             }
-            // Cover image: prefer live entity state (token is always fresh),
-            // fall back to stored URL snapshot for printers without a live entity
-            let imgUrl = "";
-            if (p.cover_image_entity) {
-                imgUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";
-            }
-            if (!imgUrl) {
-                imgUrl = p.cover_image_url || "";
+            // Cover image: new records store a base64 data-URL (token-free).
+            // Old records have a token-based entity_picture URL → try live entity state
+            // for a fresh token, fall back to stored URL as last resort.
+            let imgUrl = p.cover_image_url || "";
+            if (!imgUrl || (imgUrl.startsWith("/api/") && p.cover_image_entity)) {
+                const liveUrl = h.states[p.cover_image_entity]?.attributes?.entity_picture || "";
+                if (liveUrl) imgUrl = liveUrl;
             }
             const thumbHtml = imgUrl
                 ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
