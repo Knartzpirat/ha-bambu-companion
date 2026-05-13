@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.3";
+const VERSION = "1.5.4";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -535,7 +535,7 @@ class BambuCompanionOverviewCardEditor extends HTMLElement {
 // ── Maintenance Card ──────────────────────────────────────────────────────────
 
 class BambuCompanionMaintenanceCard extends HTMLElement {
-    constructor() { super(); this.attachShadow({ mode: "open" }); }
+    constructor() { super(); this.attachShadow({ mode: "open" }); this._showAll = false; }
 
     setConfig(config) {
         this._config = config;
@@ -632,7 +632,10 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
 
         console.debug(`BambuCompanion Maintenance [${serialLc}]: found ${tasks.length} tasks (${tasks.filter(t=>t.status==="warning").length} warnings), select="${selectEntityId}", btn="${resetBtnId}"`);
 
-        const rows = tasks.map(t => {
+        const warnings = tasks.filter(t => t.status === "warning");
+        const visibleTasks = this._showAll ? tasks : warnings;
+
+        const rows = visibleTasks.map(t => {
             const warn = t.status === "warning";
             const trigger = t.attrs.trigger ?? "";
             const cur = t.attrs.current_value ?? 0;
@@ -658,6 +661,17 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         this.shadowRoot.innerHTML = `
       <style>
         ${SHARED_STYLE}
+        .card-header-row {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 16px 8px;
+        }
+        .card-header-row .title { font-size: 1.1em; font-weight: 500; }
+        .toggle-btn {
+          background: none; border: 1px solid var(--divider-color, #e0e0e0);
+          border-radius: 4px; padding: 3px 10px; cursor: pointer;
+          font-size: 0.78em; color: var(--secondary-text-color);
+        }
+        .toggle-btn:hover { background: var(--secondary-background-color); }
         .task {
           display: flex; align-items: center; justify-content: space-between;
           padding: 10px; border-radius: 8px; margin-bottom: 8px;
@@ -678,11 +692,25 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         .empty { color: var(--secondary-text-color); text-align: center; padding: 20px; }
       </style>
       <ha-card>
-        <div class="card-header">🔧 Nächste Wartungen</div>
-        ${tasks.length ? rows : '<div class="empty">Keine Wartungsaufgaben gefunden</div>'}
-        <div style="padding:4px 12px 8px;font-size:0.7em;color:var(--secondary-text-color);text-align:right">v${VERSION} · ${tasks.length} Aufgaben (${tasks.filter(t=>t.status==="warning").length} fällig)</div>
+        <div class="card-header-row">
+          <span class="title">🔧 Nächste Wartungen</span>
+          ${tasks.length > 0 ? `<button class="toggle-btn" id="toggle-all">${this._showAll ? "⚠️ Nur fällige" : `✅ Alle (${tasks.length})`}</button>` : ""}
+        </div>
+        <div style="padding:0 12px 12px">
+          ${visibleTasks.length
+            ? rows
+            : warnings.length === 0
+              ? '<div class="empty">Alles in Ordnung ✅</div>'
+              : '<div class="empty">Keine fälligen Wartungen</div>'}
+        </div>
+        <div style="padding:4px 12px 8px;font-size:0.7em;color:var(--secondary-text-color);text-align:right">v${VERSION} · ${warnings.length} fällig / ${tasks.length} gesamt</div>
       </ha-card>
     `;
+
+        this.shadowRoot.querySelector("#toggle-all")?.addEventListener("click", () => {
+            this._showAll = !this._showAll;
+            this._render();
+        });
 
         this.shadowRoot.querySelectorAll(".reset-btn").forEach(btn => {
             btn.addEventListener("click", async () => {
