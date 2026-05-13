@@ -294,27 +294,39 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     def _ams_is_drying(self) -> bool:
         """Return True if any AMS unit is currently drying filament.
 
-        ha-bambulab exposes a 'drying_remaining_time' sensor per AMS.
-        We check all AMS device entities for any translation_key containing 'drying'
-        and return True if any such entity has a non-zero / truthy state.
+        Checks translation_key AND entity_id for known drying keywords (EN + DE)
+        so the detection works regardless of ha-bambulab version or HA language.
         """
+        _DRYING_KEYWORDS = ("drying", "trocknen", "trocknung", "dry")
+
+        def _looks_like_drying(name: str) -> bool:
+            n = name.lower()
+            return any(kw in n for kw in _DRYING_KEYWORDS)
+
         for ams_device_id in self._ams_device_ids:
             ams_entities = get_ams_tray_entities(self.hass, ams_device_id)
             for key, entity_id in ams_entities.items():
-                if "drying" not in key.lower():
+                if not (_looks_like_drying(key) or _looks_like_drying(entity_id)):
                     continue
                 state = self.hass.states.get(entity_id)
-                if state is None or state.state in ("unknown", "unavailable", "0", "off", "false", "none"):
+                if state is None or state.state in ("unknown", "unavailable"):
                     continue
-                # Any truthy state (non-zero remaining time, "on", etc.) means drying
-                try:
-                    if float(state.state) > 0:
-                        _LOGGER.debug("[%s] AMS drying detected: %s=%s", self._serial, entity_id, state.state)
+                val = state.state.lower()
+                # binary_sensor: "on" means drying active
+                if entity_id.startswith("binary_sensor."):
+                    if val == "on":
+                        _LOGGER.debug("[%s] AMS drying detected: %s=on", self._serial, entity_id)
                         return True
-                except (ValueError, TypeError):
-                    if state.state.lower() not in ("0", "off", "false", "none", "idle"):
-                        _LOGGER.debug("[%s] AMS drying detected: %s=%s", self._serial, entity_id, state.state)
-                        return True
+                else:
+                    # Numeric remaining-time sensor: > 0 means drying active
+                    try:
+                        if float(val) > 0:
+                            _LOGGER.debug("[%s] AMS drying detected: %s=%s", self._serial, entity_id, val)
+                            return True
+                    except (ValueError, TypeError):
+                        if val not in ("0", "off", "false", "none", "idle", "no"):
+                            _LOGGER.debug("[%s] AMS drying detected: %s=%s", self._serial, entity_id, val)
+                            return True
         return False
 
     # ------------------------------------------------------------------

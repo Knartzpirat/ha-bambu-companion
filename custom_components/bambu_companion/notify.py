@@ -267,8 +267,8 @@ class NotifyManager:
             message = "Der Druck ist fertig. Soll die Steckdose jetzt ausgeschaltet werden?"
 
         action_buttons = [
-            {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Jetzt ausschalten"},
-            {"action": f"bc_poweroff_wait_{self._serial}", "title": "⏳ Warten / Abbrechen"},
+            {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Ausschalten"},
+            {"action": f"bc_poweroff_wait_{self._serial}", "title": "❌ Abbrechen"},
         ]
 
         for target in targets:
