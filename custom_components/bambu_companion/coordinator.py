@@ -257,7 +257,21 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         is_drying = self._ams_is_drying()
 
         if is_drying and dry_mode == "wait":
-            _LOGGER.info("[%s] Auto-poweroff: AMS is drying — waiting (mode=wait).", self._serial)
+            # Poll every 60 s until drying finishes, then add a 15-min cooldown.
+            _LOGGER.info("[%s] Auto-poweroff: AMS is drying — waiting for drying to finish.", self._serial)
+            try:
+                while self._ams_is_drying():
+                    await asyncio.sleep(60)
+                _LOGGER.info("[%s] Auto-poweroff: AMS drying finished — 15 min cooldown before poweroff.", self._serial)
+                await asyncio.sleep(15 * 60)
+            except asyncio.CancelledError:
+                _LOGGER.debug("[%s] Poweroff timer cancelled while waiting for drying.", self._serial)
+                return
+            # After cooldown, verify printer is still idle
+            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
+                _LOGGER.info("[%s] Auto-poweroff: new print started during drying wait — aborting.", self._serial)
+                return
+            await self._execute_poweroff()
             return
 
         if is_drying and dry_mode == "ask":
