@@ -177,6 +177,7 @@ const SHARED_STYLE = `
   .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .tile {
     background: var(--secondary-background-color);
+    border: 1px solid var(--divider-color);
     border-radius: 8px; padding: 10px; text-align: center;
   }
   .tile-value { font-size: 1.35em; font-weight: 600; }
@@ -477,6 +478,7 @@ class BambuCompanionOverviewCard extends HTMLElement {
     }
 
     getCardSize() { return 7; }
+    getGridOptions() { return { columns: 12, rows: 7, min_columns: 6, min_rows: 4 }; }
     static getStubConfig() { return { serial: "", currency: "€", printer_name: "Bambu Drucker" }; }
     static getConfigElement() { return document.createElement("bambu-companion-overview-card-editor"); }
 }
@@ -621,6 +623,7 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
     }
 
     getCardSize() { return 4; }
+    getGridOptions() { return { columns: 12, rows: 4, min_columns: 6, min_rows: 3 }; }
     static getStubConfig() { return { serial: "" }; }
     static getConfigElement() { return document.createElement("bambu-companion-maintenance-card-editor"); }
 }
@@ -783,6 +786,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
     }
 
     getCardSize() { return 5; }
+    getGridOptions() { return { columns: 12, rows: 8, min_columns: 6, min_rows: 4 }; }
     static getStubConfig() { return { serial: "", max_entries: 20, max_height: 400 }; }
     static getConfigElement() { return document.createElement("bambu-companion-history-card-editor"); }
 }
