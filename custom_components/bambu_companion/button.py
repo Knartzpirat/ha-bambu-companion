@@ -25,7 +25,8 @@ async def async_setup_entry(
     serial = entry.data.get("serial", "unknown")
     model = entry.data.get("model", "")
     has_ams = bool(entry.data.get("ams_device_ids", []))
-    applicable_tasks = get_applicable_tasks(model, has_ams)
+    disabled_tasks = set(entry.options.get("maintenance_disabled_tasks", []))
+    applicable_tasks = [t for t in get_applicable_tasks(model, has_ams) if t["key"] not in disabled_tasks]
     features = coordinator._features
 
     entities = []

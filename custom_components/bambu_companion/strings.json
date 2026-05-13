@@ -123,6 +123,7 @@
                 "title": "Maintenance intervals",
                 "description": "Intervals in hours or print count. A notification is sent when the interval is reached.",
                 "data": {
+                    "maintenance_disabled_tasks": "Disabled maintenance tasks",
                     "nozzle_clean": "Clean toolhead nozzle",
                     "nozzle_replace": "Toolhead nozzle replaced (reset hours counter)",
                     "left_nozzle_clean": "Clean toolhead left nozzle (H2D)",
@@ -154,6 +155,7 @@
                     "vortek_wear": "Check hotend slots for wear (H2C)"
                 },
                 "data_description": {
+                    "maintenance_disabled_tasks": "Select tasks to disable. Disabled tasks will not create entities in Home Assistant. Changes take effect after integration reload.",
                     "nozzle_clean": "Trigger: nozzle print hours. Resets reminder only, not the hours counter.",
                     "nozzle_replace": "Trigger: nozzle print hours. Resets the full nozzle hours counter to 0 when acknowledged.",
                     "left_nozzle_clean": "Trigger: nozzle print hours. Resets reminder only.",

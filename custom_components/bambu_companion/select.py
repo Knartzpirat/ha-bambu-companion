@@ -24,7 +24,8 @@ async def async_setup_entry(
     serial = entry.data.get("serial", "unknown")
     model = entry.data.get("model", "")
     has_ams = bool(entry.data.get("ams_device_ids", []))
-    applicable_tasks = get_applicable_tasks(model, has_ams)
+    disabled_tasks = set(entry.options.get("maintenance_disabled_tasks", []))
+    applicable_tasks = [t for t in get_applicable_tasks(model, has_ams) if t["key"] not in disabled_tasks]
     features = coordinator._features
 
     entities = []
@@ -70,6 +71,9 @@ class BcMaintenanceTaskSelect(RestoreEntity, SelectEntity):
         last_state = await self.async_get_last_state()
         if last_state and last_state.state in self._attr_options:
             self._attr_current_option = last_state.state
+        # Always write the valid current option so stale/invalid restored states
+        # are corrected in the state machine immediately.
+        self.async_write_ha_state()
 
     async def async_select_option(self, option: str) -> None:
         self._attr_current_option = option

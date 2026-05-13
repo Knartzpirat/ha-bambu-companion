@@ -42,6 +42,7 @@ CONF_QUIET_FROM = "quiet_from"
 CONF_QUIET_TO = "quiet_to"
 CONF_PRINTER_DISPLAY_NAME = "printer_display_name"
 CONF_MAX_HISTORY = "max_history"
+CONF_MAINTENANCE_DISABLED_TASKS = "maintenance_disabled_tasks"
 CONF_MAINTENANCE_INTERVALS = "maintenance_intervals"
 
 # Per-channel notification events (multi-select lists)

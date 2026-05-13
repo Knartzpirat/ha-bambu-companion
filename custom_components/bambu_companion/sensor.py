@@ -66,7 +66,8 @@ async def async_setup_entry(
         )
 
     # Maintenance sensors
-    applicable_tasks = get_applicable_tasks(model, has_ams)
+    disabled_tasks = set(entry.options.get("maintenance_disabled_tasks", []))
+    applicable_tasks = [t for t in get_applicable_tasks(model, has_ams) if t["key"] not in disabled_tasks]
     for task in applicable_tasks:
         entities.append(
             BcMaintenanceSensor(coordinator, entry, serial, task)

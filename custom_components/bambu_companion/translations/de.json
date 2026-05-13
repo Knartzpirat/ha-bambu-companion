@@ -147,6 +147,7 @@
                 "title": "Wartungsintervalle",
                 "description": "Intervalle in Stunden bzw. Druckanzahl. Die Aufgaben werden jeweils nach Erreichen des Intervalls gemeldet.",
                 "data": {
+                    "maintenance_disabled_tasks": "Deaktivierte Wartungsaufgaben",
                     "nozzle_clean": "Druckkopf Düse reinigen",
                     "nozzle_replace": "Druckkopf Düse gewechselt (Stundenzähler zurücksetzen)",
                     "left_nozzle_clean": "Druckkopf Linke Düse reinigen (H2D)",
@@ -178,6 +179,7 @@
                     "vortek_wear": "Hotend-Slots auf Verschleiß prüfen (H2C)"
                 },
                 "data_description": {
+                    "maintenance_disabled_tasks": "Aufgaben auswählen, die deaktiviert werden sollen. Deaktivierte Aufgaben erstellen keine Entitäten in Home Assistant. Änderungen werden nach dem Neuladen der Integration wirksam.",
                     "nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",
                     "nozzle_replace": "Trigger: Düsen-Druckstunden. Setzt beim Quittieren den Stundenzähler auf 0.",
                     "left_nozzle_clean": "Trigger: Düsen-Druckstunden. Setzt nur die Erinnerung zurück.",

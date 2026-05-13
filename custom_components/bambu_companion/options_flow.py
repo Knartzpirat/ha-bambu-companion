@@ -24,6 +24,7 @@ from .const import (
     CONF_ENERGY_SENSOR,
     CONF_FILAMENT_COST,
     CONF_FILAMENT_UNIT,
+    CONF_MAINTENANCE_DISABLED_TASKS,
     CONF_MAX_HISTORY,
     CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
@@ -358,6 +359,8 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_maintenance(self, user_input=None):
         current = self._current()
         if user_input is not None:
+            disabled = user_input.pop(CONF_MAINTENANCE_DISABLED_TASKS, [])
+            self._combined[CONF_MAINTENANCE_DISABLED_TASKS] = disabled
             intervals = dict(current.get("maintenance_intervals", {}))
             intervals.update(user_input)
             self._combined["maintenance_intervals"] = intervals
@@ -370,6 +373,17 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
 
         fields = {}
         placeholders = {}
+
+        # Multi-select to disable individual tasks (default: none disabled = all enabled)
+        current_disabled = current.get(CONF_MAINTENANCE_DISABLED_TASKS, [])
+        fields[vol.Optional(CONF_MAINTENANCE_DISABLED_TASKS, default=current_disabled)] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[{"value": t["key"], "label": t["name"]} for t in applicable_tasks],
+                multiple=True,
+                mode=selector.SelectSelectorMode.LIST,
+            )
+        )
+
         for task in applicable_tasks:
             key = task["key"]
             default_val = current_intervals.get(key, task["default_interval"])
