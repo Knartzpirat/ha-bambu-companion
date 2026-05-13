@@ -505,7 +505,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "[%s] Print finished – recording result (start_time=%s)",
             self._serial, self._print_start_time,
         )
-        record = self._build_print_record(success=True)
+        record = await self._build_print_record(success=True)
         self._store.add_print(record)
         self._store.increment_counter("total_prints", 1)
         self._store.increment_counter("successful_prints", 1)
@@ -541,7 +541,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "[%s] Print failed – recording result (start_time=%s)",
             self._serial, self._print_start_time,
         )
-        record = self._build_print_record(success=False)
+        record = await self._build_print_record(success=False)
         self._store.add_print(record)
         self._store.increment_counter("total_prints", 1)
         self._store.increment_counter("failed_prints", 1)
@@ -558,7 +558,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             }
         )
 
-    def _build_print_record(self, success: bool) -> dict:
+    async def _build_print_record(self, success: bool) -> dict:
         now = dt_util.now()
         start = self._print_start_time or now
         duration_min = int((now - start).total_seconds() / 60)
