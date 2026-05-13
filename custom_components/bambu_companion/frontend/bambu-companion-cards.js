@@ -163,8 +163,8 @@ function statusColor(status) {
 }
 
 const SHARED_STYLE = `
-  :host { display: block; }
-  ha-card { padding: 16px; box-sizing: border-box; }
+  :host { display: block; height: 100%; }
+  ha-card { padding: 16px; box-sizing: border-box; height: 100%; }
   .card-header {
     display: flex; align-items: center; gap: 10px;
     font-size: 1.1em; font-weight: 500; margin-bottom: 16px;
