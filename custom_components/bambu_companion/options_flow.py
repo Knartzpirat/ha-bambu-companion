@@ -81,6 +81,46 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
         """Merged view: data values as base, options override."""
         return {**self.config_entry.data, **self.config_entry.options}
 
+    def _get_lovelace_uri_options(self) -> list[dict]:
+        """Build URI options including all registered Lovelace dashboards from HA."""
+        options = [
+            {"value": "/", "label": "Home Assistant (/)"},
+        ]
+        try:
+            lovelace = self.hass.data.get("lovelace")
+            dashboards: dict | None = None
+            if lovelace is not None:
+                if hasattr(lovelace, "dashboards"):
+                    dashboards = lovelace.dashboards
+                elif isinstance(lovelace, dict):
+                    dashboards = lovelace.get("dashboards")
+            if dashboards:
+                for url_path, dashboard in dashboards.items():
+                    # url_path is None/'' for the default dashboard
+                    nav_path = url_path if url_path else "lovelace"
+                    title: str | None = None
+                    if hasattr(dashboard, "config") and isinstance(dashboard.config, dict):
+                        title = dashboard.config.get("title")
+                    if not title and hasattr(dashboard, "title"):
+                        title = dashboard.title
+                    if not title and isinstance(dashboard, dict):
+                        title = dashboard.get("title") or (dashboard.get("config") or {}).get("title")
+                    uri = f"homeassistant://navigate/{nav_path}"
+                    label = f"{title} ({uri})" if title else f"Lovelace: {nav_path} ({uri})"
+                    options.append({"value": uri, "label": label})
+            else:
+                options.append({
+                    "value": "homeassistant://navigate/lovelace/0",
+                    "label": "HA Lovelace (homeassistant://navigate/lovelace/0)",
+                })
+        except Exception:
+            options.append({
+                "value": "homeassistant://navigate/lovelace/0",
+                "label": "HA Lovelace (homeassistant://navigate/lovelace/0)",
+            })
+        options.append({"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"})
+        return options
+
     async def async_step_init(self, user_input=None):
         """Show tab selection."""
         if user_input is not None:
@@ -299,11 +339,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 description={"suggested_value": default_btn2_uri},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "/", "label": "Home Assistant (/)"},
-                        {"value": "homeassistant://navigate/lovelace/0", "label": "HA Lovelace (homeassistant://navigate/lovelace/0)"},
-                        {"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"},
-                    ],
+                    options=self._get_lovelace_uri_options(),
                     custom_value=True,
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
