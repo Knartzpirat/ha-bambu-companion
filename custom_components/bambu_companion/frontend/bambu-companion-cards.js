@@ -206,15 +206,17 @@ const SHARED_EDITOR_STYLE = `
 
 function _findPrinters(hass) {
     const result = [];
-    const seen = new Set();
+    const seen = new Set(); // always stores UPPERCASE serials
 
     // Method 1 (most reliable): scan device registry for devices owned by bambu_companion.
     // Every install has a device with identifiers = [["bambu_companion", serial]].
     if (hass.devices) {
         for (const device of Object.values(hass.devices)) {
             for (const [domain, identifier] of (device.identifiers ?? [])) {
-                if (domain !== "bambu_companion" || seen.has(identifier)) continue;
-                seen.add(identifier);
+                if (domain !== "bambu_companion") continue;
+                const key = identifier.toUpperCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
                 result.push({
                     serial: identifier,
                     label: device.name_by_user || device.name || identifier,
@@ -230,25 +232,25 @@ function _findPrinters(hass) {
             if (entry.platform !== "bambu_companion") continue;
             const m = eid.match(/^sensor\.[a-z_]+_(.+?)_print_status$/i);
             if (!m) continue;
-            const serial = m[1];
-            const serialUpper = serial.toUpperCase();
-            if (seen.has(serial) || seen.has(serialUpper)) continue;
+            const key = m[1].toUpperCase();
+            if (seen.has(key)) continue;
             // Resolve label via device registry
-            let label = serial;
+            let label = m[1];
             if (entry.device_id && hass.devices) {
                 const device = hass.devices[entry.device_id];
-                if (device) label = device.name_by_user || device.name || serial;
+                if (device) label = device.name_by_user || device.name || m[1];
             }
-            seen.add(serial);
-            result.push({ serial, label });
+            seen.add(key);
+            result.push({ serial: m[1], label });
         }
     }
 
     // Method 3: scan hass.states for bc_ entity_id pattern (fallback for older HA versions)
     for (const entityId of Object.keys(hass.states ?? {})) {
         const m = entityId.match(/^sensor\.bc_(.+?)_print_status$/i);
-        if (!m || seen.has(m[1])) continue;
-        seen.add(m[1]);
+        const key = m?.[1]?.toUpperCase();
+        if (!m || seen.has(key)) continue;
+        seen.add(key);
         let label = m[1];
         if (hass.entities && hass.devices) {
             const entry = hass.entities[entityId];
@@ -478,7 +480,7 @@ class BambuCompanionOverviewCard extends HTMLElement {
     }
 
     getCardSize() { return 7; }
-    getGridOptions() { return { columns: 12, rows: 7, min_columns: 6, min_rows: 4 }; }
+    getGridOptions() { return { columns: 12, rows: 10, min_columns: 6, min_rows: 3 }; }
     static getStubConfig() { return { serial: "", currency: "€", printer_name: "Bambu Drucker" }; }
     static getConfigElement() { return document.createElement("bambu-companion-overview-card-editor"); }
 }
