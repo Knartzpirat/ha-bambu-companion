@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.6";
+const VERSION = "1.5.7";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -425,12 +425,17 @@ class BambuCompanionOverviewCard extends HTMLElement {
           transition: width 0.4s ease;
         }
         section { margin-bottom: 14px; }
+        .tile[data-entity] { cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; }
+        .tile[data-entity]:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
+        .tile[data-entity]:active { transform: scale(0.97); }
+        .status-badge[data-entity] { cursor: pointer; }
+        .status-badge[data-entity]:hover { opacity: 0.8; }
       </style>
       <ha-card>
         <div class="card-header">
           <div class="status-dot"></div>
           <span>📊 ${printer_name}</span>
-          <div class="status-badge">${status}${isPrinting ? ` ${progress}%` : ""}</div>
+          <div class="status-badge" data-entity="${this._e('print_status')}">${status}${isPrinting ? ` ${progress}%` : ""}</div>
         </div>
 
         ${isPrinting ? `<div class="progress-bar"><div class="progress-fill"></div></div>` : ""}
@@ -438,18 +443,18 @@ class BambuCompanionOverviewCard extends HTMLElement {
         <section>
           <div class="section-label">Drucke</div>
           <div class="grid-3">
-            <div class="tile"><div class="tile-value">${totalPrints}</div><div class="tile-label">Gesamt</div></div>
-            <div class="tile"><div class="tile-value ok">${successPrints}</div><div class="tile-label">Erfolgreich</div></div>
-            <div class="tile"><div class="tile-value error">${failedPrints}</div><div class="tile-label">Fehlgeschlagen</div></div>
+            <div class="tile" data-entity="${this._e('total_prints')}"><div class="tile-value">${totalPrints}</div><div class="tile-label">Gesamt</div></div>
+            <div class="tile" data-entity="${this._e('successful_prints')}"><div class="tile-value ok">${successPrints}</div><div class="tile-label">Erfolgreich</div></div>
+            <div class="tile" data-entity="${this._e('failed_prints')}"><div class="tile-value error">${failedPrints}</div><div class="tile-label">Fehlgeschlagen</div></div>
           </div>
         </section>
 
         <section>
           <div class="section-label">Verbrauch gesamt</div>
           <div class="grid-3">
-            <div class="tile"><div class="tile-value">${printTime.toFixed(1)} h</div><div class="tile-label">Druckzeit</div></div>
-            <div class="tile"><div class="tile-value">${filament.toFixed(0)} g</div><div class="tile-label">Filament</div></div>
-            <div class="tile"><div class="tile-value">${energy.toFixed(2)} kWh</div><div class="tile-label">Energie</div></div>
+            <div class="tile" data-entity="${this._e('total_print_time')}"><div class="tile-value">${printTime.toFixed(1)} h</div><div class="tile-label">Druckzeit</div></div>
+            <div class="tile" data-entity="${this._e('total_filament')}"><div class="tile-value">${filament.toFixed(0)} g</div><div class="tile-label">Filament</div></div>
+            <div class="tile" data-entity="${this._e('total_energy')}"><div class="tile-value">${energy.toFixed(2)} kWh</div><div class="tile-label">Energie</div></div>
           </div>
         </section>
 
@@ -458,25 +463,38 @@ class BambuCompanionOverviewCard extends HTMLElement {
         <section>
           <div class="section-label">Diesen Monat</div>
           <div class="grid-2">
-            <div class="tile"><div class="tile-value">${monthlyPrints}</div><div class="tile-label">Drucke</div></div>
-            <div class="tile"><div class="tile-value">${monthlyCost.toFixed(2)} ${currency}</div><div class="tile-label">Kosten</div></div>
+            <div class="tile" data-entity="${this._e('monthly_prints')}"><div class="tile-value">${monthlyPrints}</div><div class="tile-label">Drucke</div></div>
+            <div class="tile" data-entity="${this._e('monthly_cost')}"><div class="tile-value">${monthlyCost.toFixed(2)} ${currency}</div><div class="tile-label">Kosten</div></div>
           </div>
         </section>
 
         <section>
           <div class="section-label">Letzter Druck</div>
           <div class="grid-2">
-            <div class="tile"><div class="tile-value">${lastDuration} min</div><div class="tile-label">Dauer</div></div>
-            <div class="tile"><div class="tile-value">${lastCost.toFixed(2)} ${currency}</div><div class="tile-label">Kosten</div></div>
+            <div class="tile" data-entity="${this._e('last_print_duration')}"><div class="tile-value">${lastDuration} min</div><div class="tile-label">Dauer</div></div>
+            <div class="tile" data-entity="${this._e('last_print_cost')}"><div class="tile-value">${lastCost.toFixed(2)} ${currency}</div><div class="tile-label">Kosten</div></div>
           </div>
         </section>
 
-        <div class="tile" style="text-align:center">
+        <div class="tile" style="text-align:center" data-entity="${this._e('total_cost')}">
           <div class="tile-value">${totalCost.toFixed(2)} ${currency}</div>
           <div class="tile-label">Gesamtkosten</div>
         </div>
       </ha-card>
     `;
+        // Delegated click → open HA more-info dialog (history chart) once
+        if (!this._clickListenerAdded) {
+            this._clickListenerAdded = true;
+            this.shadowRoot.addEventListener("click", e => {
+                const target = e.target.closest("[data-entity]");
+                if (target?.dataset.entity) {
+                    this.dispatchEvent(new CustomEvent("hass-more-info", {
+                        bubbles: true, composed: true,
+                        detail: { entityId: target.dataset.entity },
+                    }));
+                }
+            });
+        }
     }
 
     getCardSize() { return 7; }
