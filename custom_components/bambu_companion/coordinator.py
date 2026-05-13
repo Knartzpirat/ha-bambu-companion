@@ -76,7 +76,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._store = PrintHistoryStore(
             hass, self._serial, int(self._options.get("max_history", 0))
         )
-        self._notify = NotifyManager(hass, self._serial, self._options)
+        self._notify = NotifyManager(hass, self._serial, self._options, self._device_id)
 
         # State machine
         self._print_status: str = PRINT_STATUS_IDLE

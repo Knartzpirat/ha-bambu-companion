@@ -9,7 +9,10 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_ACTION_BTN_1_TITLE,
     CONF_ACTION_BTN_1_URI,
+    CONF_ACTION_BTN_2_CAMERA_TITLE,
+    CONF_ACTION_BTN_2_FALLBACK_TITLE,
     CONF_ACTION_BTN_2_URI,
+    CONF_ACTION_BTN_3_MODE,
     CONF_CURRENCY,
     CONF_DEVICE_ID,
     CONF_ELECTRICITY_PRICE,
@@ -187,8 +190,11 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
 
         # Default suggested values – pre-fill when no value is saved yet
         default_btn1_title = current.get(CONF_ACTION_BTN_1_TITLE) or "📱 Bambu App"
-        default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or "bambulab://"
-        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or ""
+        default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or "app://bbl.intl.bambulab.com"
+        default_btn2_camera_title = current.get(CONF_ACTION_BTN_2_CAMERA_TITLE) or "📷 Kamera"
+        default_btn2_fallback_title = current.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "🏠 Home Assistant"
+        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or "/"
+        default_btn3_mode = current.get(CONF_ACTION_BTN_3_MODE) or "off"
 
         schema_fields: dict = {
             vol.Required(
@@ -259,20 +265,57 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(
                 CONF_ACTION_BTN_1_URI,
                 description={"suggested_value": default_btn1_uri},
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"},
+                        {"value": "bambulab://", "label": "Bambu App alt (bambulab://)"},
+                        {"value": "/", "label": "Home Assistant (/)"},
+                    ],
+                    custom_value=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_ACTION_BTN_2_CAMERA_TITLE,
+                description={"suggested_value": default_btn2_camera_title},
             ): selector.TextSelector(),
-        }
-
-        # Only show camera button field if a camera entity was found for this printer
-        if camera_entity_id or current.get(CONF_ACTION_BTN_2_URI):
-            schema_fields[vol.Optional(
+            vol.Optional(
+                CONF_ACTION_BTN_2_FALLBACK_TITLE,
+                description={"suggested_value": default_btn2_fallback_title},
+            ): selector.TextSelector(),
+            vol.Optional(
                 CONF_ACTION_BTN_2_URI,
-                description={"suggested_value": default_btn2_uri or f"homeassistant://navigate/lovelace/0"},
-            )] = selector.TextSelector()
+                description={"suggested_value": default_btn2_uri},
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "/", "label": "Home Assistant (/)"},
+                        {"value": "homeassistant://navigate/lovelace/0", "label": "HA Lovelace (homeassistant://navigate/lovelace/0)"},
+                        {"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"},
+                    ],
+                    custom_value=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_ACTION_BTN_3_MODE,
+                description={"suggested_value": default_btn3_mode},
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "off", "label": "Aus / Off"},
+                        {"value": "mute_progress", "label": "Stummschalten (Minuten-Eingabe) / Mute Progress"},
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
 
         # description_placeholders for the step description
         camera_hint = (
-            f"Erkannte Kamera-Entity: `{camera_entity_id}`" if camera_entity_id
-            else "⚠️ Kein Kamera-Entity für diesen Drucker gefunden – Kamera-Button nicht verfügbar."
+            f"Erkannte Kamera-Entity: `{camera_entity_id}` – Taste 2 wird als Kamera-Button gesendet." if camera_entity_id
+            else "⚠️ Kein Kamera-Entity gefunden – Taste 2 nutzt Fallback-URI."
         )
 
         return self.async_show_form(

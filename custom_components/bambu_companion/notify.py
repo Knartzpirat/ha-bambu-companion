@@ -11,7 +11,10 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_ACTION_BTN_1_TITLE,
     CONF_ACTION_BTN_1_URI,
+    CONF_ACTION_BTN_2_CAMERA_TITLE,
+    CONF_ACTION_BTN_2_FALLBACK_TITLE,
     CONF_ACTION_BTN_2_URI,
+    CONF_ACTION_BTN_3_MODE,
     CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_MOBILE_EVENTS,
@@ -71,10 +74,11 @@ def _get_text(options: dict, key: str) -> str:
 class NotifyManager:
     """Handles all notification dispatching for one printer."""
 
-    def __init__(self, hass: HomeAssistant, serial: str, options: dict) -> None:
+    def __init__(self, hass: HomeAssistant, serial: str, options: dict, device_id: str = "") -> None:
         self._hass = hass
         self._serial = serial
         self._options = options
+        self._device_id = device_id
         self._last_notified_progress: int = -1
 
     def _targets(self) -> list[str]:
@@ -89,18 +93,38 @@ class NotifyManager:
             self._options.get(CONF_QUIET_TO, "07:00"),
         )
 
+    def _camera_entity_id(self) -> str | None:
+        """Return the camera entity_id for this printer's device, if any."""
+        if not self._device_id:
+            return None
+        from homeassistant.helpers import entity_registry as er
+        registry = er.async_get(self._hass)
+        for entry in registry.entities.values():
+            if entry.device_id == self._device_id and entry.domain == "camera":
+                return entry.entity_id
+        return None
+
     def _build_action_buttons(self) -> list[dict]:
         """Build action button list for mobile push notifications from config."""
         buttons = []
-        btn1_title = self._options.get(CONF_ACTION_BTN_1_TITLE, "").strip()
-        btn1_uri = self._options.get(CONF_ACTION_BTN_1_URI, "").strip()
-        btn2_uri = self._options.get(CONF_ACTION_BTN_2_URI, "").strip()
-        btn2_title = _get_text(self._options, CONF_TEXT_BTN_CAMERA)
 
+        # Button 1: configurable title + URI
+        btn1_title = (self._options.get(CONF_ACTION_BTN_1_TITLE) or "").strip()
+        btn1_uri = (self._options.get(CONF_ACTION_BTN_1_URI) or "").strip()
         if btn1_title and btn1_uri:
             buttons.append({"action": "URI", "title": btn1_title, "uri": btn1_uri})
-        if btn2_uri:
-            buttons.append({"action": "URI", "title": btn2_title, "uri": btn2_uri})
+
+        # Button 2: camera (auto-uri) when available, otherwise fallback URI
+        camera_eid = self._camera_entity_id()
+        if camera_eid:
+            btn2_title = (self._options.get(CONF_ACTION_BTN_2_CAMERA_TITLE) or "").strip() or "📷 Kamera"
+            buttons.append({"action": "URI", "title": btn2_title, "uri": f"entityId:{camera_eid}"})
+        else:
+            btn2_fallback_title = (self._options.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "").strip()
+            btn2_fallback_uri = (self._options.get(CONF_ACTION_BTN_2_URI) or "").strip()
+            if btn2_fallback_title and btn2_fallback_uri:
+                buttons.append({"action": "URI", "title": btn2_fallback_title, "uri": btn2_fallback_uri})
+
         return buttons
 
     async def _send(self, event_key: str, title: str, message: str, extra_data: dict | None = None) -> None:

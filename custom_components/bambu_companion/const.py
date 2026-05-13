@@ -75,10 +75,15 @@ CONF_TEXT_BTN_CAMERA = "text_btn_camera"
 
 # Action buttons in mobile push notifications
 # Button 1: configurable title + URI (e.g. open Bambu App)
-# Button 2: camera / lovelace view (label from CONF_TEXT_BTN_CAMERA)
+# Button 2 with camera: label when camera is present (uri = entityId:camera.xxx auto-built)
+# Button 2 without camera: label + URI fallback when no camera
+# Button 3: mode selector – "off" / "mute_progress" / "custom"
 CONF_ACTION_BTN_1_TITLE = "action_btn_1_title"
 CONF_ACTION_BTN_1_URI = "action_btn_1_uri"
-CONF_ACTION_BTN_2_URI = "action_btn_2_uri"
+CONF_ACTION_BTN_2_CAMERA_TITLE = "action_btn_2_camera_title"
+CONF_ACTION_BTN_2_FALLBACK_TITLE = "action_btn_2_fallback_title"
+CONF_ACTION_BTN_2_URI = "action_btn_2_uri"       # fallback URI (no camera)
+CONF_ACTION_BTN_3_MODE = "action_btn_3_mode"     # "off" | "mute_progress" | "custom"
 
 DEFAULT_TEXTS = {
     CONF_TEXT_START_TITLE: "🚀 {drucker} – Druck gestartet",

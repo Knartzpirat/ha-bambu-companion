@@ -111,7 +111,7 @@
             },
             "notify": {
                 "title": "Benachrichtigungen",
-                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.\n\n{camera_hint}",
+                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.\n\n**{camera_hint}**",
                 "data": {
                     "printer_display_name": "Druckername (Anzeige)",
                     "notify_targets": "Mobilgerät(e) für Benachrichtigungen",
@@ -120,9 +120,12 @@
                     "quiet_to": "Ruhige Stunden bis",
                     "notify_mobile_events": "Ereignisse → Handy senden",
                     "notify_ha_events": "Ereignisse → HA-Benachrichtigungen",
-                    "action_btn_1_title": "Aktionsschaltfläche 1 – Bezeichnung",
-                    "action_btn_1_uri": "Aktionsschaltfläche 1 – URI",
-                    "action_btn_2_uri": "Kamera-/Ansichts-Schaltfläche – URI"
+                    "action_btn_1_title": "Aktion 1 Titel",
+                    "action_btn_1_uri": "URI Aktion 1",
+                    "action_btn_2_camera_title": "Aktion 2 mit Kamera",
+                    "action_btn_2_fallback_title": "Aktion 2 ohne Kamera",
+                    "action_btn_2_uri": "URI Aktion 2 ohne Kamera (Fallback)",
+                    "action_btn_3_mode": "Dritte Schaltfläche"
                 },
                 "data_description": {
                     "printer_display_name": "Name des Druckers, der in Benachrichtigungen und Karten erscheint.",
@@ -132,9 +135,12 @@
                     "quiet_to": "Ende der Ruhezeit – Smartphone-Nachrichten werden wieder gesendet.",
                     "notify_mobile_events": "Diese Ereignisse werden als Push-Nachricht ans Smartphone gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
                     "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich.",
-                    "action_btn_1_title": "Beschriftung der ersten Aktionsschaltfläche (z. B. '📱 App öffnen'). Leer lassen zum Deaktivieren.",
-                    "action_btn_1_uri": "URI, die beim Tippen auf Schaltfläche 1 geöffnet wird (z. B. bambulab:// oder eine Lovelace-Dashboard-URL).",
-                    "action_btn_2_uri": "URI für die Kamera-Schaltfläche (Bezeichnung unter 'Texte' konfigurierbar). Wird nur angezeigt, wenn eine Kamera-Entity für diesen Drucker gefunden wurde."
+                    "action_btn_1_title": "Text für den ersten Benachrichtigungsbutton.",
+                    "action_btn_1_uri": "URI/URL die bei Tippen auf Aktion 1 geöffnet wird. Voreinstellung wählen oder eigenen Pfad eingeben.",
+                    "action_btn_2_camera_title": "Text für die zweite Schaltfläche, wenn eine Kamera erkannt wurde. Die URI wird automatisch gebaut (entityId:camera.xxx).",
+                    "action_btn_2_fallback_title": "Text für die zweite Schaltfläche, wenn KEINE Kamera gefunden wurde. Leer lassen um Schaltfläche 2 zu deaktivieren.",
+                    "action_btn_2_uri": "URI die geöffnet wird, wenn KEINE Kamera vorhanden ist. Voreinstellung wählen oder eigenen Pfad eingeben.",
+                    "action_btn_3_mode": "Funktion der dritten Schaltfläche. 'Stummschalten' = Push-Benachrichtigungen per Minuten-Eingabe stumm schalten. Derzeit nur 'Aus' unterstützt."
                 }
             },
             "maintenance": {

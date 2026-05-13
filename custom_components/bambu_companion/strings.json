@@ -96,9 +96,12 @@
                     "quiet_to": "Quiet hours to",
                     "notify_mobile_events": "Events → send to phone",
                     "notify_ha_events": "Events → HA notifications",
-                    "action_btn_1_title": "Action button 1 – label",
-                    "action_btn_1_uri": "Action button 1 – URI",
-                    "action_btn_2_uri": "Camera / view button – URI"
+                    "action_btn_1_title": "Action 1 Title",
+                    "action_btn_1_uri": "Action 1 URI",
+                    "action_btn_2_camera_title": "Action 2 with Camera",
+                    "action_btn_2_fallback_title": "Action 2 without Camera",
+                    "action_btn_2_uri": "Action 2 Fallback URI (no camera)",
+                    "action_btn_3_mode": "Third button mode"
                 },
                 "data_description": {
                     "printer_display_name": "Name of the printer shown in notifications and cards.",
@@ -108,9 +111,12 @@
                     "quiet_to": "End of quiet hours – smartphone notifications resume.",
                     "notify_mobile_events": "These events are sent as push notifications to the phone. Requires at least one selected mobile device.",
                     "notify_ha_events": "These events appear in the HA inbox. No smartphone required.",
-                    "action_btn_1_title": "Label of the first action button (e.g. '📱 Open App'). Leave empty to disable.",
-                    "action_btn_1_uri": "URI opened when button 1 is tapped (e.g. bambulab:// or a lovelace dashboard URL).",
-                    "action_btn_2_uri": "URI for the camera button (label configurable under Texts). Only shown when a camera entity is detected for this printer."
+                    "action_btn_1_title": "Text for the first notification button.",
+                    "action_btn_1_uri": "URI/URL opened when Action 1 is tapped. Choose a preset or enter a custom path.",
+                    "action_btn_2_camera_title": "Text for the second button when a camera is detected for this printer. The URI is built automatically (entityId:camera.xxx).",
+                    "action_btn_2_fallback_title": "Text for the second button when NO camera is detected. Leave empty to disable button 2.",
+                    "action_btn_2_uri": "URI opened when NO camera is detected. Choose a preset or enter a custom path.",
+                    "action_btn_3_mode": "Function of the third button. 'Mute Progress' = mute push notifications via text input (minutes). Currently only 'Off' is supported."
                 }
             },
             "maintenance": {
