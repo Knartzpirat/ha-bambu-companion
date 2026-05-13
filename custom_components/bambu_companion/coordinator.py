@@ -82,6 +82,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._print_status: str = PRINT_STATUS_IDLE
         self._print_start_time: datetime | None = None
         self._energy_at_start: float | None = None
+        self._last_energy_reading: float | None = None  # for continuous standby energy tracking
         self._last_progress: int = 0
         self._last_print_name: str = ""
         self._last_cover_image_url: str = ""
@@ -729,6 +730,36 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         if changed:
             await self._store.async_save()
+
+        # Continuous energy tracking (standby + non-print states)
+        # During printing the energy delta is counted at print-finish instead,
+        # so we only update _last_energy_reading here to keep it in sync.
+        energy_entity_id = self._options.get(CONF_ENERGY_SENSOR)
+        if energy_entity_id:
+            raw_e = self.hass.states.get(energy_entity_id)
+            if raw_e and raw_e.state not in ("unknown", "unavailable"):
+                try:
+                    current_kwh = float(raw_e.state)
+                    if self._last_energy_reading is not None and print_status != PRINT_STATUS_PRINTING:
+                        delta = max(0.0, current_kwh - self._last_energy_reading)
+                        if delta > 0:
+                            self._store.increment_counter("total_energy_kwh", delta)
+                            # Also update energy cost
+                            electricity_price = float(self._options.get(CONF_ELECTRICITY_PRICE, DEFAULT_ELECTRICITY_PRICE))
+                            dynamic_sensor = self._options.get(CONF_ELECTRICITY_SENSOR)
+                            if dynamic_sensor:
+                                raw_p = self.hass.states.get(dynamic_sensor)
+                                if raw_p and raw_p.state not in ("unknown", "unavailable"):
+                                    try:
+                                        electricity_price = float(raw_p.state)
+                                    except (ValueError, TypeError):
+                                        pass
+                            self._store.increment_counter("total_energy_cost", delta * electricity_price)
+                            self._store.increment_counter("total_cost", delta * electricity_price)
+                            await self._store.async_save()
+                    self._last_energy_reading = current_kwh
+                except (ValueError, TypeError):
+                    pass
 
     # ------------------------------------------------------------------
     # Maintenance
