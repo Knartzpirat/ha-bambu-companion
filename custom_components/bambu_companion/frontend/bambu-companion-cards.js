@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.11";
+const VERSION = "1.5.12";
 
 // ── Translation maps (ha-bambulab raw values → human-readable DE) ─────────────
 
@@ -838,6 +838,8 @@ class BambuCompanionHistoryCard extends HTMLElement {
 
     _render() {
         if (!this._hass || !this._config) return;
+        // Don't re-render while the detail modal is open — it would destroy the overlay
+        if (this.shadowRoot.querySelector(".modal-overlay")) return;
         if (!this._config.serial) {
             this.shadowRoot.innerHTML = `<ha-card><div style="padding:16px;color:var(--secondary-text-color)">Bitte einen Drucker in den Karteneinstellungen auswählen.</div></ha-card>`;
             return;
