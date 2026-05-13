@@ -87,7 +87,7 @@
             },
             "notify": {
                 "title": "Notifications",
-                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.",
+                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.\n\n{camera_hint}",
                 "data": {
                     "printer_display_name": "Printer display name",
                     "notify_targets": "Mobile device(s) for notifications",
@@ -110,7 +110,7 @@
                     "notify_ha_events": "These events appear in the HA inbox. No smartphone required.",
                     "action_btn_1_title": "Label of the first action button (e.g. '📱 Open App'). Leave empty to disable.",
                     "action_btn_1_uri": "URI opened when button 1 is tapped (e.g. bambulab:// or a lovelace dashboard URL).",
-                    "action_btn_2_uri": "URI for the camera button (label configurable under Texts). Leave empty to disable."
+                    "action_btn_2_uri": "URI for the camera button (label configurable under Texts). Only shown when a camera entity is detected for this printer."
                 }
             },
             "maintenance": {

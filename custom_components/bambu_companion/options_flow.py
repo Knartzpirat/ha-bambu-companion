@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 
 from .const import (
@@ -10,6 +11,7 @@ from .const import (
     CONF_ACTION_BTN_1_URI,
     CONF_ACTION_BTN_2_URI,
     CONF_CURRENCY,
+    CONF_DEVICE_ID,
     CONF_ELECTRICITY_PRICE,
     CONF_ELECTRICITY_SENSOR,
     CONF_ENERGY_SENSOR,
@@ -173,84 +175,111 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 mobile_options.append({"value": t, "label": t})
         mobile_options.sort(key=lambda x: x["label"])
 
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_PRINTER_DISPLAY_NAME,
-                    default=current.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_NOTIFY_TARGETS,
-                    description={"suggested_value": saved_targets},
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=mobile_options,
-                        multiple=True,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required(
-                    CONF_NOTIFY_INTERVAL,
-                    default=current.get(CONF_NOTIFY_INTERVAL, DEFAULT_NOTIFY_INTERVAL),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(min=1, max=50, step=1, mode=selector.NumberSelectorMode.BOX)
-                ),
-                vol.Required(
-                    CONF_QUIET_FROM,
-                    default=current.get(CONF_QUIET_FROM, DEFAULT_QUIET_FROM),
-                ): selector.TimeSelector(),
-                vol.Required(
-                    CONF_QUIET_TO,
-                    default=current.get(CONF_QUIET_TO, DEFAULT_QUIET_TO),
-                ): selector.TimeSelector(),
-                vol.Required(
-                    CONF_NOTIFY_MOBILE_EVENTS,
-                    default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "start", "label": "Print started"},
-                            {"value": "progress", "label": "Progress update"},
-                            {"value": "done", "label": "Print complete"},
-                            {"value": "error", "label": "Print failed"},
-                            {"value": "maintenance", "label": "Maintenance due"},
-                            {"value": "nozzle_change", "label": "Nozzle change detected"},
-                        ],
-                        multiple=True,
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
-                vol.Required(
-                    CONF_NOTIFY_HA_EVENTS,
-                    default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "start", "label": "Print started"},
-                            {"value": "done", "label": "Print complete"},
-                            {"value": "error", "label": "Print failed"},
-                            {"value": "maintenance", "label": "Maintenance due"},
-                            {"value": "nozzle_change", "label": "Nozzle change detected"},
-                        ],
-                        multiple=True,
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
-                vol.Optional(
-                    CONF_ACTION_BTN_1_TITLE,
-                    description={"suggested_value": current.get(CONF_ACTION_BTN_1_TITLE, "")},
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_ACTION_BTN_1_URI,
-                    description={"suggested_value": current.get(CONF_ACTION_BTN_1_URI, "")},
-                ): selector.TextSelector(),
-                vol.Optional(
-                    CONF_ACTION_BTN_2_URI,
-                    description={"suggested_value": current.get(CONF_ACTION_BTN_2_URI, "")},
-                ): selector.TextSelector(),
-            }
+        # Detect camera entity for this printer via entity_registry
+        bambu_device_id = self.config_entry.data.get(CONF_DEVICE_ID, "")
+        camera_entity_id: str | None = None
+        if bambu_device_id:
+            registry = er.async_get(self.hass)
+            for entry in registry.entities.values():
+                if entry.device_id == bambu_device_id and entry.domain == "camera":
+                    camera_entity_id = entry.entity_id
+                    break
+
+        # Default suggested values – pre-fill when no value is saved yet
+        default_btn1_title = current.get(CONF_ACTION_BTN_1_TITLE) or "📱 Bambu App"
+        default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or "bambulab://"
+        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or ""
+
+        schema_fields: dict = {
+            vol.Required(
+                CONF_PRINTER_DISPLAY_NAME,
+                default=current.get(CONF_PRINTER_DISPLAY_NAME, DEFAULT_PRINTER_NAME),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NOTIFY_TARGETS,
+                description={"suggested_value": saved_targets},
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=mobile_options,
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(
+                CONF_NOTIFY_INTERVAL,
+                default=current.get(CONF_NOTIFY_INTERVAL, DEFAULT_NOTIFY_INTERVAL),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=1, max=50, step=1, mode=selector.NumberSelectorMode.BOX)
+            ),
+            vol.Required(
+                CONF_QUIET_FROM,
+                default=current.get(CONF_QUIET_FROM, DEFAULT_QUIET_FROM),
+            ): selector.TimeSelector(),
+            vol.Required(
+                CONF_QUIET_TO,
+                default=current.get(CONF_QUIET_TO, DEFAULT_QUIET_TO),
+            ): selector.TimeSelector(),
+            vol.Required(
+                CONF_NOTIFY_MOBILE_EVENTS,
+                default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "start", "label": "Print started"},
+                        {"value": "progress", "label": "Progress update"},
+                        {"value": "done", "label": "Print complete"},
+                        {"value": "error", "label": "Print failed"},
+                        {"value": "maintenance", "label": "Maintenance due"},
+                        {"value": "nozzle_change", "label": "Nozzle change detected"},
+                    ],
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Required(
+                CONF_NOTIFY_HA_EVENTS,
+                default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "start", "label": "Print started"},
+                        {"value": "done", "label": "Print complete"},
+                        {"value": "error", "label": "Print failed"},
+                        {"value": "maintenance", "label": "Maintenance due"},
+                        {"value": "nozzle_change", "label": "Nozzle change detected"},
+                    ],
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Optional(
+                CONF_ACTION_BTN_1_TITLE,
+                description={"suggested_value": default_btn1_title},
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_ACTION_BTN_1_URI,
+                description={"suggested_value": default_btn1_uri},
+            ): selector.TextSelector(),
+        }
+
+        # Only show camera button field if a camera entity was found for this printer
+        if camera_entity_id or current.get(CONF_ACTION_BTN_2_URI):
+            schema_fields[vol.Optional(
+                CONF_ACTION_BTN_2_URI,
+                description={"suggested_value": default_btn2_uri or f"homeassistant://navigate/lovelace/0"},
+            )] = selector.TextSelector()
+
+        # description_placeholders for the step description
+        camera_hint = (
+            f"Erkannte Kamera-Entity: `{camera_entity_id}`" if camera_entity_id
+            else "⚠️ Kein Kamera-Entity für diesen Drucker gefunden – Kamera-Button nicht verfügbar."
         )
-        return self.async_show_form(step_id="notify", data_schema=schema)
+
+        return self.async_show_form(
+            step_id="notify",
+            data_schema=vol.Schema(schema_fields),
+            description_placeholders={"camera_hint": camera_hint},
+        )
 
     async def async_step_texts(self, user_input=None):
         current = self._current()

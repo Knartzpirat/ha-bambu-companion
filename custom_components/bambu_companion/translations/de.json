@@ -111,7 +111,7 @@
             },
             "notify": {
                 "title": "Benachrichtigungen",
-                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.",
+                "description": "Handy-Kanal und HA-Posteingang sind unabhängig konfigurierbar. Ruhige Stunden gelten pauschal für alle Smartphone-Nachrichten.\n\n{camera_hint}",
                 "data": {
                     "printer_display_name": "Druckername (Anzeige)",
                     "notify_targets": "Mobilgerät(e) für Benachrichtigungen",
@@ -134,7 +134,7 @@
                     "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich.",
                     "action_btn_1_title": "Beschriftung der ersten Aktionsschaltfläche (z. B. '📱 App öffnen'). Leer lassen zum Deaktivieren.",
                     "action_btn_1_uri": "URI, die beim Tippen auf Schaltfläche 1 geöffnet wird (z. B. bambulab:// oder eine Lovelace-Dashboard-URL).",
-                    "action_btn_2_uri": "URI für die Kamera-Schaltfläche (Bezeichnung unter 'Texte' konfigurierbar). Leer lassen zum Deaktivieren."
+                    "action_btn_2_uri": "URI für die Kamera-Schaltfläche (Bezeichnung unter 'Texte' konfigurierbar). Wird nur angezeigt, wenn eine Kamera-Entity für diesen Drucker gefunden wurde."
                 }
             },
             "maintenance": {
