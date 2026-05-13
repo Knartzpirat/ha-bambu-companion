@@ -99,6 +99,9 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit
         self._attr_device_info = device_info(entry, serial)
+        # Force HA to always push attribute updates via WebSocket even when the
+        # numeric state value hasn't changed (needed for live history updates).
+        self._attr_force_update = True
 
     @property
     def available(self) -> bool:
