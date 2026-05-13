@@ -119,7 +119,10 @@
                     "quiet_from": "Ruhige Stunden von",
                     "quiet_to": "Ruhige Stunden bis",
                     "notify_mobile_events": "Ereignisse → Handy senden",
-                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen"
+                    "notify_ha_events": "Ereignisse → HA-Benachrichtigungen",
+                    "action_btn_1_title": "Aktionsschaltfläche 1 – Bezeichnung",
+                    "action_btn_1_uri": "Aktionsschaltfläche 1 – URI",
+                    "action_btn_2_uri": "Kamera-/Ansichts-Schaltfläche – URI"
                 },
                 "data_description": {
                     "printer_display_name": "Name des Druckers, der in Benachrichtigungen und Karten erscheint.",
@@ -128,7 +131,10 @@
                     "quiet_from": "Beginn der Ruhezeit – KEINE Smartphone-Nachrichten ab dieser Uhrzeit (gilt für alle Ereignistypen). Der HA-Posteingang ist nicht betroffen.",
                     "quiet_to": "Ende der Ruhezeit – Smartphone-Nachrichten werden wieder gesendet.",
                     "notify_mobile_events": "Diese Ereignisse werden als Push-Nachricht ans Smartphone gesendet. Erfordert mindestens ein ausgewähltes Mobilgerät.",
-                    "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich."
+                    "notify_ha_events": "Diese Ereignisse erscheinen im HA-Posteingang. Kein Smartphone erforderlich.",
+                    "action_btn_1_title": "Beschriftung der ersten Aktionsschaltfläche (z. B. '📱 App öffnen'). Leer lassen zum Deaktivieren.",
+                    "action_btn_1_uri": "URI, die beim Tippen auf Schaltfläche 1 geöffnet wird (z. B. bambulab:// oder eine Lovelace-Dashboard-URL).",
+                    "action_btn_2_uri": "URI für die Kamera-Schaltfläche (Bezeichnung unter 'Texte' konfigurierbar). Leer lassen zum Deaktivieren."
                 }
             },
             "maintenance": {

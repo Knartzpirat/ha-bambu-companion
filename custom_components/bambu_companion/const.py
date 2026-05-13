@@ -73,6 +73,13 @@ CONF_TEXT_BTN_RESET_CONFIRM = "text_btn_reset_confirm"
 CONF_TEXT_BTN_RESET_CANCEL = "text_btn_reset_cancel"
 CONF_TEXT_BTN_CAMERA = "text_btn_camera"
 
+# Action buttons in mobile push notifications
+# Button 1: configurable title + URI (e.g. open Bambu App)
+# Button 2: camera / lovelace view (label from CONF_TEXT_BTN_CAMERA)
+CONF_ACTION_BTN_1_TITLE = "action_btn_1_title"
+CONF_ACTION_BTN_1_URI = "action_btn_1_uri"
+CONF_ACTION_BTN_2_URI = "action_btn_2_uri"
+
 DEFAULT_TEXTS = {
     CONF_TEXT_START_TITLE: "🚀 {drucker} – Druck gestartet",
     CONF_TEXT_START_MSG: "{name} wird jetzt gedruckt.",

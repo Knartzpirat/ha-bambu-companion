@@ -6,6 +6,9 @@ from homeassistant import config_entries
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_ACTION_BTN_1_TITLE,
+    CONF_ACTION_BTN_1_URI,
+    CONF_ACTION_BTN_2_URI,
     CONF_CURRENCY,
     CONF_ELECTRICITY_PRICE,
     CONF_ELECTRICITY_SENSOR,
@@ -233,6 +236,18 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
+                vol.Optional(
+                    CONF_ACTION_BTN_1_TITLE,
+                    description={"suggested_value": current.get(CONF_ACTION_BTN_1_TITLE, "")},
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_ACTION_BTN_1_URI,
+                    description={"suggested_value": current.get(CONF_ACTION_BTN_1_URI, "")},
+                ): selector.TextSelector(),
+                vol.Optional(
+                    CONF_ACTION_BTN_2_URI,
+                    description={"suggested_value": current.get(CONF_ACTION_BTN_2_URI, "")},
+                ): selector.TextSelector(),
             }
         )
         return self.async_show_form(step_id="notify", data_schema=schema)

@@ -9,6 +9,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_ACTION_BTN_1_TITLE,
+    CONF_ACTION_BTN_1_URI,
+    CONF_ACTION_BTN_2_URI,
     CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
     CONF_NOTIFY_MOBILE_EVENTS,
@@ -86,7 +89,21 @@ class NotifyManager:
             self._options.get(CONF_QUIET_TO, "07:00"),
         )
 
-    async def _send(self, event_key: str, title: str, message: str) -> None:
+    def _build_action_buttons(self) -> list[dict]:
+        """Build action button list for mobile push notifications from config."""
+        buttons = []
+        btn1_title = self._options.get(CONF_ACTION_BTN_1_TITLE, "").strip()
+        btn1_uri = self._options.get(CONF_ACTION_BTN_1_URI, "").strip()
+        btn2_uri = self._options.get(CONF_ACTION_BTN_2_URI, "").strip()
+        btn2_title = _get_text(self._options, CONF_TEXT_BTN_CAMERA)
+
+        if btn1_title and btn1_uri:
+            buttons.append({"action": "URI", "title": btn1_title, "uri": btn1_uri})
+        if btn2_uri:
+            buttons.append({"action": "URI", "title": btn2_title, "uri": btn2_uri})
+        return buttons
+
+    async def _send(self, event_key: str, title: str, message: str, extra_data: dict | None = None) -> None:
         """Route notification to configured channels based on per-event settings."""
         mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
         ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
@@ -103,14 +120,23 @@ class NotifyManager:
                 if self._is_quiet():
                     _LOGGER.info("[%s] Suppressed mobile push (quiet hours): %s", self._serial, title)
                 else:
+                    action_buttons = self._build_action_buttons()
                     for target in targets:
                         try:
                             service_domain, service_name = target.rsplit(".", 1)
                             _LOGGER.info("[%s] Sending mobile push to %s: %s", self._serial, target, title)
+                            service_data: dict = {"title": title, "message": message}
+                            push_data: dict = {}
+                            if extra_data:
+                                push_data.update(extra_data)
+                            if action_buttons:
+                                push_data["actions"] = action_buttons
+                            if push_data:
+                                service_data["data"] = push_data
                             await self._hass.services.async_call(
                                 service_domain,
                                 service_name,
-                                {"title": title, "message": message},
+                                service_data,
                                 blocking=False,
                             )
                         except Exception as exc:  # noqa: BLE001
