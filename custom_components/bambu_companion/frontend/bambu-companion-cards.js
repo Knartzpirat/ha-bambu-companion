@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.7";
+const VERSION = "1.5.8";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -826,7 +826,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const history = max_entries > 0 ? fullHistory.slice(0, max_entries) : fullHistory;
         const scrollStyle = max_height > 0 ? `max-height:${max_height}px; overflow-y:auto;` : "overflow-y:auto;";
 
-        const rows = history.map(p => {
+        const rows = history.map((p, idx) => {
             const ok = p.status === "success" || p.success === true;
             const ts = p.timestamp_end || p.end_time;
             const dateStr = ts
@@ -854,7 +854,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
                 : `<div style="width:48px;height:48px;border-radius:4px;background:var(--divider-color);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${ok ? "✅" : "❌"}</div>`;
             return `
-        <tr>
+        <tr class="print-row" data-idx="${idx}" style="cursor:pointer">
           <td style="width:56px;padding-right:4px">${thumbHtml}</td>
           <td>
             <div style="font-weight:500;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${printName || (ok ? "✅ Erfolgreich" : "❌ Fehlgeschlagen")}</div>
@@ -883,6 +883,53 @@ class BambuCompanionHistoryCard extends HTMLElement {
         td { padding: 8px 6px; border-top: 1px solid var(--divider-color); }
         .right { text-align: right; }
         .empty { color: var(--secondary-text-color); text-align: center; padding: 20px; }
+        .print-row:hover td { background: var(--secondary-background-color); }
+        /* ── Detail Modal ── */
+        .modal-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 9999; padding: 16px; box-sizing: border-box;
+        }
+        .modal {
+          background: var(--card-background-color);
+          border-radius: 12px; padding: 0; max-width: 480px; width: 100%;
+          max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        .modal-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px 12px 0 0; display: block; }
+        .modal-img-placeholder {
+          width: 100%; height: 120px; background: var(--secondary-background-color);
+          border-radius: 12px 12px 0 0; display: flex; align-items: center;
+          justify-content: center; font-size: 3em;
+        }
+        .modal-body { padding: 16px; }
+        .modal-title { font-size: 1.05em; font-weight: 600; margin-bottom: 4px; }
+        .modal-date { font-size: 0.78em; color: var(--secondary-text-color); margin-bottom: 12px; }
+        .modal-badge {
+          display: inline-block; font-size: 0.72em; font-weight: 700;
+          padding: 2px 10px; border-radius: 10px; margin-bottom: 14px;
+        }
+        .badge-ok   { background: var(--success-color,#4caf50)22; color: var(--success-color,#4caf50); }
+        .badge-fail { background: var(--error-color,#f44336)22;   color: var(--error-color,#f44336); }
+        .modal-section { margin-bottom: 14px; }
+        .modal-section-title {
+          font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--secondary-text-color); margin-bottom: 6px;
+        }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+        .detail-item label { font-size: 0.72em; color: var(--secondary-text-color); display: block; margin-bottom: 1px; }
+        .detail-item span  { font-size: 0.88em; font-weight: 500; }
+        .color-swatch {
+          display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+          border: 1px solid var(--divider-color); vertical-align: middle; margin-right: 4px;
+        }
+        .close-btn {
+          position: sticky; top: 0; float: right; margin: 10px 10px 0 0;
+          background: var(--secondary-background-color); border: none;
+          border-radius: 50%; width: 32px; height: 32px; cursor: pointer;
+          font-size: 1.1em; color: var(--primary-text-color); z-index: 1;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .close-btn:hover { opacity: 0.75; }
       </style>
       <ha-card>
         <div class="card-header">📋 Druckverlauf</div>
@@ -905,6 +952,135 @@ class BambuCompanionHistoryCard extends HTMLElement {
         ` : '<div class="empty">Noch keine Drucke aufgezeichnet</div>'}
       </ha-card>
     `;
+
+        // Store history for detail popup
+        this._historyData = history;
+        this._currency = currency;
+
+        // Single delegated click on table rows
+        this.shadowRoot.querySelector("tbody")?.addEventListener("click", e => {
+            const row = e.target.closest(".print-row");
+            if (row) this._showDetail(parseInt(row.dataset.idx, 10));
+        });
+    }
+
+    _showDetail(idx) {
+        const p = this._historyData?.[idx];
+        if (!p) return;
+        const currency = this._currency ?? "€";
+        const ok = p.status === "success" || p.success === true;
+
+        let printName = p.name || p.project_name || p.subtask_name || "";
+        if (!printName && p.gcode_file) {
+            const fname = p.gcode_file.split("/").pop() || "";
+            printName = fname.replace(/\.[^.]+$/, "").replace(/_/g, " ");
+        }
+
+        const ts = p.timestamp_end || p.end_time;
+        const tsStart = p.timestamp_start || p.start_time;
+        const dateEnd = ts ? (typeof ts === "number" ? new Date(ts * 1000) : new Date(ts)).toLocaleString() : "–";
+        const dateStart = tsStart ? (typeof tsStart === "number" ? new Date(tsStart * 1000) : new Date(tsStart)).toLocaleString() : "–";
+
+        const stored = p.cover_image_url || "";
+        const imgUrl = stored.startsWith("data:") ? stored : "";
+        const imgHtml = imgUrl
+            ? `<img class="modal-img" src="${imgUrl}">`
+            : `<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div>`;
+
+        const tray = p.active_tray || {};
+        const trayName = tray.name || "–";
+        const trayType = tray.type || "–";
+        const rawColor = tray.color || "";
+        // Normalize color: strip leading # if present, treat as hex RRGGBB or RRGGBBAA
+        const hexColor = rawColor.replace(/^#/, "").slice(0, 6);
+        const colorStyle = hexColor ? `background:#${hexColor}` : "background:var(--divider-color)";
+        const colorSwatch = `<span class="color-swatch" style="${colorStyle}"></span>`;
+        const trayColor = hexColor ? `${colorSwatch}#${hexColor}` : "–";
+
+        const amsIdx = tray.ams;
+        const slotIdx = tray.slot;
+        let source = "–";
+        if (amsIdx != null && slotIdx != null) {
+            source = `AMS ${parseInt(amsIdx) + 1}, Slot ${parseInt(slotIdx) + 1}`;
+        } else if (amsIdx != null) {
+            source = `AMS ${parseInt(amsIdx) + 1}`;
+        } else if (slotIdx != null) {
+            source = `Extern (Slot ${parseInt(slotIdx) + 1})`;
+        } else if (trayName && trayName !== "–") {
+            source = "Extern";
+        }
+
+        const nozzleDia = p.nozzle_diameter != null ? `${p.nozzle_diameter} mm` : "–";
+        const nozzleType = p.nozzle_type || "–";
+        const nozzleTemp = p.avg_nozzle_temp ? `${Math.round(p.avg_nozzle_temp)} °C` : "–";
+        const bedType = p.bed_type || "–";
+        const bedTemp = p.avg_bed_temp ? `${Math.round(p.avg_bed_temp)} °C` : "–";
+        const layers = (p.layer_count > 0)
+            ? (ok ? `${p.layer_count}` : `${p.current_layer || "?"} / ${p.layer_count}`)
+            : "–";
+        const progress = p.progress_at_end != null ? `${p.progress_at_end} %` : "–";
+        const duration = p.duration_min != null ? `${Math.round(p.duration_min)} min` : "–";
+        const filWeight = p.filament_weight_g != null ? `${parseFloat(p.filament_weight_g).toFixed(1)} g` : "–";
+        const filCost = p.filament_cost != null ? `${parseFloat(p.filament_cost).toFixed(2)} ${currency}` : "–";
+        const energyKwh = p.energy_kwh != null ? `${parseFloat(p.energy_kwh).toFixed(3)} kWh` : "–";
+        const energyCost = p.energy_cost != null ? `${parseFloat(p.energy_cost).toFixed(2)} ${currency}` : "–";
+        const totalCost = p.total_cost != null ? `${parseFloat(p.total_cost).toFixed(2)} ${currency}` : "–";
+        const plate = p.plate || "–";
+
+        const row2 = (label1, val1, label2, val2) => `
+          <div class="detail-item"><label>${label1}</label><span>${val1}</span></div>
+          <div class="detail-item"><label>${label2}</label><span>${val2}</span></div>`;
+
+        const overlay = document.createElement("div");
+        overlay.className = "modal-overlay";
+        overlay.innerHTML = `
+          <div class="modal">
+            <button class="close-btn" id="close-modal">✕</button>
+            ${imgHtml}
+            <div class="modal-body">
+              <div class="modal-title">${printName || (ok ? "Erfolgreicher Druck" : "Fehlgeschlagener Druck")}</div>
+              <div class="modal-date">Beendet: ${dateEnd}</div>
+              <span class="modal-badge ${ok ? "badge-ok" : "badge-fail"}">${ok ? "✅ Erfolgreich" : "❌ Fehlgeschlagen"} – ${progress}</span>
+
+              <div class="modal-section">
+                <div class="modal-section-title">🧵 Filament</div>
+                <div class="detail-grid">
+                  ${row2("Material", trayName, "Typ", trayType)}
+                  ${row2("Farbe", trayColor, "Lager", source)}
+                  ${row2("Verbrauch", filWeight, "Kosten", filCost)}
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">🔧 Düse & Bett</div>
+                <div class="detail-grid">
+                  ${row2("Düse", nozzleDia, "Typ", nozzleType)}
+                  ${row2("Düsentemp.", nozzleTemp, "Betttyp", bedType)}
+                  ${row2("Betttemp.", bedTemp, "Platte", plate)}
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">📊 Druckdetails</div>
+                <div class="detail-grid">
+                  ${row2("Dauer", duration, "Schichten", layers)}
+                  ${row2("Gestartet", dateStart, "Beendet", dateEnd)}
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">⚡ Energie & Kosten</div>
+                <div class="detail-grid">
+                  ${row2("Energie", energyKwh, "Energiekosten", energyCost)}
+                  ${row2("Filamentkosten", filCost, "Gesamt", totalCost)}
+                </div>
+              </div>
+            </div>
+          </div>`;
+
+        overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+        overlay.querySelector("#close-modal").addEventListener("click", () => overlay.remove());
+        this.shadowRoot.appendChild(overlay);
     }
 
     getCardSize() { return 5; }
