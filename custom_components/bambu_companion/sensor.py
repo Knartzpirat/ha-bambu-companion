@@ -245,5 +245,6 @@ class BcMaintenanceSensor(CoordinatorEntity, SensorEntity):
             "interval": interval,
             "trigger": self._task["trigger"],
             "task_key": key,
+            "task_name": self._task["name"],
             "wiki_url": self._task.get("wiki"),
         }

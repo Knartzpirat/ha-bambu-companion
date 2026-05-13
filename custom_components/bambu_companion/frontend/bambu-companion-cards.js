@@ -627,7 +627,7 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
                 return {
                     id,
                     key: state.attributes.task_key ?? id,
-                    name: (state.attributes.friendly_name ?? id).replace(/^Wartung:\s*/i, ""),
+                    name: state.attributes.task_name ?? (state.attributes.friendly_name ?? id).replace(/^.*\bWartung:\s*/i, ""),
                     status: state.state,
                     attrs: state.attributes,
                 };
