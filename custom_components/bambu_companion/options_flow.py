@@ -205,6 +205,10 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_notify(self, user_input=None):
         current = self._current()
         if user_input is not None:
+            # vol.Optional multi-selects return None when nothing is selected — normalise to []
+            for key in (CONF_NOTIFY_MOBILE_EVENTS, CONF_NOTIFY_HA_EVENTS):
+                if user_input.get(key) is None:
+                    user_input[key] = []
             self._combined.update(user_input)
             return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
 
@@ -275,9 +279,9 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 CONF_QUIET_TO,
                 default=current.get(CONF_QUIET_TO, DEFAULT_QUIET_TO),
             ): selector.TimeSelector(),
-            vol.Required(
+            vol.Optional(
                 CONF_NOTIFY_MOBILE_EVENTS,
-                default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
+                description={"suggested_value": current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
@@ -292,9 +296,9 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
-            vol.Required(
+            vol.Optional(
                 CONF_NOTIFY_HA_EVENTS,
-                default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
+                description={"suggested_value": current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
