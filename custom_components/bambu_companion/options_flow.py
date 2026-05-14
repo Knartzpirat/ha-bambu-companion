@@ -398,44 +398,41 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_maintenance(self, user_input=None):
         current = self._current()
-        if user_input is not None:
-            disabled = user_input.pop(CONF_MAINTENANCE_DISABLED_TASKS, [])
-            self._combined[CONF_MAINTENANCE_DISABLED_TASKS] = disabled
-            intervals = dict(current.get("maintenance_intervals", {}))
-            intervals.update(user_input)
-            self._combined["maintenance_intervals"] = intervals
-            return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
-
-        current_intervals = current.get("maintenance_intervals", {})
         model = self.config_entry.data.get("model", "")
         has_ams = bool(self.config_entry.data.get("ams_device_ids", []))
         applicable_tasks = get_applicable_tasks(model, has_ams)
 
-        fields = {}
-        placeholders = {}
+        if user_input is not None:
+            disabled = []
+            intervals = dict(current.get("maintenance_intervals", {}))
+            for task in applicable_tasks:
+                key = task["key"]
+                if not user_input.get(key, True):
+                    disabled.append(key)
+                interval_val = user_input.get(f"interval_{key}")
+                if interval_val is not None:
+                    intervals[key] = int(interval_val)
+            self._combined[CONF_MAINTENANCE_DISABLED_TASKS] = disabled
+            self._combined["maintenance_intervals"] = intervals
+            return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
 
-        # Multi-select to disable individual tasks (default: none disabled = all enabled)
+        current_intervals = current.get("maintenance_intervals", {})
         current_disabled = current.get(CONF_MAINTENANCE_DISABLED_TASKS, [])
-        fields[vol.Optional(CONF_MAINTENANCE_DISABLED_TASKS, default=current_disabled)] = selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=[{"value": t["key"], "label": t["name"]} for t in applicable_tasks],
-                multiple=True,
-                mode=selector.SelectSelectorMode.LIST,
-            )
-        )
+        fields = {}
 
         for task in applicable_tasks:
             key = task["key"]
+            # Enable toggle: True = task is active (not disabled)
+            fields[vol.Required(key, default=(key not in current_disabled))] = selector.BooleanSelector()
+            # Interval input
             default_val = current_intervals.get(key, task["default_interval"])
-            fields[vol.Required(key, default=int(default_val))] = selector.NumberSelector(
+            fields[vol.Required(f"interval_{key}", default=int(default_val))] = selector.NumberSelector(
                 selector.NumberSelectorConfig(min=1, max=10000, step=1, mode=selector.NumberSelectorMode.BOX)
             )
-            placeholders[key] = task["name"]
 
         return self.async_show_form(
             step_id="maintenance",
             data_schema=vol.Schema(fields),
-            description_placeholders=placeholders,
         )
 
     async def async_step_general(self, user_input=None):

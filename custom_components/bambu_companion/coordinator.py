@@ -431,9 +431,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "last_print": self._store.get_last_print(),
                 "printer_offline": True,
                 "nozzle_slots": {
-                    "single": dict(self._store.get_nozzle_slots("single")),
-                    "left": dict(self._store.get_nozzle_slots("left")),
-                    "right": dict(self._store.get_nozzle_slots("right")),
+                    "pool": dict(self._store.get_nozzle_pool()),
                     "active": {
                         "single": self._store.get_active_nozzle_slot("single"),
                         "left": self._store.get_active_nozzle_slot("left"),
@@ -473,9 +471,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "last_print": self._store.get_last_print(),
                 "printer_offline": True,
                 "nozzle_slots": {
-                    "single": dict(self._store.get_nozzle_slots("single")),
-                    "left": dict(self._store.get_nozzle_slots("left")),
-                    "right": dict(self._store.get_nozzle_slots("right")),
+                    "pool": dict(self._store.get_nozzle_pool()),
                     "active": {
                         "single": self._store.get_active_nozzle_slot("single"),
                         "left": self._store.get_active_nozzle_slot("left"),
@@ -526,9 +522,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     "monthly": self._store.get_monthly_stats(),
                     "last_print": self._store.get_last_print(),
                     "nozzle_slots": {
-                        "single": dict(self._store.get_nozzle_slots("single")),
-                        "left": dict(self._store.get_nozzle_slots("left")),
-                        "right": dict(self._store.get_nozzle_slots("right")),
+                        "pool": dict(self._store.get_nozzle_pool()),
                         "active": {
                             "single": self._store.get_active_nozzle_slot("single"),
                             "left": self._store.get_active_nozzle_slot("left"),
@@ -594,9 +588,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "last_print": self._store.get_last_print(),
             "printer_offline": False,
             "nozzle_slots": {
-                "single": dict(self._store.get_nozzle_slots("single")),
-                "left": dict(self._store.get_nozzle_slots("left")),
-                "right": dict(self._store.get_nozzle_slots("right")),
+                "pool": dict(self._store.get_nozzle_pool()),
                 "active": {
                     "single": self._store.get_active_nozzle_slot("single"),
                     "left": self._store.get_active_nozzle_slot("left"),
@@ -1262,20 +1254,20 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     # ------------------------------------------------------------------
 
     def get_nozzle_slot_labels(self, position: str) -> list[str]:
-        """Return ordered list of slot labels for the given position."""
-        slots = self._store.get_nozzle_slots(position)
-        return [slots[k]["label"] for k in sorted(slots.keys(), key=lambda x: int(x) if x.isdigit() else 0)]
+        """Return ordered list of ALL slot labels from shared pool."""
+        pool = self._store.get_nozzle_pool()
+        return [pool[k]["label"] for k in sorted(pool.keys(), key=lambda x: int(x) if x.isdigit() else 0)]
 
     def get_active_nozzle_label(self, position: str) -> str | None:
-        """Return the label of the currently active slot."""
-        slots = self._store.get_nozzle_slots(position)
+        """Return the label of the currently active pool slot."""
+        pool = self._store.get_nozzle_pool()
         active_id = self._store.get_active_nozzle_slot(position)
-        return slots.get(active_id, {}).get("label")
+        return pool.get(active_id, {}).get("label")
 
     async def async_select_nozzle_slot(self, position: str, label: str) -> None:
-        """Activate the slot with the given label."""
-        slots = self._store.get_nozzle_slots(position)
-        for slot_id, slot_data in slots.items():
+        """Activate the pool slot with the given label for this position."""
+        pool = self._store.get_nozzle_pool()
+        for slot_id, slot_data in pool.items():
             if slot_data["label"] == label:
                 self._store.set_active_nozzle_slot(position, slot_id)
                 await self._store.async_save()
@@ -1283,9 +1275,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 return
 
     async def async_add_nozzle_slot(self, position: str) -> str:
-        """Add a new nozzle slot, activate it, return its label."""
+        """Add a new nozzle slot to the shared pool, activate it for position, return its label."""
         new_id = self._store.add_nozzle_slot(position)
-        new_label = self._store.get_nozzle_slots(position)[new_id]["label"]
+        new_label = self._store.get_nozzle_pool()[new_id]["label"]
         await self._store.async_save()
         await self.async_refresh()
         return new_label

@@ -157,59 +157,96 @@ class PrintHistoryStore:
         maint[task_key].setdefault("value", 0.0)
 
     # ------------------------------------------------------------------
-    # Nozzle slots (per-physical-nozzle hour tracking)
+    # Nozzle pool (shared across all physical positions)
     # ------------------------------------------------------------------
 
+    def _migrate_to_pool(self) -> None:
+        """One-time migration from per-position nozzle_slots to shared nozzle_pool."""
+        if "nozzle_pool" in self._data:
+            return
+        old_slots = self._data.get("nozzle_slots", {})
+        old_active = self._data.get("active_nozzle", {})
+        pool: dict = {}
+        new_active: dict = {}
+        next_id = 1
+        for pos in ("single", "left", "right"):
+            pos_slots = old_slots.get(pos, {})
+            pos_active_old = old_active.get(pos, "1")
+            for slot_id in sorted(pos_slots.keys(), key=lambda x: int(x) if x.isdigit() else 0):
+                slot_data = pos_slots[slot_id]
+                new_slot_id = str(next_id)
+                pool[new_slot_id] = {
+                    "hours": float(slot_data.get("hours", 0.0)),
+                    "label": slot_data.get("label", f"Düse {next_id}"),
+                }
+                if slot_id == pos_active_old and pos not in new_active:
+                    new_active[pos] = new_slot_id
+                next_id += 1
+        if not pool:
+            pool["1"] = {"hours": 0.0, "label": "Düse 1"}
+            new_active = {"single": "1", "left": "1", "right": "1"}
+        else:
+            # Ensure every position has an active entry
+            default_id = sorted(pool.keys(), key=lambda x: int(x) if x.isdigit() else 0)[0]
+            for pos in ("single", "left", "right"):
+                new_active.setdefault(pos, default_id)
+        self._data["nozzle_pool"] = pool
+        self._data["active_nozzle"] = new_active
+
+    def get_nozzle_pool(self) -> dict:
+        """Return the shared nozzle pool dict (slot_id → {label, hours})."""
+        self._migrate_to_pool()
+        return self._data.setdefault("nozzle_pool", {"1": {"hours": 0.0, "label": "Düse 1"}})
+
+    # Keep backward-compat alias (returns full pool regardless of position)
     def get_nozzle_slots(self, position: str = "single") -> dict:
-        """Return slot dict for a nozzle position (single / left / right)."""
-        slots_root = self._data.setdefault("nozzle_slots", {})
-        if position not in slots_root:
-            label = {"single": "Düse 1", "left": "Linke Düse 1", "right": "Rechte Düse 1"}.get(position, f"Düse 1")
-            slots_root[position] = {"1": {"hours": 0.0, "label": label}}
-        return slots_root[position]
+        return self.get_nozzle_pool()
 
     def get_active_nozzle_slot(self, position: str = "single") -> str:
-        """Return the currently active slot id for a position."""
+        """Return the currently active pool slot id for a position."""
+        self._migrate_to_pool()
         active_root = self._data.setdefault("active_nozzle", {})
-        return active_root.get(position, "1")
+        pool = self.get_nozzle_pool()
+        default = sorted(pool.keys(), key=lambda x: int(x) if x.isdigit() else 0)[0] if pool else "1"
+        return active_root.get(position, default)
 
     def set_active_nozzle_slot(self, position: str, slot_id: str) -> None:
+        self._migrate_to_pool()
         self._data.setdefault("active_nozzle", {})[position] = slot_id
 
     def add_nozzle_slot(self, position: str = "single") -> str:
-        """Add a new slot, set it as active, return its slot_id."""
-        slots = self.get_nozzle_slots(position)
-        existing_nums = [int(k) for k in slots if k.isdigit()]
+        """Add a new slot to the shared pool, activate it for position, return slot_id."""
+        pool = self.get_nozzle_pool()
+        existing_nums = [int(k) for k in pool if k.isdigit()]
         new_id = str(max(existing_nums, default=0) + 1)
-        prefix = {"single": "Düse", "left": "Linke Düse", "right": "Rechte Düse"}.get(position, "Düse")
-        slots[new_id] = {"hours": 0.0, "label": f"{prefix} {new_id}"}
+        pool[new_id] = {"hours": 0.0, "label": f"Düse {new_id}"}
         self.set_active_nozzle_slot(position, new_id)
         return new_id
 
     def increment_nozzle_slot_hours(self, position: str, value: float) -> None:
-        """Increment hours for the currently active slot."""
-        slots = self.get_nozzle_slots(position)
+        """Increment hours on the active pool slot for this position."""
+        pool = self.get_nozzle_pool()
         active = self.get_active_nozzle_slot(position)
-        if active in slots:
-            slots[active]["hours"] = slots[active].get("hours", 0.0) + value
+        if active in pool:
+            pool[active]["hours"] = pool[active].get("hours", 0.0) + value
 
     def get_active_nozzle_slot_hours(self, position: str = "single") -> float:
-        slots = self.get_nozzle_slots(position)
+        pool = self.get_nozzle_pool()
         active = self.get_active_nozzle_slot(position)
-        return float(slots.get(active, {}).get("hours", 0.0))
+        return float(pool.get(active, {}).get("hours", 0.0))
 
     def reset_nozzle_slot_hours(self, position: str) -> None:
-        """Reset hours of the active slot to 0."""
-        slots = self.get_nozzle_slots(position)
+        """Reset hours of the active pool slot to 0."""
+        pool = self.get_nozzle_pool()
         active = self.get_active_nozzle_slot(position)
-        if active in slots:
-            slots[active]["hours"] = 0.0
+        if active in pool:
+            pool[active]["hours"] = 0.0
 
     def rename_nozzle_slot(self, position: str, slot_id: str, new_label: str) -> None:
-        """Rename a specific slot."""
-        slots = self.get_nozzle_slots(position)
-        if slot_id in slots:
-            slots[slot_id]["label"] = new_label
+        """Rename a specific slot in the shared pool."""
+        pool = self.get_nozzle_pool()
+        if slot_id in pool:
+            pool[slot_id]["label"] = new_label
 
     # ------------------------------------------------------------------
     # Monthly stats
