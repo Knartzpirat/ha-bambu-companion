@@ -262,14 +262,18 @@ class NotifyManager:
                 "Der Druck ist abgeschlossen, aber die AMS trocknet noch Filament. "
                 "Jetzt ausschalten oder Trocknung abwarten?"
             )
+            action_buttons = [
+                {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Jetzt ausschalten"},
+                {"action": f"bc_poweroff_after_dry_{self._serial}", "title": "⏳ Nach Trocknung"},
+                {"action": f"bc_poweroff_wait_{self._serial}", "title": "❌ Abbrechen"},
+            ]
         else:
             title = f"🔌 {printer_name} – Ausschalten?"
             message = "Der Druck ist fertig. Soll die Steckdose jetzt ausgeschaltet werden?"
-
-        action_buttons = [
-            {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Ausschalten"},
-            {"action": f"bc_poweroff_wait_{self._serial}", "title": "❌ Abbrechen"},
-        ]
+            action_buttons = [
+                {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Ausschalten"},
+                {"action": f"bc_poweroff_wait_{self._serial}", "title": "❌ Abbrechen"},
+            ]
 
         for target in targets:
             try:

@@ -187,6 +187,10 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_notify(self, user_input=None):
         """Step 4: Notification configuration."""
         if user_input is not None:
+            # vol.Optional multi-selects return None when nothing is selected — normalise to []
+            for key in (CONF_NOTIFY_MOBILE_EVENTS, CONF_NOTIFY_HA_EVENTS):
+                if user_input.get(key) is None:
+                    user_input[key] = []
             self._data.update(user_input)
             return await self.async_step_import()
 
@@ -224,34 +228,34 @@ class BambuPrintTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_QUIET_TO, default=DEFAULT_QUIET_TO
                 ): selector.TimeSelector(),
-                vol.Required(
+                vol.Optional(
                     CONF_NOTIFY_MOBILE_EVENTS,
-                    default=DEFAULT_NOTIFY_MOBILE_EVENTS,
+                    description={"suggested_value": DEFAULT_NOTIFY_MOBILE_EVENTS},
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "start", "label": "Druck gestartet"},
-                            {"value": "progress", "label": "Fortschrittsupdate"},
-                            {"value": "done", "label": "Druck abgeschlossen"},
-                            {"value": "error", "label": "Druckfehler"},
-                            {"value": "maintenance", "label": "Wartung fällig"},
-                            {"value": "nozzle_change", "label": "Düsenwechsel erkannt"},
+                            {"value": "start", "label": "Print started"},
+                            {"value": "progress", "label": "Progress update"},
+                            {"value": "done", "label": "Print complete"},
+                            {"value": "error", "label": "Print failed"},
+                            {"value": "maintenance", "label": "Maintenance due"},
+                            {"value": "nozzle_change", "label": "Nozzle change detected"},
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
-                vol.Required(
+                vol.Optional(
                     CONF_NOTIFY_HA_EVENTS,
-                    default=DEFAULT_NOTIFY_HA_EVENTS,
+                    description={"suggested_value": DEFAULT_NOTIFY_HA_EVENTS},
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "start", "label": "Druck gestartet"},
-                            {"value": "done", "label": "Druck abgeschlossen"},
-                            {"value": "error", "label": "Druckfehler"},
-                            {"value": "maintenance", "label": "Wartung fällig"},
-                            {"value": "nozzle_change", "label": "Düsenwechsel erkannt"},
+                            {"value": "start", "label": "Print started"},
+                            {"value": "done", "label": "Print complete"},
+                            {"value": "error", "label": "Print failed"},
+                            {"value": "maintenance", "label": "Maintenance due"},
+                            {"value": "nozzle_change", "label": "Nozzle change detected"},
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,

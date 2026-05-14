@@ -3,28 +3,42 @@
         "step": {
             "user": {
                 "title": "Select printer",
-                "description": "Select a Bambu Lab printer already set up via the ha-bambulab integration.",
+                "description": "Bambu Companion adds statistics, cost tracking and maintenance reminders to an existing Bambu Lab printer. Prerequisite: the ha-bambulab integration must already be set up and the printer connected.",
                 "data": {
                     "device_id": "Printer"
+                },
+                "data_description": {
+                    "device_id": "Select the printer you want to monitor. Bambu Companion reads live data from ha-bambulab and adds its own counters, print costs and maintenance plans."
                 }
             },
             "ams": {
                 "title": "AMS units",
-                "description": "Select the AMS units to monitor.",
+                "description": "The Automatic Material System (AMS) enables multi-filament printing. Select all AMS units connected to this printer. Printers without AMS skip this step automatically.",
                 "data": {
                     "ams_device_ids": "AMS units"
+                },
+                "data_description": {
+                    "ams_device_ids": "All detected AMS units are pre-selected. Remove any units you do not want to monitor."
                 }
             },
             "energy": {
                 "title": "Energy & costs",
-                "description": "Enter electricity price and filament cost so Bambu Companion can calculate print costs. The sensors are optional.",
+                "description": "Bambu Companion calculates print costs from energy consumption and filament weight. The optional sensors enable accurate measurement instead of estimates — you can also add them later in Settings.",
                 "data": {
-                    "electricity_price": "Electricity price (€/kWh)",
+                    "electricity_price": "Electricity price (per kWh)",
                     "electricity_sensor": "Dynamic electricity price sensor (optional)",
                     "energy_sensor": "Smart plug kWh sensor (optional)",
-                    "filament_cost": "Filament cost per kg (€)",
+                    "filament_cost": "Filament cost per kg",
                     "currency": "Currency symbol",
                     "filament_unit": "Filament unit"
+                },
+                "data_description": {
+                    "electricity_price": "Price per kWh, e.g. 0.30 for 30 cents. Used for cost estimates when no live sensor is provided.",
+                    "electricity_sensor": "Optional: sensor with the current electricity price per kWh — e.g. from Tibber or another tariff service.",
+                    "energy_sensor": "Optional: kWh sensor of a smart plug connected to the printer. Provides actual consumption instead of an estimate.",
+                    "filament_cost": "Cost per kilogram of filament, e.g. 25.00. Bambu Companion calculates filament costs from the consumed weight.",
+                    "currency": "Currency symbol for sensors and dashboard cards, e.g. € or $.",
+                    "filament_unit": "Unit for filament quantity display — kg or g."
                 }
             },
             "notify": {
@@ -37,16 +51,26 @@
                     "quiet_to": "Quiet hours to",
                     "notify_mobile_events": "Events → send to phone",
                     "notify_ha_events": "Events → HA notifications"
-                }            },
-            "import": {
-                "title": "Druckzeit-Quelle",
-                "description": "Bambu Companion kann die Druckzeit entweder direkt vom Drucker auslesen oder sie selbst mitzählen. Empfehlung: Eingeschaltet lassen – so siehst du sofort die gesamte Lebenszeit des Druckers.",
-                "data": {
-                    "import_total_hours": "Drucker-Betriebsstunden übernehmen"
                 },
                 "data_description": {
-                    "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gezählten Gesamtstunden – also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion zählt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
-                }            }
+                    "notify_targets": "Select your smartphone or tablet from the list of HA Companion App devices. Leave empty to use only the HA inbox.",
+                    "notify_interval": "A progress update is sent every X percent, e.g. 25 = at 25 %, 50 %, 75 % and 100 %.",
+                    "quiet_from": "Start of quiet hours. During this period NO smartphone notifications are sent (applies to all event types). HA inbox messages are not affected.",
+                    "quiet_to": "End of quiet hours. Smartphone notifications resume afterwards.",
+                    "notify_mobile_events": "These event types are sent as push notifications to the selected devices. Requires at least one selected mobile device.",
+                    "notify_ha_events": "These event types appear in the HA inbox (bell icon top right). No smartphone or external app required."
+                }
+            },
+            "import": {
+                "title": "Print time source",
+                "description": "Bambu Companion can read the print time directly from the printer or count it itself. Recommendation: leave enabled — this shows the full lifetime of the printer immediately.",
+                "data": {
+                    "import_total_hours": "Import printer operating hours"
+                },
+                "data_description": {
+                    "import_total_hours": "Enabled (recommended): the 'Total print time' sensor shows the hours counted internally by the printer firmware — i.e. the complete lifetime, including before this installation.\nDisabled: Bambu Companion only counts print time from the moment of setup onwards."
+                }
+            }
         },
         "abort": {
             "no_bambu_devices": "No Bambu Lab printers found. Please set up the ha-bambulab integration first.",

@@ -204,7 +204,17 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
             # ── Auto-poweroff: user tapped "Power off now" ───────────────
             if action == f"bc_poweroff_now_{self._serial}":
+                self._cancel_poweroff_task()  # cancel waiting timer to avoid duplicate poweroff
                 self.hass.async_create_task(self._execute_poweroff())
+                return
+
+            # ── Auto-poweroff: user tapped "After drying" ──────────────
+            if action == f"bc_poweroff_after_dry_{self._serial}":
+                _LOGGER.info("[%s] User chose 'after drying' — starting drying-wait poweroff.", self._serial)
+                self._cancel_poweroff_task()
+                self._poweroff_task = self.hass.async_create_task(
+                    self._poweroff_after_drying()
+                )
                 return
 
             # ── Auto-poweroff: user tapped "Wait / Cancel" ───────────────
@@ -283,12 +293,42 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if is_drying and dry_mode == "ask":
             _LOGGER.info("[%s] Auto-poweroff: AMS is drying — asking user.", self._serial)
             await self._notify.notify_poweroff_ask(self._printer_name, is_drying=True)
+            # Fallback: wait 30 min for user response, then apply drying-wait logic
+            try:
+                await asyncio.sleep(30 * 60)
+            except asyncio.CancelledError:
+                _LOGGER.debug("[%s] Poweroff ask (drying) cancelled by user response or new print.", self._serial)
+                return
+            _LOGGER.info("[%s] Auto-poweroff ask timeout: no response — waiting for drying to finish.", self._serial)
+            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
+                return
+            try:
+                while self._ams_is_drying():
+                    await asyncio.sleep(60)
+                _LOGGER.info("[%s] Auto-poweroff: drying finished — 15 min cooldown before poweroff.", self._serial)
+                await asyncio.sleep(15 * 60)
+            except asyncio.CancelledError:
+                _LOGGER.debug("[%s] Poweroff wait cancelled during post-ask drying phase.", self._serial)
+                return
+            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
+                return
+            await self._execute_poweroff()
             return
 
         if not is_drying and dry_mode == "ask":
             # No drying and mode ask → still ask (user can confirm)
             _LOGGER.info("[%s] Auto-poweroff: no drying — asking user.", self._serial)
             await self._notify.notify_poweroff_ask(self._printer_name, is_drying=False)
+            # Fallback: wait 30 min for user response, then power off
+            try:
+                await asyncio.sleep(30 * 60)
+            except asyncio.CancelledError:
+                _LOGGER.debug("[%s] Poweroff ask (no drying) cancelled by user response or new print.", self._serial)
+                return
+            _LOGGER.info("[%s] Auto-poweroff ask timeout: no response — executing poweroff.", self._serial)
+            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
+                return
+            await self._execute_poweroff()
             return
 
         # dry_mode == "poweroff" or (not drying and mode != ask/wait)
@@ -310,6 +350,21 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             )
         except Exception as exc:  # noqa: BLE001
             _LOGGER.warning("[%s] Auto-poweroff: failed to turn off '%s': %s", self._serial, switch_entity, exc)
+
+    async def _poweroff_after_drying(self) -> None:
+        """Wait for AMS drying to finish, apply 15-min cooldown, then power off."""
+        try:
+            while self._ams_is_drying():
+                await asyncio.sleep(60)
+            _LOGGER.info("[%s] Auto-poweroff: drying finished — 15 min cooldown before poweroff.", self._serial)
+            await asyncio.sleep(15 * 60)
+        except asyncio.CancelledError:
+            _LOGGER.debug("[%s] Poweroff-after-drying task cancelled.", self._serial)
+            return
+        if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
+            _LOGGER.info("[%s] Auto-poweroff: new print started during drying wait — aborting.", self._serial)
+            return
+        await self._execute_poweroff()
 
     def _ams_is_drying(self) -> bool:
         """Return True if any AMS unit is currently drying filament.
