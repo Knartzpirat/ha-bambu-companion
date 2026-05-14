@@ -34,6 +34,7 @@ from .const import (
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
     DOMAIN,
+    FUME_FILAMENT_PREFIXES,
     MAINTENANCE_TASKS,
     NOZZLE_ACTIVE_TEMP_THRESHOLD,
     PRINT_STATUS_FAILED,
@@ -950,6 +951,11 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             self._store.increment_counter("print_hours", interval_h)
             changed = True
 
+            # Fume print hours — only filaments that produce significant VOCs
+            active_type = (get_entity_state(self.hass, self._entities, "active_tray_type") or "").strip().upper()
+            if active_type and any(active_type.startswith(p) for p in FUME_FILAMENT_PREFIXES):
+                self._store.increment_counter("fume_print_hours", interval_h)
+
         # Nozzle hours (single nozzle)
         if not self._features.get("dual_nozzle"):
             nozzle_temp = get_entity_float(self.hass, self._entities, "nozzle_temperature") or 0
@@ -979,6 +985,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             is_lasering = tool_state == "laser"
             if is_lasering:
                 self._store.increment_counter("laser_hours", interval_h)
+                # Laser generates fumes → counts toward carbon filter (same as ABS/ASA printing).
+                # Plotting (knife / pen) has a different tool_state and does NOT reach here.
+                self._store.increment_counter("fume_print_hours", interval_h)
                 changed = True
             if was_lasering and not is_lasering:
                 # Transition: laser job completed
@@ -1163,6 +1172,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             return bambu_total_hours
         mapping = {
             "print_hours": "print_hours",
+            "fume_print_hours": "fume_print_hours",
             "nozzle_hours": "nozzle_hours",
             "left_nozzle_hours": "left_nozzle_hours",
             "right_nozzle_hours": "right_nozzle_hours",

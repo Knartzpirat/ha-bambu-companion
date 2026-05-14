@@ -247,8 +247,14 @@ PRINTER_FEATURES: dict[str, dict] = {
 }
 
 # Maintenance task definitions
-# trigger types: print_hours, total_hours, print_count, laser_hours, laser_jobs, nozzle_hours, left_nozzle_hours, right_nozzle_hours
+# trigger types: print_hours, total_hours, print_count, laser_hours, laser_jobs, nozzle_hours, left_nozzle_hours, right_nozzle_hours, fume_print_hours
 # wiki: Bambu Lab Wiki link for reference (exposed as sensor attribute)
+
+# Filament material prefixes that produce significant VOCs / fumes requiring the activated carbon filter.
+# Matching is done case-insensitive with str.upper().startswith(prefix).
+FUME_FILAMENT_PREFIXES: tuple[str, ...] = (
+    "ABS", "ASA", "PA", "PC", "TPU", "HIPS", "PVB", "PPS", "PEI", "PEEK", "POM",
+)
 MAINTENANCE_TASKS: list[dict] = [
     # Nozzle & Hotend
     {"key": "nozzle_clean", "name": "Druckkopf Düse reinigen", "default_interval": 200, "trigger": "nozzle_hours", "models": None, "single_nozzle_only": True,
@@ -294,9 +300,9 @@ MAINTENANCE_TASKS: list[dict] = [
     {"key": "fans_clean", "name": "Alle Lüfter reinigen", "default_interval": 300, "trigger": "print_hours", "models": None,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#part-cooling-fans"},
     # Bambu Wiki: replace activated carbon air filter every 3 months (8h/day usage)
-    {"key": "hepa_filter", "name": "Kammer-HEPA-Filter wechseln", "default_interval": 250, "trigger": "total_hours", "models": ["X1", "X1C", "X1E"],
+    {"key": "hepa_filter", "name": "Kammer-HEPA-Filter wechseln", "default_interval": 250, "trigger": "print_hours", "models": ["X1", "X1C", "X1E"],
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/replace-carbon-filter"},
-    {"key": "carbon_filter", "name": "Aktivkohle-Filter wechseln", "default_interval": 250, "trigger": "total_hours", "models": ["X1", "X1C", "X1E", "P1S", "H2D"],
+    {"key": "carbon_filter", "name": "Aktivkohle-Filter wechseln", "default_interval": 250, "trigger": "fume_print_hours", "models": ["X1", "X1C", "X1E", "P1S", "H2D"],
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/replace-carbon-filter"},
     # AMS
     {"key": "ams_wiper", "name": "Purge Wiper reinigen", "default_interval": 50, "trigger": "print_count", "models": None, "requires_ams": True,
