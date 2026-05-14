@@ -278,7 +278,7 @@ MAINTENANCE_TASKS: list[dict] = [
     {"key": "lube_z", "name": "Z-Gewindespindeln schmieren", "default_interval": 500, "trigger": "print_hours", "models": None,
      "wiki": "https://wiki.bambulab.com/en/general/lead-screws-lubrication"},
     # Bambu Wiki: X carbon rods – clean with IPA every 5 rolls of ABS/ASA or monthly. NEVER use oil or grease!
-    {"key": "carbon_rods", "name": "Carbon-Stangen reinigen (IPA, kein Öl!)", "default_interval": 200, "trigger": "print_hours", "models": ["X1", "X1C", "X1E", "P1S"],
+    {"key": "carbon_rods", "name": "Carbon-Stangen reinigen (IPA, kein Öl!)", "default_interval": 200, "trigger": "print_hours", "models": ["X1", "X1C", "X1E", "P1P", "P1S"],
      "wiki": "https://wiki.bambulab.com/en/general/carbon-rods-clearance"},
     {"key": "belt", "name": "Riemenspannung prüfen (X & Y)", "default_interval": 500, "trigger": "print_hours", "models": None,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/belt-tension"},

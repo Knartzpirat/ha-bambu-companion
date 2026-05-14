@@ -102,6 +102,8 @@ Each task provides:
 - A **push notification** when the threshold is exceeded (1-hour cooldown per task)
 - An individually configurable interval via Options → Maintenance Plans
 
+📄 **Detailed trigger reference**: [docs/maintenance-triggers.md](docs/maintenance-triggers.md)
+
 ---
 
 ### 📊 Sensors Created

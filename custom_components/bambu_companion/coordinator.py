@@ -1141,6 +1141,12 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Use explicit counter_key override when provided (e.g. left/right nozzle)
             actual_counter = task_def.get("counter_key", counter_key)
             self._store.set_counter(actual_counter, 0)
+            # Also reset baselines for all sibling tasks that share the same trigger
+            # (e.g. nozzle_clean must restart from 0 when nozzle_replace zeroes the counter).
+            sibling_trigger = task_def["trigger"]
+            for sibling in MAINTENANCE_TASKS:
+                if sibling["key"] != task_key and sibling["trigger"] == sibling_trigger:
+                    self._store.set_maintenance_baseline(sibling["key"], 0.0, from_bambu=False)
 
         # For total_hours tasks, reset against real bambu_total_hours if available
         if trigger == "total_hours":
@@ -1159,10 +1165,11 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     async def _reset_with_baseline(self, task_key: str, counter_key: str) -> None:
         current = float(self._store.counters.get(counter_key, 0))
+        # Use set_maintenance_baseline so baseline_from_fallback is correctly recorded.
+        # Tasks reaching here always use an internal counter (not bambu_total_hours),
+        # so from_bambu=False is always correct.
+        self._store.set_maintenance_baseline(task_key, current, from_bambu=False)
         maint = self._store.get_maintenance()
-        if task_key not in maint:
-            maint[task_key] = {}
-        maint[task_key]["baseline"] = current
         maint[task_key]["value"] = 0
         maint[task_key]["last_reset"] = dt_util.now().isoformat()
         self._maint_notified.pop(task_key, None)
