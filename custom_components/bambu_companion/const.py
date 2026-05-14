@@ -247,7 +247,7 @@ PRINTER_FEATURES: dict[str, dict] = {
 }
 
 # Maintenance task definitions
-# trigger types: print_hours, total_hours, print_count, laser_hours, laser_jobs, nozzle_hours
+# trigger types: print_hours, total_hours, print_count, laser_hours, laser_jobs, nozzle_hours, left_nozzle_hours, right_nozzle_hours
 # wiki: Bambu Lab Wiki link for reference (exposed as sensor attribute)
 MAINTENANCE_TASKS: list[dict] = [
     # Nozzle & Hotend
@@ -255,13 +255,13 @@ MAINTENANCE_TASKS: list[dict] = [
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
     {"key": "nozzle_replace", "name": "Druckkopf Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "nozzle_hours", "models": None, "single_nozzle_only": True, "reset_counter": True,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    {"key": "left_nozzle_clean", "name": "Druckkopf Linke Düse reinigen", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+    {"key": "left_nozzle_clean", "name": "Druckkopf Linke Düse reinigen", "default_interval": 200, "trigger": "left_nozzle_hours", "models": ["H2D"],
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    {"key": "left_nozzle_replace", "name": "Druckkopf Linke Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "left_nozzle_hours",
+    {"key": "left_nozzle_replace", "name": "Druckkopf Linke Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "left_nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "left_nozzle_hours",
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    {"key": "right_nozzle_clean", "name": "Druckkopf Rechte Düse reinigen", "default_interval": 200, "trigger": "nozzle_hours", "models": ["H2D"],
+    {"key": "right_nozzle_clean", "name": "Druckkopf Rechte Düse reinigen", "default_interval": 200, "trigger": "right_nozzle_hours", "models": ["H2D"],
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    {"key": "right_nozzle_replace", "name": "Druckkopf Rechte Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "right_nozzle_hours",
+    {"key": "right_nozzle_replace", "name": "Druckkopf Rechte Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "right_nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "right_nozzle_hours",
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
     # Bambu Wiki: blade should be checked every 3-5 rolls (≈ 20 prints); ~5000-7000 cuts before replacement
     {"key": "filament_cutter", "name": "Druckkopf Schneidmesser prüfen / wechseln", "default_interval": 20, "trigger": "print_count", "models": None,

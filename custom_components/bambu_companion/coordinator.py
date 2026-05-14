@@ -890,8 +890,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         # Nozzle hours (dual nozzle, H2D)
         if self._features.get("dual_nozzle"):
-            left_temp = get_entity_float(self.hass, self._entities, "left_nozzle_temperature") or 0
-            right_temp = get_entity_float(self.hass, self._entities, "right_nozzle_temperature") or 0
+            left_temp = get_entity_float(self.hass, self._entities, "left_nozzle_temp") or 0
+            right_temp = get_entity_float(self.hass, self._entities, "right_nozzle_temp") or 0
             if left_temp > NOZZLE_ACTIVE_TEMP_THRESHOLD and print_status == PRINT_STATUS_PRINTING:
                 self._store.increment_nozzle_slot_hours("left", interval_h)
                 self._store.increment_counter("left_nozzle_hours", interval_h)
@@ -1093,6 +1093,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         mapping = {
             "print_hours": "print_hours",
             "nozzle_hours": "nozzle_hours",
+            "left_nozzle_hours": "left_nozzle_hours",
+            "right_nozzle_hours": "right_nozzle_hours",
             "laser_hours": "laser_hours",
             "laser_jobs": "laser_jobs",
             "print_count": "successful_prints",
@@ -1123,6 +1125,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         counter_map = {
             "print_hours": "print_hours",
             "nozzle_hours": "nozzle_hours",
+            "left_nozzle_hours": "left_nozzle_hours",
+            "right_nozzle_hours": "right_nozzle_hours",
             "laser_hours": "laser_hours",
             "laser_jobs": "laser_jobs",
             "print_count": "successful_prints",
