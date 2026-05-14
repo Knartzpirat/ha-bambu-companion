@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.12";
+const VERSION = "1.5.13";
 
 // ── Translation maps (ha-bambulab raw values → human-readable DE) ─────────────
 
@@ -21,6 +21,21 @@ const PLATE_LABELS = {
     "bambu_engineering_plate":"Engineering Plate",
 };
 
+// Bed/surface type as reported by ha-bambulab print_bed_type entity
+const BED_TYPE_LABELS = {
+    "textured_plate":         "Strukturierte Platte (PEI)",
+    "smooth_plate":           "Glatte Platte (PEI)",
+    "high_temp_plate":        "High-Temp Plate",
+    "cool_plate":             "Cool Plate",
+    "engineering_plate":      "Engineering Plate",
+    "bambu_cool_plate":       "Bambu Cool Plate",
+    "bambu_smooth_pla_plate": "Smooth PLA Plate",
+    "bambu_engineering_plate":"Engineering Plate",
+    "supertack_plate":        "SuperTack Plate",
+    "textured_pei_plate":     "Textured PEI Plate",
+    "smooth_pei_plate":       "Smooth PEI Plate",
+};
+
 const NOZZLE_TYPE_LABELS = {
     "hardened_steel":  "Hardened Steel",
     "stainless_steel": "Edelstahl",
@@ -30,6 +45,10 @@ const NOZZLE_TYPE_LABELS = {
 function translatePlate(raw) {
     if (!raw) return "–";
     return PLATE_LABELS[raw.toLowerCase()] ?? raw;
+}
+function translateBedType(raw) {
+    if (!raw) return "–";
+    return BED_TYPE_LABELS[raw.toLowerCase()] ?? raw;
 }
 function translateNozzleType(raw) {
     if (!raw) return "–";
@@ -1031,22 +1050,26 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const amsIdx = tray.ams;
         const slotIdx = tray.slot;
         const amsModel = tray.ams_model || "";
+        // Bambu uses sentinel values for the external/virtual tray:
+        // tray_index = 254 (VT tray), ams_index = 255 (no AMS) or name starts with "External Spool"
+        const isExternalSpool =
+            (slotIdx != null && parseInt(slotIdx) >= 254) ||
+            (amsIdx != null && parseInt(amsIdx) >= 254) ||
+            (typeof trayName === "string" && trayName.toLowerCase().startsWith("external spool"));
         let source = "–";
-        if (amsIdx != null && slotIdx != null) {
+        if (!isExternalSpool && amsIdx != null && slotIdx != null) {
             const amsLabel = amsModel ? `${amsModel} ${parseInt(amsIdx) + 1}` : `AMS ${parseInt(amsIdx) + 1}`;
             source = `${amsLabel}, Slot ${parseInt(slotIdx) + 1}`;
-        } else if (amsIdx != null) {
+        } else if (!isExternalSpool && amsIdx != null) {
             source = amsModel ? `${amsModel} ${parseInt(amsIdx) + 1}` : `AMS ${parseInt(amsIdx) + 1}`;
-        } else if (slotIdx != null) {
-            source = `Extern (Slot ${parseInt(slotIdx) + 1})`;
-        } else if (trayName && trayName !== "–") {
+        } else if (isExternalSpool || trayName && trayName !== "–") {
             source = "Extern";
         }
 
         const nozzleDia = p.nozzle_diameter != null ? `${p.nozzle_diameter} mm` : "–";
         const nozzleType = translateNozzleType(p.nozzle_type);
         const nozzleTemp = p.avg_nozzle_temp ? `${Math.round(p.avg_nozzle_temp)} °C` : "–";
-        const bedType = p.bed_type || "–";
+        const bedType = translateBedType(p.bed_type);
         const bedTemp = p.avg_bed_temp ? `${Math.round(p.avg_bed_temp)} °C` : "–";
         const layers = (p.layer_count > 0)
             ? (ok ? `${p.layer_count}` : `${p.current_layer || "?"} / ${p.layer_count}`)

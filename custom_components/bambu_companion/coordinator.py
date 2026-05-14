@@ -817,16 +817,14 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         ams_model = ""
         if self._ams_device_ids and active_tray_ams is not None:
             ams_devices = get_ams_devices(self.hass, printer_device_id)
-            # Match by index (AMS devices are ordered by their position)
+            # Match by index (AMS devices are ordered by their position).
+            # Bambu uses ams_index >= 254 as sentinel for "no AMS / external spool" — ignore those.
             try:
                 ams_idx = int(active_tray_ams)
-                if 0 <= ams_idx < len(ams_devices):
+                if 0 <= ams_idx < min(len(ams_devices), 254):
                     ams_model = ams_devices[ams_idx].get("model", "")
-                elif ams_devices:
-                    ams_model = ams_devices[0].get("model", "")
             except (TypeError, ValueError):
-                if ams_devices:
-                    ams_model = ams_devices[0].get("model", "")
+                pass
         cover_image_entity = self._entities.get("cover_image", "")
         # Fetch the raw image bytes from the HA image entity and encode as base64
         # data-URL so the history card can display it without relying on a
