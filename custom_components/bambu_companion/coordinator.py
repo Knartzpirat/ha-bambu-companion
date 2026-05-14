@@ -122,6 +122,11 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._entities_missing_logged: bool = False  # throttle "no entities" warning
         self._printer_offline: bool = False  # True while status entity is unavailable
 
+        # Timestamp of last runtime-tracker call — used to measure REAL elapsed time
+        # instead of assuming a fixed UPDATE_INTERVAL per call (state-change events can
+        # fire much more often than the 30 s poll interval).
+        self._last_tracker_ts: datetime | None = None
+
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
@@ -871,7 +876,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     # ------------------------------------------------------------------
 
     async def _update_runtime_trackers(self, print_status: str) -> None:
-        interval_h = UPDATE_INTERVAL.total_seconds() / 3600
+        now = dt_util.now()
+        if self._last_tracker_ts is None:
+            # First call after startup — record timestamp but don't count any time yet.
+            self._last_tracker_ts = now
+            return
+        elapsed_s = (now - self._last_tracker_ts).total_seconds()
+        # Cap at 2× UPDATE_INTERVAL to ignore suspiciously long gaps (HA restarts, sleep).
+        elapsed_s = min(elapsed_s, UPDATE_INTERVAL.total_seconds() * 2)
+        if elapsed_s <= 0:
+            return
+        self._last_tracker_ts = now
+        interval_h = elapsed_s / 3600
         changed = False
 
         # Print hours
