@@ -952,11 +952,12 @@ class BambuCompanionHistoryCard extends HTMLElement {
         }
         .modal {
           background: var(--card-background-color);
-          border-radius: 12px; padding: 0; max-width: 480px; width: 100%;
+          border-radius: 12px; padding: 0;
+          width: fit-content; max-width: min(95vw, 800px); min-width: 320px;
           max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
         }
-        .img-area { border-radius: 12px 12px 0 0; overflow: hidden; background: var(--secondary-background-color); }
-        .modal-img { width: 100%; max-height: 300px; object-fit: contain; display: block; }
+        .img-area { position: relative; border-radius: 12px 12px 0 0; overflow: hidden; background: var(--secondary-background-color); }
+        .modal-img { width: auto; max-width: 100%; max-height: 300px; object-fit: contain; display: block; }
         .modal-img-placeholder {
           width: 100%; height: 120px; background: var(--secondary-background-color);
           display: flex; align-items: center; justify-content: center; font-size: 3em;
@@ -1003,10 +1004,10 @@ class BambuCompanionHistoryCard extends HTMLElement {
           border: 1px solid var(--divider-color); vertical-align: middle; margin-right: 4px;
         }
         .close-btn {
-          position: sticky; top: 0; float: right; margin: 10px 10px 0 0;
-          background: var(--secondary-background-color); border: none;
-          border-radius: 50%; width: 32px; height: 32px; cursor: pointer;
-          font-size: 1.1em; color: var(--primary-text-color); z-index: 1;
+          position: absolute; top: 8px; right: 8px;
+          background: rgba(0,0,0,0.50); border: none;
+          border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
+          font-size: 0.85em; color: #fff; z-index: 2;
           display: flex; align-items: center; justify-content: center;
         }
         .close-btn:hover { opacity: 0.75; }
@@ -1066,11 +1067,13 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const camStored = p.camera_snapshot_url || "";
         const cameraUrl = camStored.startsWith("data:") ? camStored : "";
         const hasBothImages = !!(imgUrl && cameraUrl);
+        const closeBtn = `<button class="close-btn" id="close-modal">&#x2715;</button>`;
         const imgAreaHtml = (() => {
             if (!imgUrl && !cameraUrl)
-                return `<div class="img-area"><div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div></div>`;
+                return `<div class="img-area">${closeBtn}<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div></div>`;
             if (hasBothImages)
                 return `<div class="img-area">
+                  ${closeBtn}
                   <img class="modal-img" id="slide-cover" src="${imgUrl}">
                   <img class="modal-img" id="slide-camera" src="${cameraUrl}" style="display:none">
                   <div class="slide-ctrl">
@@ -1085,7 +1088,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
                     <button class="slide-btn" id="slide-next">&#8250;</button>
                   </div>
                 </div>`;
-            return `<div class="img-area"><img class="modal-img" src="${imgUrl || cameraUrl}"></div>`;
+            return `<div class="img-area">${closeBtn}<img class="modal-img" src="${imgUrl || cameraUrl}"></div>`;
         })();
 
         const tray = p.active_tray || {};
@@ -1184,7 +1187,6 @@ class BambuCompanionHistoryCard extends HTMLElement {
         overlay.className = "modal-overlay";
         overlay.innerHTML = `
           <div class="modal">
-            <button class="close-btn" id="close-modal">✕</button>
             ${imgAreaHtml}
             <div class="modal-body">
               <div class="modal-title">${printName || (ok ? "Erfolgreicher Druck" : "Fehlgeschlagener Druck")}</div>
