@@ -100,10 +100,12 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
         return merged
 
     def _get_lovelace_uri_options(self) -> list[dict]:
-        """Build URI options including all registered Lovelace dashboards from HA."""
+        """Build URI options including all registered Lovelace dashboards and views from HA."""
         options = [
-            {"value": "/", "label": "Home Assistant (/)"},
+            {"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"},
+            {"value": "bambulab://", "label": "Bambu App alt (bambulab://)"},
         ]
+        seen_values: set[str] = set(option["value"] for option in options)
         try:
             lovelace = self.hass.data.get("lovelace")
             dashboards: dict | None = None
@@ -114,29 +116,46 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     dashboards = lovelace.get("dashboards")
             if dashboards:
                 for url_path, dashboard in dashboards.items():
-                    # url_path is None/'' for the default dashboard
-                    nav_path = url_path if url_path else "lovelace"
+                    nav_base = url_path if url_path else "lovelace"
                     title: str | None = None
-                    if hasattr(dashboard, "config") and isinstance(dashboard.config, dict):
+                    config: dict | None = None
+                    if isinstance(dashboard, dict):
+                        config = dashboard.get("config") if isinstance(dashboard.get("config"), dict) else None
+                        title = dashboard.get("title") or (config or {}).get("title")
+                    elif hasattr(dashboard, "config") and isinstance(dashboard.config, dict):
+                        config = dashboard.config
                         title = dashboard.config.get("title")
-                    if not title and hasattr(dashboard, "title"):
-                        title = dashboard.title
-                    if not title and isinstance(dashboard, dict):
-                        title = dashboard.get("title") or (dashboard.get("config") or {}).get("title")
-                    uri = f"homeassistant://navigate/{nav_path}"
-                    label = f"{title} ({uri})" if title else f"Lovelace: {nav_path} ({uri})"
-                    options.append({"value": uri, "label": label})
+                    if config:
+                        views = config.get("views")
+                    else:
+                        views = None
+                    if isinstance(views, list):
+                        for view in views:
+                            if not isinstance(view, dict):
+                                continue
+                            view_path = view.get("path") or view.get("url_path") or view.get("id")
+                            view_title = view.get("title") or view.get("name")
+                            if not view_path:
+                                continue
+                            uri = f"homeassistant://navigate/lovelace/{view_path}"
+                            if uri in seen_values:
+                                continue
+                            seen_values.add(uri)
+                            label = f"{title} → {view_title} ({uri})" if title and view_title else f"{view_title or title or 'Lovelace'} ({uri})"
+                            options.append({"value": uri, "label": label})
+                    uri = f"homeassistant://navigate/{nav_base}"
+                    if uri not in seen_values:
+                        seen_values.add(uri)
+                        label = f"{title} ({uri})" if title else f"Lovelace: {nav_base} ({uri})"
+                        options.append({"value": uri, "label": label})
             else:
-                options.append({
-                    "value": "homeassistant://navigate/lovelace/0",
-                    "label": "HA Lovelace (homeassistant://navigate/lovelace/0)",
-                })
+                uri = "homeassistant://navigate/lovelace/0"
+                options.append({"value": uri, "label": f"HA Lovelace ({uri})"})
         except Exception:
-            options.append({
-                "value": "homeassistant://navigate/lovelace/0",
-                "label": "HA Lovelace (homeassistant://navigate/lovelace/0)",
-            })
-        options.append({"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"})
+            uri = "homeassistant://navigate/lovelace/0"
+            if uri not in seen_values:
+                options.append({"value": uri, "label": f"HA Lovelace ({uri})"})
+        options.append({"value": "/", "label": "Home Assistant (/)"})
         return options
 
     async def async_step_init(self, user_input=None):

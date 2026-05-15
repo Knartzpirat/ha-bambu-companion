@@ -331,7 +331,7 @@
                 }            },
             "poweroff": {
                 "title": "Auto-Poweroff",
-                "description": "Schaltet die Steckdose des Druckers automatisch aus, wenn nach einem abgeschlossenen Druck für eine konfigurierbare Zeit kein neuer Auftrag gestartet wird.",
+                "description": "Schaltet die Steckdose des Druckers automatisch aus, wenn nach einem abgeschlossenen Druck für eine konfigurierbare Zeit kein neuer Auftrag gestartet wird. Hinweis: Für die Benachrichtigungsabfrage muss mindestens ein Mobilgerät konfiguriert sein. Ohne Ziel wird nicht gefragt, der Abschaltvorgang selbst läuft jedoch weiter.",
                 "data": {
                     "auto_poweroff_enabled": "Auto-Poweroff aktivieren",
                     "auto_poweroff_switch": "Steckdosen-Entity (Switch / Input Boolean)",

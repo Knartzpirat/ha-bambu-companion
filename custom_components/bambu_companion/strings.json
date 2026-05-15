@@ -332,7 +332,7 @@
             },
             "poweroff": {
                 "title": "Auto power-off",
-                "description": "Automatically turns off the printer's smart plug after a configurable idle period following a completed print.",
+                "description": "Automatically turns off the printer's smart plug after a configurable idle period following a completed print. Note: with 'Ask', a push notification is only sent when at least one mobile target is configured. Without a target there is no query, but the power off logic still continues.",
                 "data": {
                     "auto_poweroff_enabled": "Enable auto power-off",
                     "auto_poweroff_switch": "Smart plug entity (switch / input boolean)",
