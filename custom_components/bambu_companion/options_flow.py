@@ -103,7 +103,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
         """Build URI options including all registered Lovelace dashboards and views from HA."""
         options = [
             {"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"},
-            {"value": "bambulab://", "label": "Bambu App alt (bambulab://)"},
         ]
         seen_values: set[str] = set(option["value"] for option in options)
         try:
@@ -127,6 +126,8 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                         title = dashboard.config.get("title")
                     if config:
                         views = config.get("views")
+                    elif hasattr(dashboard, "views"):
+                        views = getattr(dashboard, "views")
                     else:
                         views = None
                     if isinstance(views, list):
@@ -134,14 +135,14 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                             if not isinstance(view, dict):
                                 continue
                             view_path = view.get("path") or view.get("url_path") or view.get("id")
-                            view_title = view.get("title") or view.get("name")
+                            view_title = view.get("title") or view.get("name") or view_path
                             if not view_path:
                                 continue
                             uri = f"homeassistant://navigate/lovelace/{view_path}"
                             if uri in seen_values:
                                 continue
                             seen_values.add(uri)
-                            label = f"{title} → {view_title} ({uri})" if title and view_title else f"{view_title or title or 'Lovelace'} ({uri})"
+                            label = f"{title} → {view_title} ({uri})" if title else f"{view_title} ({uri})"
                             options.append({"value": uri, "label": label})
                     uri = f"homeassistant://navigate/{nav_base}"
                     if uri not in seen_values:
@@ -150,12 +151,12 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                         options.append({"value": uri, "label": label})
             else:
                 uri = "homeassistant://navigate/lovelace/0"
-                options.append({"value": uri, "label": f"HA Lovelace ({uri})"})
+                if uri not in seen_values:
+                    options.append({"value": uri, "label": f"HA Lovelace ({uri})"})
         except Exception:
             uri = "homeassistant://navigate/lovelace/0"
             if uri not in seen_values:
                 options.append({"value": uri, "label": f"HA Lovelace ({uri})"})
-        options.append({"value": "/", "label": "Home Assistant (/)"})
         return options
 
     async def async_step_init(self, user_input=None):
@@ -280,7 +281,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
         default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or "app://bbl.intl.bambulab.com"
         default_btn2_camera_title = current.get(CONF_ACTION_BTN_2_CAMERA_TITLE) or "📷 Kamera"
         default_btn2_fallback_title = current.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "🏠 Home Assistant"
-        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or "/"
+        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or "homeassistant://navigate/lovelace/0"
         default_btn3_mode = current.get(CONF_ACTION_BTN_3_MODE) or "off"
 
         schema_fields: dict = {
