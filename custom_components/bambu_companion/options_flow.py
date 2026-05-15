@@ -281,7 +281,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             ): selector.TimeSelector(),
             vol.Optional(
                 CONF_NOTIFY_MOBILE_EVENTS,
-                description={"suggested_value": current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)},
+                default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
@@ -298,7 +298,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Optional(
                 CONF_NOTIFY_HA_EVENTS,
-                description={"suggested_value": current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)},
+                default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
