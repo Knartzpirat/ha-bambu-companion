@@ -1106,23 +1106,6 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const trayColor = primary.colorDisplay || "–";
         const source    = primary.source || "–";
 
-        // Multi-filament section HTML
-        const isMultiFilament = trayInfos.length > 1;
-        const filamentSectionHtml = isMultiFilament
-            ? `<div class="detail-item detail-full">
-                <label>Filamente (${trayInfos.length})</label>
-                <div class="tray-list">
-                  ${trayInfos.map(ti => `
-                    <div class="tray-row">
-                      <span class="color-swatch" style="${ti.hexC ? `background:#${ti.hexC}` : "background:var(--divider-color)"}"></span>
-                      <span class="tray-name">${ti.name}</span>
-                      <span class="tray-slot">${ti.source}</span>
-                    </div>`).join("")}
-                </div>
-              </div>`
-            : `${row2("Material", trayName, "Typ", trayType)}
-               ${row2("Farbe", trayColor, "Lager", source)}`;
-
         const nozzleDia = p.nozzle_diameter != null ? `${p.nozzle_diameter} mm` : "–";
         const nozzleType = translateNozzleType(p.nozzle_type);
         const nozzleTemp = p.avg_nozzle_temp ? `${Math.round(p.avg_nozzle_temp)} °C` : "–";
@@ -1143,6 +1126,23 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const row2 = (label1, val1, label2, val2) => `
           <div class="detail-item"><label>${label1}</label><span>${val1}</span></div>
           <div class="detail-item"><label>${label2}</label><span>${val2}</span></div>`;
+
+        // Multi-filament section HTML
+        const isMultiFilament = trayInfos.length > 1;
+        const filamentSectionHtml = isMultiFilament
+            ? `<div class="detail-item detail-full">
+                <label>Filamente (${trayInfos.length})</label>
+                <div class="tray-list">
+                  ${trayInfos.map(ti => `
+                    <div class="tray-row">
+                      <span class="color-swatch" style="${ti.hexC ? `background:#${ti.hexC}` : "background:var(--divider-color)"}"></span>
+                      <span class="tray-name">${ti.name}</span>
+                      <span class="tray-slot">${ti.source}</span>
+                    </div>`).join("")}
+                </div>
+              </div>`
+            : `${row2("Material", trayName, "Typ", trayType)}
+               ${row2("Farbe", trayColor, "Lager", source)}`;
 
         const overlay = document.createElement("div");
         overlay.className = "modal-overlay";
