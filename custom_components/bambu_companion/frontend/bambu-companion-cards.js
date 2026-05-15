@@ -953,11 +953,11 @@ class BambuCompanionHistoryCard extends HTMLElement {
         .modal {
           background: var(--card-background-color);
           border-radius: 12px; padding: 0;
-          width: fit-content; max-width: min(95vw, 800px); min-width: 320px;
+          width: 100%; max-width: 800px;
           max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
         }
         .img-area { position: relative; border-radius: 12px 12px 0 0; overflow: hidden; background: var(--secondary-background-color); }
-        .modal-img { width: auto; max-width: 100%; max-height: 300px; object-fit: contain; display: block; }
+        .modal-img { width: 100%; max-height: 480px; object-fit: contain; display: block; }
         .modal-img-placeholder {
           width: 100%; height: 120px; background: var(--secondary-background-color);
           display: flex; align-items: center; justify-content: center; font-size: 3em;
