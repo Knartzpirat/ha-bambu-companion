@@ -33,7 +33,7 @@ Diese Seite erklärt, **wann und wie** jede Wartungsaufgabe ihren Zähler erhöh
 | Linke Düse gewechselt | `left_nozzle_hours` | 800 h | H2D | `reset_counter`: setzt `left_nozzle_hours` auf 0; setzt auch „Linke Düse reinigen" zurück |
 | Rechte Düse reinigen | `right_nozzle_hours` | 200 h | H2D | Nur Dualdüse |
 | Rechte Düse gewechselt | `right_nozzle_hours` | 800 h | H2D | `reset_counter`: setzt `right_nozzle_hours` auf 0; setzt auch „Rechte Düse reinigen" zurück |
-| Schneidmesser prüfen / wechseln | `print_count` | 20 Drucke | Alle Modelle | Bambu Wiki: 3–5 Rollen ≈ 20 Drucke; ca. 5.000–7.000 Schnitte bis Verschleiß |
+| Schneidmesser prüfen / wechseln | `print_count` | 250 Drucke | Alle Modelle | ca. 5.000–7.000 Schnitte bis Verschleiß |
 | PTFE-Tube prüfen / wechseln | `print_hours` | 500 h | Alle Modelle | — |
 | Hotend / Heatbreak reinigen | `print_hours` | 500 h | Alle Modelle | — |
 | Extruder-Zahnrad reinigen | `print_hours` | 300 h | Alle Modelle | — |

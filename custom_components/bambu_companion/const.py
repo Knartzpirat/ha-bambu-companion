@@ -269,8 +269,8 @@ MAINTENANCE_TASKS: list[dict] = [
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
     {"key": "right_nozzle_replace", "name": "Druckkopf Rechte Düse gewechselt (Stundenzähler zurücksetzen)", "default_interval": 800, "trigger": "right_nozzle_hours", "models": ["H2D"], "reset_counter": True, "counter_key": "right_nozzle_hours",
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#nozzle"},
-    # Bambu Wiki: blade should be checked every 3-5 rolls (≈ 20 prints); ~5000-7000 cuts before replacement
-    {"key": "filament_cutter", "name": "Druckkopf Schneidmesser prüfen / wechseln", "default_interval": 20, "trigger": "print_count", "models": None,
+    # Bambu Wiki: blade should be checked every 3-5 rolls; ~5000-7000 cuts before replacement
+    {"key": "filament_cutter", "name": "Druckkopf Schneidmesser prüfen / wechseln", "default_interval": 250, "trigger": "print_count", "models": None,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#filament-cutter"},
     {"key": "ptfe_tube", "name": "Druckkopf PTFE-Tube prüfen / wechseln", "default_interval": 500, "trigger": "print_hours", "models": None,
      "wiki": "https://wiki.bambulab.com/en/x1/maintenance/basic-maintenance#ptfe-tube-coupler"},
