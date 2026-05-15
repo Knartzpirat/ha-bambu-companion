@@ -117,7 +117,7 @@
             },
             "notify": {
                 "title": "Notifications",
-                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.\n\n{camera_hint}",
+                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.\n\n**{camera_hint}**",
                 "data": {
                     "printer_display_name": "Printer display name",
                     "notify_targets": "Mobile device(s) for notifications",
@@ -310,35 +310,40 @@
                     "text_btn_cancel": "Button: Cancel",
                     "text_btn_reset_confirm": "Button: Confirm reset",
                     "text_btn_reset_cancel": "Button: Cancel reset",
-                    "text_btn_camera": "Button: Camera"
+                    "text_btn_camera": "Button: Camera",
+                    "text_poweroff_title": "Power-off ask – title",
+                    "text_poweroff_msg": "Power-off ask – message",
+                    "text_btn_poweroff_now": "Button: Power off now",
+                    "text_btn_poweroff_after_dry": "Button: After drying",
+                    "text_btn_poweroff_cancel": "Button: Cancel power-off"
                 }
             },
             "general": {
-                "title": "Allgemeine Einstellungen",
-                "description": "Allgemeine Einstellungen für Bambu Companion.",
+                "title": "General settings",
+                "description": "Miscellaneous settings for Bambu Companion.",
                 "data": {
-                    "max_history": "Maximale Anzahl gespeicherter Drucke (Verlauf)",
-                    "import_total_hours": "Drucker-Betriebsstunden übernehmen"
+                    "max_history": "Max. stored prints (history)",
+                    "import_total_hours": "Import printer operating hours"
                 },
                 "data_description": {
-                    "max_history": "Wie viele abgeschlossene Druckjobs im Verlauf gespeichert werden. 0 = unbegrenzt.",
-                    "import_total_hours": "Eingeschaltet (empfohlen): Der Sensor \"Druckzeit gesamt\" zeigt die vom Drucker intern gezählten Gesamtstunden – also die komplette Lebenszeit, auch vor dieser Installation.\nAusgeschaltet: Bambu Companion zählt die Druckzeit nur ab dem Zeitpunkt der Einrichtung selbst mit."
+                    "max_history": "How many completed print jobs are kept in the history. 0 = unlimited.",
+                    "import_total_hours": "Enabled (recommended): the 'Total print time' sensor shows the hours counted internally by the printer firmware — the full lifetime, including before this installation.\nDisabled: Bambu Companion only counts print time from the moment of setup onwards."
                 }
             },
             "poweroff": {
-                "title": "Auto-Poweroff",
-                "description": "Schaltet die Steckdose des Druckers automatisch aus, wenn nach einem abgeschlossenen Druck für eine konfigurierbare Zeit kein neuer Auftrag gestartet wird.",
+                "title": "Auto power-off",
+                "description": "Automatically turns off the printer's smart plug after a configurable idle period following a completed print.",
                 "data": {
-                    "auto_poweroff_enabled": "Auto-Poweroff aktivieren",
-                    "auto_poweroff_switch": "Steckdosen-Entity (Switch/Input Boolean)",
-                    "auto_poweroff_delay_min": "Wartezeit nach Druckende (Minuten)",
-                    "auto_poweroff_dry_mode": "Verhalten wenn AMS noch trocknet"
+                    "auto_poweroff_enabled": "Enable auto power-off",
+                    "auto_poweroff_switch": "Smart plug entity (switch / input boolean)",
+                    "auto_poweroff_delay_min": "Idle time after print end (minutes)",
+                    "auto_poweroff_dry_mode": "Behaviour when AMS is still drying"
                 },
                 "data_description": {
-                    "auto_poweroff_enabled": "Wenn aktiviert, wird die Steckdose nach Ablauf der Wartezeit ausgeschaltet, sofern kein neuer Druck gestartet wurde.",
-                    "auto_poweroff_switch": "Switch- oder Input-Boolean-Entity der smarten Steckdose, an der der Drucker angeschlossen ist.",
-                    "auto_poweroff_delay_min": "Wie viele Minuten nach Druckende auf einen neuen Auftrag gewartet wird, bevor der Drucker ausgeschaltet wird. Standard: 60 Minuten.",
-                    "auto_poweroff_dry_mode": "'Fragen': Push-Benachrichtigung mit Auswahl senden. 'Immer ausschalten': Steckdose ohne Rückfrage abschalten. 'Trocknung abwarten': Drucker bleibt an, wenn die AMS noch trocknet."
+                    "auto_poweroff_enabled": "When enabled, the smart plug is turned off after the idle period expires, provided no new print has started.",
+                    "auto_poweroff_switch": "Switch or input-boolean entity of the smart plug the printer is connected to.",
+                    "auto_poweroff_delay_min": "Minutes to wait for a new print job after print end before powering off. Default: 60.",
+                    "auto_poweroff_dry_mode": "'Ask': send a push notification with options. 'Always power off': turn off immediately without asking. 'Wait for drying': keep the printer on until the AMS finishes drying."
                 }
             }
         }
@@ -346,12 +351,12 @@
     "entity": {
         "select": {
             "maintenance_task_select": {
-                "name": "Maintenance Task"
+                "name": "Maintenance task"
             }
         },
         "button": {
             "reset_selected_task": {
-                "name": "Reset Maintenance Task"
+                "name": "Reset maintenance task"
             }
         }
     }

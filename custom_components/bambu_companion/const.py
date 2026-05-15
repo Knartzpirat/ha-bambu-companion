@@ -90,6 +90,11 @@ CONF_TEXT_BTN_CANCEL = "text_btn_cancel"
 CONF_TEXT_BTN_RESET_CONFIRM = "text_btn_reset_confirm"
 CONF_TEXT_BTN_RESET_CANCEL = "text_btn_reset_cancel"
 CONF_TEXT_BTN_CAMERA = "text_btn_camera"
+CONF_TEXT_POWEROFF_TITLE = "text_poweroff_title"
+CONF_TEXT_POWEROFF_MSG = "text_poweroff_msg"
+CONF_TEXT_BTN_POWEROFF_NOW = "text_btn_poweroff_now"
+CONF_TEXT_BTN_POWEROFF_AFTER_DRY = "text_btn_poweroff_after_dry"
+CONF_TEXT_BTN_POWEROFF_CANCEL = "text_btn_poweroff_cancel"
 
 # Action buttons in mobile push notifications
 # Button 1: configurable title + URI (e.g. open Bambu App)
@@ -131,6 +136,11 @@ DEFAULT_TEXTS = {
     CONF_TEXT_BTN_RESET_CONFIRM: "✅ Ja, zurücksetzen",
     CONF_TEXT_BTN_RESET_CANCEL: "❌ Abbrechen",
     CONF_TEXT_BTN_CAMERA: "📷 Kamera",
+    CONF_TEXT_POWEROFF_TITLE: "🔌 {drucker} – Ausschalten?",
+    CONF_TEXT_POWEROFF_MSG: "Der Druck ist abgeschlossen, aber die AMS trocknet noch Filament. Jetzt ausschalten oder Trocknung abwarten?",
+    CONF_TEXT_BTN_POWEROFF_NOW: "🔌 Jetzt ausschalten",
+    CONF_TEXT_BTN_POWEROFF_AFTER_DRY: "⏳ Nach Trocknung",
+    CONF_TEXT_BTN_POWEROFF_CANCEL: "❌ Abbrechen",
 }
 
 # Print status values (from ha-bambulab gcode_state.lower())

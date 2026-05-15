@@ -134,12 +134,12 @@
                     "notify_ha_error": "🔔 Druckfehler (HA-Posteingang)",
                     "notify_ha_maintenance": "🔔 Wartung fällig (HA-Posteingang)",
                     "notify_ha_nozzle_change": "🔔 Düsenwechsel erkannt (HA-Posteingang)",
-                    "action_btn_1_title": "Aktion 1 Titel",
-                    "action_btn_1_uri": "URI Aktion 1",
-                    "action_btn_2_camera_title": "Aktion 2 mit Kamera",
-                    "action_btn_2_fallback_title": "Aktion 2 ohne Kamera",
-                    "action_btn_2_uri": "URI Aktion 2 ohne Kamera (Fallback)",
-                    "action_btn_3_mode": "Dritte Schaltfläche"
+                    "action_btn_1_title": "Schaltfläche 1 – Beschriftung",
+                    "action_btn_1_uri": "Schaltfläche 1 – URI / Link",
+                    "action_btn_2_camera_title": "Schaltfläche 2 – Beschriftung (mit Kamera)",
+                    "action_btn_2_fallback_title": "Schaltfläche 2 – Beschriftung (ohne Kamera)",
+                    "action_btn_2_uri": "Schaltfläche 2 – URI / Link (ohne Kamera)",
+                    "action_btn_3_mode": "Schaltfläche 3 – Funktion"
                 },
                 "data_description": {
                     "printer_display_name": "Name des Druckers, der in Benachrichtigungen und Karten erscheint.",
@@ -310,12 +310,17 @@
                     "text_btn_cancel": "Schaltfläche: Abbrechen",
                     "text_btn_reset_confirm": "Schaltfläche: Bestätigen",
                     "text_btn_reset_cancel": "Schaltfläche: Abbrechen (Reset)",
-                    "text_btn_camera": "Schaltfläche: Kamera"
+                    "text_btn_camera": "Schaltfläche: Kamera",
+                    "text_poweroff_title": "Auto-Ausschalten – Titel",
+                    "text_poweroff_msg": "Auto-Ausschalten – Nachrichtentext",
+                    "text_btn_poweroff_now": "Schaltfläche: Jetzt ausschalten",
+                    "text_btn_poweroff_after_dry": "Schaltfläche: Nach Trocknung",
+                    "text_btn_poweroff_cancel": "Schaltfläche: Abbrechen (Ausschalten)"
                 }
             },
             "general": {
                 "title": "Allgemeine Einstellungen",
-                "description": "Allgemeine Einstellungen für Bambu Companion.",
+                "description": "Verlaufsgröße und Druckzeit-Quelle für Bambu Companion konfigurieren.",
                 "data": {
                     "max_history": "Max. gespeicherte Drucke (Verlauf)",
                     "import_total_hours": "Drucker-Betriebsstunden \u00fcbernehmen"

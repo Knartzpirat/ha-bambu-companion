@@ -24,6 +24,11 @@ from .const import (
     CONF_TEXT_BTN_CAMERA,
     CONF_TEXT_BTN_CANCEL,
     CONF_TEXT_BTN_DONE,
+    CONF_TEXT_BTN_POWEROFF_AFTER_DRY,
+    CONF_TEXT_BTN_POWEROFF_CANCEL,
+    CONF_TEXT_BTN_POWEROFF_NOW,
+    CONF_TEXT_POWEROFF_MSG,
+    CONF_TEXT_POWEROFF_TITLE,
     CONF_TEXT_BTN_RESET_CANCEL,
     CONF_TEXT_BTN_RESET_CONFIRM,
     CONF_TEXT_BTN_SNOOZE,
@@ -273,8 +278,8 @@ class NotifyManager:
         message = _render(_get_text(self._options, CONF_TEXT_DONE_MSG), variables)
         await self._send("done", title, message)
 
-    async def notify_poweroff_ask(self, printer_name: str, is_drying: bool) -> None:
-        """Send a push notification asking the user whether to power off or wait for drying."""
+    async def notify_poweroff_ask(self, printer_name: str) -> None:
+        """Send a push notification asking the user whether to power off or wait for AMS drying."""
         targets = self._targets()
         if not targets:
             return
@@ -282,24 +287,13 @@ class NotifyManager:
             _LOGGER.info("[%s] Poweroff question suppressed (quiet hours)", self._serial)
             return
 
-        if is_drying:
-            title = f"🔌 {printer_name} – Ausschalten?"
-            message = (
-                "Der Druck ist abgeschlossen, aber die AMS trocknet noch Filament. "
-                "Jetzt ausschalten oder Trocknung abwarten?"
-            )
-            action_buttons = [
-                {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Jetzt ausschalten"},
-                {"action": f"bc_poweroff_after_dry_{self._serial}", "title": "⏳ Nach Trocknung"},
-                {"action": f"bc_poweroff_wait_{self._serial}", "title": "❌ Abbrechen"},
-            ]
-        else:
-            title = f"🔌 {printer_name} – Ausschalten?"
-            message = "Der Druck ist fertig. Soll die Steckdose jetzt ausgeschaltet werden?"
-            action_buttons = [
-                {"action": f"bc_poweroff_now_{self._serial}", "title": "🔌 Ausschalten"},
-                {"action": f"bc_poweroff_wait_{self._serial}", "title": "❌ Abbrechen"},
-            ]
+        title = _render(_get_text(self._options, CONF_TEXT_POWEROFF_TITLE), {"drucker": printer_name})
+        message = _get_text(self._options, CONF_TEXT_POWEROFF_MSG)
+        action_buttons = [
+            {"action": f"bc_poweroff_now_{self._serial}", "title": _get_text(self._options, CONF_TEXT_BTN_POWEROFF_NOW)},
+            {"action": f"bc_poweroff_after_dry_{self._serial}", "title": _get_text(self._options, CONF_TEXT_BTN_POWEROFF_AFTER_DRY)},
+            {"action": f"bc_poweroff_wait_{self._serial}", "title": _get_text(self._options, CONF_TEXT_BTN_POWEROFF_CANCEL)},
+        ]
 
         for target in targets:
             try:

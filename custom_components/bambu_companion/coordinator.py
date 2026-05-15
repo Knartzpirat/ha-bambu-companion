@@ -293,7 +293,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         if is_drying and dry_mode == "ask":
             _LOGGER.info("[%s] Auto-poweroff: AMS is drying — asking user.", self._serial)
-            await self._notify.notify_poweroff_ask(self._printer_name, is_drying=True)
+            await self._notify.notify_poweroff_ask(self._printer_name)
             # Fallback: wait 30 min for user response, then apply drying-wait logic
             try:
                 await asyncio.sleep(30 * 60)
@@ -316,23 +316,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             await self._execute_poweroff()
             return
 
-        if not is_drying and dry_mode == "ask":
-            # No drying and mode ask → still ask (user can confirm)
-            _LOGGER.info("[%s] Auto-poweroff: no drying — asking user.", self._serial)
-            await self._notify.notify_poweroff_ask(self._printer_name, is_drying=False)
-            # Fallback: wait 30 min for user response, then power off
-            try:
-                await asyncio.sleep(30 * 60)
-            except asyncio.CancelledError:
-                _LOGGER.debug("[%s] Poweroff ask (no drying) cancelled by user response or new print.", self._serial)
-                return
-            _LOGGER.info("[%s] Auto-poweroff ask timeout: no response — executing poweroff.", self._serial)
-            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
-                return
-            await self._execute_poweroff()
-            return
-
-        # dry_mode == "poweroff" or (not drying and mode != ask/wait)
+        # dry_mode == "poweroff" (or not drying + any mode except "wait" while drying)
         await self._execute_poweroff()
 
     async def _execute_poweroff(self) -> None:
