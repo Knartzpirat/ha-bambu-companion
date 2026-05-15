@@ -96,6 +96,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._last_progress: int = 0
         self._last_print_name: str = ""
         self._last_cover_image_url: str = ""
+        self._trays_seen: dict[str, dict] = {}   # all trays seen during print, keyed by "ams_slot"
 
         # Accumulated per-session seconds for nozzle/laser tracking
         self._nozzle_session_start: datetime | None = None
@@ -537,6 +538,12 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     url = cov_state.attributes.get("entity_picture", "")
                     if url:
                         self._last_cover_image_url = url
+            # Continuously accumulate tray data — multi-filament prints cycle through
+            # different active trays; we collect all (ams, slot) combinations seen.
+            live_tray = self._read_tray_snapshot()
+            if live_tray is not None:
+                _key = f"{live_tray.get('ams', 'x')}_{live_tray.get('slot', 'x')}"
+                self._trays_seen[_key] = live_tray
 
         # Track nozzle/laser hours
         await self._update_runtime_trackers(new_status)
@@ -686,8 +693,54 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         self._print_status = new_status
 
+    def _read_tray_snapshot(self) -> dict | None:
+        """Capture active tray data from HA entities while the tray is active.
+
+        Returns a snapshot dict, or None if the tray state is unavailable/empty.
+        ha-bambulab resets active_tray to 'none' after a print ends, so this must
+        be called while printing.
+        """
+        name = get_entity_state(self.hass, self._entities, "active_tray") or ""
+        name_lower = name.lower()
+        if name_lower in ("none", "unknown", "empty", ""):
+            return None
+        color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
+        cols  = get_entity_attribute(self.hass, self._entities, "active_tray", "cols") or []
+        type_ = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
+        slot  = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
+        ams   = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
+        ams_model = ""
+        printer_device_id = self._entry.data.get("device_id", "")
+        if self._ams_device_ids and ams is not None:
+            ams_devices = get_ams_devices(self.hass, printer_device_id)
+            try:
+                ams_idx = int(ams)
+                if 128 <= ams_idx < 254:
+                    ht_devices = [d for d in ams_devices if "HT" in d.get("model", "")]
+                    ht_pos = ams_idx - 128
+                    if ht_pos < len(ht_devices):
+                        ams_model = ht_devices[ht_pos].get("model", "")
+                    elif ht_devices:
+                        ams_model = ht_devices[0].get("model", "")
+                elif 0 <= ams_idx < 128:
+                    non_ht = [d for d in ams_devices if "HT" not in d.get("model", "")]
+                    if ams_idx < len(non_ht):
+                        ams_model = non_ht[ams_idx].get("model", "")
+            except (TypeError, ValueError):
+                pass
+        return {
+            "name":      name,
+            "color":     color,
+            "cols":      cols,
+            "type":      type_,
+            "slot":      slot,
+            "ams":       ams,
+            "ams_model": ams_model,
+        }
+
     async def _on_print_start(self) -> None:
         self._cancel_poweroff_task()  # new print started — abort any pending poweroff
+        self._trays_seen = {}          # reset multi-filament accumulator for new print
         self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
         _LOGGER.info(
@@ -790,40 +843,24 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Also strip .gcode if double-extension like .gcode.3mf
             name = re.sub(r'\.gcode$', '', name, flags=re.IGNORECASE)
         plate, project_name = _extract_plate_info(gcode_file)
-        # Active tray / filament slot snapshot
-        active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
-        active_tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
-        active_tray_cols = get_entity_attribute(self.hass, self._entities, "active_tray", "cols") or []
-        active_tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
-        active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
-        active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
-        # AMS model name (e.g. "AMS 2 Pro", "AMS HT", "AMS Lite") from device registry
-        printer_device_id = self._entry.data.get("device_id", "")
-        ams_model = ""
-        if self._ams_device_ids and active_tray_ams is not None:
-            ams_devices = get_ams_devices(self.hass, printer_device_id)
-            # Bambu MQTT tray_now encoding:
-            #   0-127   = normal AMS (ams_index * 4 + slot) → ams_index 0-based
-            #   128-135 = AMS HT (indices 0x80-0x87) → positional index is ams_index - 128
-            #   254-255 = external spool sentinel → no AMS model
-            try:
-                ams_idx = int(active_tray_ams)
-                if 128 <= ams_idx < 254:
-                    # AMS HT: filter for "HT" devices and look up by positional offset
-                    ht_devices = [d for d in ams_devices if "HT" in d.get("model", "")]
-                    ht_pos = ams_idx - 128
-                    if ht_pos < len(ht_devices):
-                        ams_model = ht_devices[ht_pos].get("model", "")
-                    elif ht_devices:
-                        ams_model = ht_devices[0].get("model", "")
-                elif 0 <= ams_idx < 128:
-                    # Normal AMS: filter out HT devices to preserve positional order
-                    non_ht_devices = [d for d in ams_devices if "HT" not in d.get("model", "")]
-                    if ams_idx < len(non_ht_devices):
-                        ams_model = non_ht_devices[ams_idx].get("model", "")
-                # ams_idx >= 254: external spool — ams_model stays ""
-            except (TypeError, ValueError):
-                pass
+        # Active tray / filament slot snapshot.
+        # Use trays accumulated during the print — ha-bambulab resets active_tray
+        # to "none" as soon as the print completes, so reading it here would return empty.
+        # Sort by (ams, slot) so the list is deterministic; AMS HT (128+) comes after normal AMS.
+        trays_list = sorted(
+            self._trays_seen.values(),
+            key=lambda t: (int(t.get("ams") or 0), int(t.get("slot") or 0)),
+        )
+        self._trays_seen = {}  # clear for next print
+        # Primary tray (for backward-compat active_tray field and single-filament display)
+        _tray = trays_list[0] if trays_list else {}
+        active_tray_name  = _tray.get("name", "")
+        active_tray_color = _tray.get("color", "")
+        active_tray_cols  = _tray.get("cols", [])
+        active_tray_type  = _tray.get("type", "")
+        active_tray_slot  = _tray.get("slot")
+        active_tray_ams   = _tray.get("ams")
+        ams_model         = _tray.get("ams_model", "")
         cover_image_entity = self._entities.get("cover_image", "")
         # Fetch the raw image bytes from the HA image entity and encode as base64
         # data-URL so the history card can display it without relying on a
@@ -911,6 +948,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "ams": active_tray_ams,
                 "ams_model": ams_model,
             },
+            "trays_used": trays_list,
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,
         }

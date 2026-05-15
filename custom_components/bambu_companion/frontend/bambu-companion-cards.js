@@ -978,6 +978,11 @@ class BambuCompanionHistoryCard extends HTMLElement {
         .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
         .detail-item label { font-size: 0.72em; color: var(--secondary-text-color); display: block; margin-bottom: 1px; }
         .detail-item span  { font-size: 0.88em; font-weight: 500; }
+        .detail-item.detail-full { grid-column: 1 / -1; }
+        .tray-list { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+        .tray-row  { display: flex; align-items: center; gap: 6px; font-size: 0.88em; font-weight: 500; }
+        .tray-row .tray-name  { flex: 1; }
+        .tray-row .tray-slot  { font-size: 0.8em; color: var(--secondary-text-color); white-space: nowrap; }
         .color-swatch {
           display: inline-block; width: 12px; height: 12px; border-radius: 50%;
           border: 1px solid var(--divider-color); vertical-align: middle; margin-right: 4px;
@@ -1048,49 +1053,75 @@ class BambuCompanionHistoryCard extends HTMLElement {
             : `<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div>`;
 
         const tray = p.active_tray || {};
-        const rawTrayName = tray.name || "";
-        // Normalize ha-bambulab raw values: sentinel strings and "External Spool NNN" → "–"
-        const trayName = (rawTrayName === "none" || rawTrayName === "unknown" || rawTrayName === "Empty" || rawTrayName === "")
-            ? "–"
-            : (typeof rawTrayName === "string" && rawTrayName.toLowerCase().startsWith("external spool"))
-                ? "Extern (Spule)"
-                : rawTrayName;
-        const trayType = tray.type || "–";
-        const rawColor = tray.color || "";
-        const rawCols = Array.isArray(tray.cols) ? tray.cols : [];
-        // Prefer cols[0] (primary palette color, same source ha-bambulab uses for display)
-        // Fall back to color attribute. Handle 8-char RRGGBBAA: alpha="00" means empty/no tray.
-        const _bestRaw = (rawCols.length > 0 ? rawCols[0] : rawColor) || rawColor;
-        const _hex8 = _bestRaw.replace(/^#/, "");
-        const hexColor = (_hex8.length >= 8 && _hex8.slice(6, 8).toLowerCase() === "00")
-            ? ""
-            : _hex8.slice(0, 6);
-        const colorStyle = hexColor ? `background:#${hexColor}` : "background:var(--divider-color)";
-        const colorSwatch = `<span class="color-swatch" style="${colorStyle}"></span>`;
-        const trayColor = hexColor ? `${colorSwatch}#${hexColor}` : "–";
 
-        const amsIdx = tray.ams;
-        const slotIdx = tray.slot;
-        const amsModel = tray.ams_model || "";
-        // Bambu uses sentinel values for the external/virtual tray:
-        // tray_index = 254 (VT tray), ams_index = 255 (no AMS) or name starts with "External Spool"
-        const isExternalSpool =
-            (slotIdx != null && parseInt(slotIdx) >= 254) ||
-            (amsIdx != null && parseInt(amsIdx) >= 254) ||
-            (typeof rawTrayName === "string" && rawTrayName.toLowerCase().startsWith("external spool"));
-        // AMS HT uses indices 128-135 (0x80-0x87); display as position 1, 2, ... within HT series
-        const _amsIdxInt = amsIdx != null ? parseInt(amsIdx) : null;
-        const _amsIsHT   = _amsIdxInt != null && _amsIdxInt >= 128 && _amsIdxInt < 254;
-        const _amsDisplayNum = _amsIsHT ? (_amsIdxInt - 128 + 1) : (_amsIdxInt != null ? _amsIdxInt + 1 : "?");
-        let source = "–";
-        if (!isExternalSpool && amsIdx != null && slotIdx != null) {
-            const amsLabel = amsModel ? `${amsModel} ${_amsDisplayNum}` : (_amsIsHT ? `AMS HT ${_amsDisplayNum}` : `AMS ${_amsDisplayNum}`);
-            source = `${amsLabel}, Slot ${parseInt(slotIdx) + 1}`;
-        } else if (!isExternalSpool && amsIdx != null) {
-            source = amsModel ? `${amsModel} ${_amsDisplayNum}` : (_amsIsHT ? `AMS HT ${_amsDisplayNum}` : `AMS ${_amsDisplayNum}`);
-        } else if (isExternalSpool || trayName && trayName !== "–") {
-            source = "Extern";
-        }
+        // Helper: compute display info for any tray dict (active_tray or entry in trays_used)
+        const trayInfo = (t) => {
+            const raw = t.name || "";
+            const rl  = raw.toLowerCase();
+            const nameResolved = (rl === "none" || rl === "unknown" || rl === "empty" || raw === "")
+                ? ""
+                : (rl.startsWith("external spool") ? "Extern (Spule)" : raw);
+            const type   = t.type || "";
+            const name   = nameResolved || type || "–";
+            const rawCol = t.color || "";
+            const cols   = Array.isArray(t.cols) ? t.cols : [];
+            const best   = (cols.length > 0 ? cols[0] : rawCol) || rawCol;
+            const hex8   = best.replace(/^#/, "");
+            const hexC   = (hex8.length >= 8 && hex8.slice(6, 8).toLowerCase() === "00") ? "" : hex8.slice(0, 6);
+            const swatch = hexC
+                ? `<span class="color-swatch" style="background:#${hexC}"></span>`
+                : `<span class="color-swatch"></span>`;
+            const colorDisplay = hexC ? `${swatch}#${hexC}` : "–";
+            const amsIdx   = t.ams;
+            const slotIdx  = t.slot;
+            const amsModel = t.ams_model || "";
+            const isExt    = (slotIdx != null && parseInt(slotIdx) >= 254)
+                          || (amsIdx  != null && parseInt(amsIdx)  >= 254)
+                          || rl.startsWith("external spool");
+            const ai       = amsIdx != null ? parseInt(amsIdx) : null;
+            const isHT     = ai != null && ai >= 128 && ai < 254;
+            const dispNum  = isHT ? (ai - 128 + 1) : (ai != null ? ai + 1 : "?");
+            let source = "–";
+            if (!isExt && amsIdx != null && slotIdx != null) {
+                const lbl = amsModel ? `${amsModel} ${dispNum}` : (isHT ? `AMS HT ${dispNum}` : `AMS ${dispNum}`);
+                source = `${lbl}, Slot ${parseInt(slotIdx) + 1}`;
+            } else if (!isExt && amsIdx != null) {
+                source = amsModel ? `${amsModel} ${dispNum}` : (isHT ? `AMS HT ${dispNum}` : `AMS ${dispNum}`);
+            } else if (isExt || (name && name !== "–")) {
+                source = "Extern";
+            }
+            return { name, type: type || "–", hexC, swatch, colorDisplay, source };
+        };
+
+        // Build filament list: prefer trays_used (multi-filament aware), fall back to active_tray
+        const traysUsed = (Array.isArray(p.trays_used) && p.trays_used.length > 0)
+            ? p.trays_used
+            : (Object.keys(tray).length > 0 ? [tray] : []);
+        const trayInfos = traysUsed.map(trayInfo);
+
+        // Primary tray (single-filament fields)
+        const primary   = trayInfos[0] || {};
+        const trayName  = primary.name  || "–";
+        const trayType  = primary.type  || "–";
+        const trayColor = primary.colorDisplay || "–";
+        const source    = primary.source || "–";
+
+        // Multi-filament section HTML
+        const isMultiFilament = trayInfos.length > 1;
+        const filamentSectionHtml = isMultiFilament
+            ? `<div class="detail-item detail-full">
+                <label>Filamente (${trayInfos.length})</label>
+                <div class="tray-list">
+                  ${trayInfos.map(ti => `
+                    <div class="tray-row">
+                      <span class="color-swatch" style="${ti.hexC ? `background:#${ti.hexC}` : "background:var(--divider-color)"}"></span>
+                      <span class="tray-name">${ti.name}</span>
+                      <span class="tray-slot">${ti.source}</span>
+                    </div>`).join("")}
+                </div>
+              </div>`
+            : `${row2("Material", trayName, "Typ", trayType)}
+               ${row2("Farbe", trayColor, "Lager", source)}`;
 
         const nozzleDia = p.nozzle_diameter != null ? `${p.nozzle_diameter} mm` : "–";
         const nozzleType = translateNozzleType(p.nozzle_type);
@@ -1127,8 +1158,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
               <div class="modal-section">
                 <div class="modal-section-title">🧵 Filament</div>
                 <div class="detail-grid">
-                  ${row2("Material", trayName, "Typ", trayType)}
-                  ${row2("Farbe", trayColor, "Lager", source)}
+                  ${filamentSectionHtml}
                   ${row2("Verbrauch", filWeight, "Kosten", filCost)}
                 </div>
               </div>
