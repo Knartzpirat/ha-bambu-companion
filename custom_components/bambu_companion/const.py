@@ -45,14 +45,31 @@ CONF_MAX_HISTORY = "max_history"
 CONF_MAINTENANCE_DISABLED_TASKS = "maintenance_disabled_tasks"
 CONF_MAINTENANCE_INTERVALS = "maintenance_intervals"
 
-# Per-channel notification events (multi-select lists)
-# Each list contains event keys: "start", "progress", "done", "error", "maintenance"
-CONF_NOTIFY_MOBILE_EVENTS = "notify_mobile_events"   # events sent to phone
-CONF_NOTIFY_HA_EVENTS = "notify_ha_events"            # events shown in HA notifications
+# Per-channel notification events — legacy list keys (kept for migration only)
+CONF_NOTIFY_MOBILE_EVENTS = "notify_mobile_events"
+CONF_NOTIFY_HA_EVENTS = "notify_ha_events"
 CONF_IMPORT_TOTAL_HOURS = "import_total_hours"        # True = show printer firmware lifetime hours
 
+# Legacy list defaults (used for migration from old format)
 DEFAULT_NOTIFY_MOBILE_EVENTS: list[str] = ["start", "done", "error"]
 DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done", "maintenance", "error", "nozzle_change"]
+
+# Individual boolean event toggles (current format)
+# Mobile: all 6 events; HA: 4 events (no start/progress)
+DEFAULT_NOTIFY_MOBILE_BOOLS: dict[str, bool] = {
+    "notify_mobile_start": True,
+    "notify_mobile_progress": False,
+    "notify_mobile_done": True,
+    "notify_mobile_error": True,
+    "notify_mobile_maintenance": False,
+    "notify_mobile_nozzle_change": False,
+}
+DEFAULT_NOTIFY_HA_BOOLS: dict[str, bool] = {
+    "notify_ha_done": True,
+    "notify_ha_error": True,
+    "notify_ha_maintenance": True,
+    "notify_ha_nozzle_change": True,
+}
 
 # Custom text keys
 CONF_TEXT_START_TITLE = "text_start_title"

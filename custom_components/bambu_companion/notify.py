@@ -39,6 +39,8 @@ from .const import (
     CONF_TEXT_START_TITLE,
     DEFAULT_NOTIFY_HA_EVENTS,
     DEFAULT_NOTIFY_MOBILE_EVENTS,
+    DEFAULT_NOTIFY_HA_BOOLS,
+    DEFAULT_NOTIFY_MOBILE_BOOLS,
     DEFAULT_TEXTS,
 )
 
@@ -117,6 +119,30 @@ class NotifyManager:
             self._options.get(CONF_QUIET_TO, "07:00"),
         )
 
+    def _get_mobile_events(self) -> list[str]:
+        """Return enabled mobile event keys. Supports new bool format and legacy list format."""
+        opts = self._options
+        # New format: individual boolean keys
+        if any(f"notify_mobile_{e}" in opts for e in ("start", "done", "error")):
+            return [
+                ev for ev in ["start", "progress", "done", "error", "maintenance", "nozzle_change"]
+                if opts.get(f"notify_mobile_{ev}", DEFAULT_NOTIFY_MOBILE_BOOLS.get(f"notify_mobile_{ev}", False))
+            ]
+        # Legacy list format
+        return opts.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
+
+    def _get_ha_events(self) -> list[str]:
+        """Return enabled HA notification event keys. Supports new bool format and legacy list format."""
+        opts = self._options
+        # New format: individual boolean keys
+        if any(f"notify_ha_{e}" in opts for e in ("done", "error", "maintenance")):
+            return [
+                ev for ev in ["done", "error", "maintenance", "nozzle_change"]
+                if opts.get(f"notify_ha_{ev}", DEFAULT_NOTIFY_HA_BOOLS.get(f"notify_ha_{ev}", False))
+            ]
+        # Legacy list format
+        return opts.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+
     def _camera_entity_id(self) -> str | None:
         """Return the camera entity_id for this printer's device, if any."""
         if not self._device_id:
@@ -165,8 +191,8 @@ class NotifyManager:
 
     async def _send(self, event_key: str, title: str, message: str, extra_data: dict | None = None) -> None:
         """Route notification to configured channels based on per-event settings."""
-        mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
-        ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+        mobile_events = self._get_mobile_events()
+        ha_events = self._get_ha_events()
         targets = self._targets()
 
         _LOGGER.info(
@@ -322,8 +348,8 @@ class NotifyManager:
             f"oder tippe auf die passende Schaltfläche (aktiv: {active})."
         )
 
-        mobile_events = self._options.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
-        ha_events = self._options.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+        mobile_events = self._get_mobile_events()
+        ha_events = self._get_ha_events()
 
         # Mobile push with action buttons (one per slot)
         if "nozzle_change" in mobile_events:

@@ -61,6 +61,8 @@ from .const import (
     DEFAULT_NOTIFY_INTERVAL,
     DEFAULT_NOTIFY_MOBILE_EVENTS,
     DEFAULT_NOTIFY_HA_EVENTS,
+    DEFAULT_NOTIFY_MOBILE_BOOLS,
+    DEFAULT_NOTIFY_HA_BOOLS,
     DEFAULT_PRINTER_NAME,
     DEFAULT_QUIET_FROM,
     DEFAULT_QUIET_TO,
@@ -78,8 +80,19 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
         self._combined: dict = {}
 
     def _current(self) -> dict:
-        """Merged view: data values as base, options override."""
-        return {**self.config_entry.data, **self.config_entry.options}
+        """Merged view: data values as base, options override. Migrates old list format to booleans."""
+        merged = {**self.config_entry.data, **self.config_entry.options}
+        # Migrate old notify_mobile_events list → individual booleans
+        if CONF_NOTIFY_MOBILE_EVENTS in merged and "notify_mobile_start" not in merged:
+            old = merged.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS)
+            for ev in ["start", "progress", "done", "error", "maintenance", "nozzle_change"]:
+                merged[f"notify_mobile_{ev}"] = ev in old
+        # Migrate old notify_ha_events list → individual booleans
+        if CONF_NOTIFY_HA_EVENTS in merged and "notify_ha_done" not in merged:
+            old = merged.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
+            for ev in ["done", "error", "maintenance", "nozzle_change"]:
+                merged[f"notify_ha_{ev}"] = ev in old
+        return merged
 
     def _get_lovelace_uri_options(self) -> list[dict]:
         """Build URI options including all registered Lovelace dashboards from HA."""
@@ -205,10 +218,6 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_notify(self, user_input=None):
         current = self._current()
         if user_input is not None:
-            # Safety-net: multi-selects may arrive as None when nothing is selected — normalise to []
-            for key in (CONF_NOTIFY_MOBILE_EVENTS, CONF_NOTIFY_HA_EVENTS):
-                if user_input.get(key) is None:
-                    user_input[key] = []
             self._combined.update(user_input)
             return self.async_create_entry(title="", data={**self.config_entry.options, **self._combined})
 
@@ -279,39 +288,48 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 CONF_QUIET_TO,
                 default=current.get(CONF_QUIET_TO, DEFAULT_QUIET_TO),
             ): selector.TimeSelector(),
+            # Mobile events — individual toggles (avoids multi-select submission issues)
             vol.Required(
-                CONF_NOTIFY_MOBILE_EVENTS,
-                default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "start", "label": "Print started"},
-                        {"value": "progress", "label": "Progress update"},
-                        {"value": "done", "label": "Print complete"},
-                        {"value": "error", "label": "Print failed"},
-                        {"value": "maintenance", "label": "Maintenance due"},
-                        {"value": "nozzle_change", "label": "Nozzle change detected"},
-                    ],
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
-                )
-            ),
+                "notify_mobile_start",
+                default=current.get("notify_mobile_start", DEFAULT_NOTIFY_MOBILE_BOOLS["notify_mobile_start"]),
+            ): selector.BooleanSelector(),
             vol.Required(
-                CONF_NOTIFY_HA_EVENTS,
-                default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "start", "label": "Print started"},
-                        {"value": "done", "label": "Print complete"},
-                        {"value": "error", "label": "Print failed"},
-                        {"value": "maintenance", "label": "Maintenance due"},
-                        {"value": "nozzle_change", "label": "Nozzle change detected"},
-                    ],
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
-                )
-            ),
+                "notify_mobile_progress",
+                default=current.get("notify_mobile_progress", DEFAULT_NOTIFY_MOBILE_BOOLS["notify_mobile_progress"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_mobile_done",
+                default=current.get("notify_mobile_done", DEFAULT_NOTIFY_MOBILE_BOOLS["notify_mobile_done"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_mobile_error",
+                default=current.get("notify_mobile_error", DEFAULT_NOTIFY_MOBILE_BOOLS["notify_mobile_error"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_mobile_maintenance",
+                default=current.get("notify_mobile_maintenance", DEFAULT_NOTIFY_MOBILE_BOOLS["notify_mobile_maintenance"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_mobile_nozzle_change",
+                default=current.get("notify_mobile_nozzle_change", DEFAULT_NOTIFY_MOBILE_BOOLS["notify_mobile_nozzle_change"]),
+            ): selector.BooleanSelector(),
+            # HA notification events — individual toggles
+            vol.Required(
+                "notify_ha_done",
+                default=current.get("notify_ha_done", DEFAULT_NOTIFY_HA_BOOLS["notify_ha_done"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_ha_error",
+                default=current.get("notify_ha_error", DEFAULT_NOTIFY_HA_BOOLS["notify_ha_error"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_ha_maintenance",
+                default=current.get("notify_ha_maintenance", DEFAULT_NOTIFY_HA_BOOLS["notify_ha_maintenance"]),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                "notify_ha_nozzle_change",
+                default=current.get("notify_ha_nozzle_change", DEFAULT_NOTIFY_HA_BOOLS["notify_ha_nozzle_change"]),
+            ): selector.BooleanSelector(),
             vol.Optional(
                 CONF_ACTION_BTN_1_TITLE,
                 description={"suggested_value": default_btn1_title},
