@@ -10,36 +10,46 @@ const VERSION = "0.0.1";
 // ── Translation maps (ha-bambulab raw values → human-readable DE) ─────────────
 
 const PLATE_LABELS = {
-    "cool_plate":            "Cool Plate (PLA)",
-    "engineering_plate":     "Engineering Plate (PETG/ABS)",
-    "high_temp_plate":       "High-Temp Plate (ABS/ASA)",
-    "textured_pei_plate":    "Textured PEI Plate",
-    "smooth_pei_plate":      "Smooth PEI Plate",
-    "hot_plate":             "Bambu Cool Plate",
-    "bambu_cool_plate":      "Bambu Cool Plate",
-    "bambu_smooth_pla_plate":"Smooth PLA Plate",
+    "cool_plate":             "Cool Plate (PLA)",
+    "engineering_plate":      "Engineering Plate (PETG/ABS)",
+    "high_temp_plate":        "High-Temp Plate (ABS/ASA)",
+    "textured_plate":         "Strukturierte Platte (PEI)",
+    "textured_pei_plate":     "Strukturierte PEI-Platte",
+    "smooth_plate":           "Glatte Platte (PEI)",
+    "smooth_pei_plate":       "Glatte PEI-Platte",
+    "hot_plate":              "Bambu Cool Plate",
+    "bambu_cool_plate":       "Bambu Cool Plate",
+    "bambu_smooth_pla_plate": "Smooth PLA Plate",
     "bambu_engineering_plate":"Engineering Plate",
+    "supertack_plate":        "SuperTack Plate",
 };
 
 // Bed/surface type as reported by ha-bambulab print_bed_type entity
 const BED_TYPE_LABELS = {
     "textured_plate":         "Strukturierte Platte (PEI)",
     "smooth_plate":           "Glatte Platte (PEI)",
+    "hot_plate":              "Glatte PEI-Platte / High-Temp",
     "high_temp_plate":        "High-Temp Plate",
     "cool_plate":             "Cool Plate",
+    "eng_plate":              "Engineering Plate",
     "engineering_plate":      "Engineering Plate",
     "bambu_cool_plate":       "Bambu Cool Plate",
     "bambu_smooth_pla_plate": "Smooth PLA Plate",
     "bambu_engineering_plate":"Engineering Plate",
     "supertack_plate":        "SuperTack Plate",
-    "textured_pei_plate":     "Textured PEI Plate",
-    "smooth_pei_plate":       "Smooth PEI Plate",
+    "textured_pei_plate":     "Strukturierte PEI-Platte",
+    "smooth_pei_plate":       "Glatte PEI-Platte",
 };
 
 const NOZZLE_TYPE_LABELS = {
-    "hardened_steel":  "Hardened Steel",
-    "stainless_steel": "Edelstahl",
-    "brass":           "Messing",
+    "hardened_steel":             "Gehärteter Stahl",
+    "stainless_steel":            "Edelstahl",
+    "brass":                      "Messing",
+    "tungsten_carbide":           "Wolframkarbid",
+    "high_flow_hardened_steel":   "High-Flow Gehärteter Stahl",
+    "high_flow_stainless_steel":  "High-Flow Edelstahl",
+    "high_flow_tungsten_carbide": "High-Flow Wolframkarbid",
+    "unknown":                    "Unbekannt",
 };
 
 function translatePlate(raw) {
@@ -1038,11 +1048,23 @@ class BambuCompanionHistoryCard extends HTMLElement {
             : `<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div>`;
 
         const tray = p.active_tray || {};
-        const trayName = tray.name || "–";
+        const rawTrayName = tray.name || "";
+        // Normalize ha-bambulab raw values: sentinel strings and "External Spool NNN" → "–"
+        const trayName = (rawTrayName === "none" || rawTrayName === "unknown" || rawTrayName === "Empty" || rawTrayName === "")
+            ? "–"
+            : (typeof rawTrayName === "string" && rawTrayName.toLowerCase().startsWith("external spool"))
+                ? "Extern (Spule)"
+                : rawTrayName;
         const trayType = tray.type || "–";
         const rawColor = tray.color || "";
-        // Normalize color: strip leading # if present, treat as hex RRGGBB or RRGGBBAA
-        const hexColor = rawColor.replace(/^#/, "").slice(0, 6);
+        const rawCols = Array.isArray(tray.cols) ? tray.cols : [];
+        // Prefer cols[0] (primary palette color, same source ha-bambulab uses for display)
+        // Fall back to color attribute. Handle 8-char RRGGBBAA: alpha="00" means empty/no tray.
+        const _bestRaw = (rawCols.length > 0 ? rawCols[0] : rawColor) || rawColor;
+        const _hex8 = _bestRaw.replace(/^#/, "");
+        const hexColor = (_hex8.length >= 8 && _hex8.slice(6, 8).toLowerCase() === "00")
+            ? ""
+            : _hex8.slice(0, 6);
         const colorStyle = hexColor ? `background:#${hexColor}` : "background:var(--divider-color)";
         const colorSwatch = `<span class="color-swatch" style="${colorStyle}"></span>`;
         const trayColor = hexColor ? `${colorSwatch}#${hexColor}` : "–";
@@ -1055,13 +1077,17 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const isExternalSpool =
             (slotIdx != null && parseInt(slotIdx) >= 254) ||
             (amsIdx != null && parseInt(amsIdx) >= 254) ||
-            (typeof trayName === "string" && trayName.toLowerCase().startsWith("external spool"));
+            (typeof rawTrayName === "string" && rawTrayName.toLowerCase().startsWith("external spool"));
+        // AMS HT uses indices 128-135 (0x80-0x87); display as position 1, 2, ... within HT series
+        const _amsIdxInt = amsIdx != null ? parseInt(amsIdx) : null;
+        const _amsIsHT   = _amsIdxInt != null && _amsIdxInt >= 128 && _amsIdxInt < 254;
+        const _amsDisplayNum = _amsIsHT ? (_amsIdxInt - 128 + 1) : (_amsIdxInt != null ? _amsIdxInt + 1 : "?");
         let source = "–";
         if (!isExternalSpool && amsIdx != null && slotIdx != null) {
-            const amsLabel = amsModel ? `${amsModel} ${parseInt(amsIdx) + 1}` : `AMS ${parseInt(amsIdx) + 1}`;
+            const amsLabel = amsModel ? `${amsModel} ${_amsDisplayNum}` : (_amsIsHT ? `AMS HT ${_amsDisplayNum}` : `AMS ${_amsDisplayNum}`);
             source = `${amsLabel}, Slot ${parseInt(slotIdx) + 1}`;
         } else if (!isExternalSpool && amsIdx != null) {
-            source = amsModel ? `${amsModel} ${parseInt(amsIdx) + 1}` : `AMS ${parseInt(amsIdx) + 1}`;
+            source = amsModel ? `${amsModel} ${_amsDisplayNum}` : (_amsIsHT ? `AMS HT ${_amsDisplayNum}` : `AMS ${_amsDisplayNum}`);
         } else if (isExternalSpool || trayName && trayName !== "–") {
             source = "Extern";
         }

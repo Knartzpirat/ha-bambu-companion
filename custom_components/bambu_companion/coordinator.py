@@ -793,6 +793,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Active tray / filament slot snapshot
         active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
         active_tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
+        active_tray_cols = get_entity_attribute(self.hass, self._entities, "active_tray", "cols") or []
         active_tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
         active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
         active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
@@ -801,12 +802,26 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         ams_model = ""
         if self._ams_device_ids and active_tray_ams is not None:
             ams_devices = get_ams_devices(self.hass, printer_device_id)
-            # Match by index (AMS devices are ordered by their position).
-            # Bambu uses ams_index >= 254 as sentinel for "no AMS / external spool" — ignore those.
+            # Bambu MQTT tray_now encoding:
+            #   0-127   = normal AMS (ams_index * 4 + slot) → ams_index 0-based
+            #   128-135 = AMS HT (indices 0x80-0x87) → positional index is ams_index - 128
+            #   254-255 = external spool sentinel → no AMS model
             try:
                 ams_idx = int(active_tray_ams)
-                if 0 <= ams_idx < min(len(ams_devices), 254):
-                    ams_model = ams_devices[ams_idx].get("model", "")
+                if 128 <= ams_idx < 254:
+                    # AMS HT: filter for "HT" devices and look up by positional offset
+                    ht_devices = [d for d in ams_devices if "HT" in d.get("model", "")]
+                    ht_pos = ams_idx - 128
+                    if ht_pos < len(ht_devices):
+                        ams_model = ht_devices[ht_pos].get("model", "")
+                    elif ht_devices:
+                        ams_model = ht_devices[0].get("model", "")
+                elif 0 <= ams_idx < 128:
+                    # Normal AMS: filter out HT devices to preserve positional order
+                    non_ht_devices = [d for d in ams_devices if "HT" not in d.get("model", "")]
+                    if ams_idx < len(non_ht_devices):
+                        ams_model = non_ht_devices[ams_idx].get("model", "")
+                # ams_idx >= 254: external spool — ams_model stays ""
             except (TypeError, ValueError):
                 pass
         cover_image_entity = self._entities.get("cover_image", "")
@@ -890,6 +905,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "active_tray": {
                 "name": active_tray_name,
                 "color": active_tray_color,
+                "cols": active_tray_cols,
                 "type": active_tray_type,
                 "slot": active_tray_slot,
                 "ams": active_tray_ams,
