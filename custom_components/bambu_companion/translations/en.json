@@ -3,28 +3,42 @@
         "step": {
             "user": {
                 "title": "Select printer",
-                "description": "Select a Bambu Lab printer already set up via the ha-bambulab integration.",
+                "description": "Bambu Companion adds statistics, cost tracking and maintenance reminders to an existing Bambu Lab printer. Prerequisite: the ha-bambulab integration must already be set up and the printer connected.",
                 "data": {
                     "device_id": "Printer"
+                },
+                "data_description": {
+                    "device_id": "Select the printer you want to monitor. Bambu Companion reads live data from ha-bambulab and adds its own counters, print costs and maintenance plans."
                 }
             },
             "ams": {
                 "title": "AMS units",
-                "description": "Select the AMS units to monitor.",
+                "description": "The Automatic Material System (AMS) enables multi-filament printing. Select all AMS units connected to this printer. Printers without AMS skip this step automatically.",
                 "data": {
                     "ams_device_ids": "AMS units"
+                },
+                "data_description": {
+                    "ams_device_ids": "All detected AMS units are pre-selected. Remove any units you do not want to monitor."
                 }
             },
             "energy": {
                 "title": "Energy & costs",
-                "description": "Enter electricity price and filament cost so Bambu Companion can calculate print costs. The sensors are optional.",
+                "description": "Bambu Companion calculates print costs from energy consumption and filament weight. The optional sensors enable accurate measurement instead of estimates — you can also add them later in Settings.",
                 "data": {
-                    "electricity_price": "Electricity price (€/kWh)",
+                    "electricity_price": "Electricity price (per kWh)",
                     "electricity_sensor": "Dynamic electricity price sensor (optional)",
                     "energy_sensor": "Smart plug kWh sensor (optional)",
-                    "filament_cost": "Filament cost per kg (€)",
+                    "filament_cost": "Filament cost per kg",
                     "currency": "Currency symbol",
                     "filament_unit": "Filament unit"
+                },
+                "data_description": {
+                    "electricity_price": "Price per kWh, e.g. 0.30 for 30 cents. Used for cost estimates when no live sensor is provided.",
+                    "electricity_sensor": "Optional: sensor with the current electricity price per kWh — e.g. from Tibber or another tariff service.",
+                    "energy_sensor": "Optional: kWh sensor of a smart plug connected to the printer. Provides actual consumption instead of an estimate.",
+                    "filament_cost": "Cost per kilogram of filament, e.g. 25.00. Bambu Companion calculates filament costs from the consumed weight.",
+                    "currency": "Currency symbol for sensors and dashboard cards, e.g. € or $.",
+                    "filament_unit": "Unit for filament quantity display — kg or g."
                 }
             },
             "notify": {
@@ -35,8 +49,32 @@
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
                     "quiet_to": "Quiet hours to",
-                    "notify_mobile_events": "Events → send to phone",
-                    "notify_ha_events": "Events → HA notifications"
+                    "notify_mobile_start": "📱 Print started (phone)",
+                    "notify_mobile_progress": "📱 Progress updates (phone)",
+                    "notify_mobile_done": "📱 Print complete (phone)",
+                    "notify_mobile_error": "📱 Print failed (phone)",
+                    "notify_mobile_maintenance": "📱 Maintenance due (phone)",
+                    "notify_mobile_nozzle_change": "📱 Nozzle change detected (phone)",
+                    "notify_ha_done": "🔔 Print complete (HA inbox)",
+                    "notify_ha_error": "🔔 Print failed (HA inbox)",
+                    "notify_ha_maintenance": "🔔 Maintenance due (HA inbox)",
+                    "notify_ha_nozzle_change": "🔔 Nozzle change detected (HA inbox)"
+                },
+                "data_description": {
+                    "notify_targets": "Select your smartphone or tablet from the list of HA Companion App devices. Leave empty to use only the HA inbox.",
+                    "notify_interval": "A progress update is sent every X percent, e.g. 25 = at 25 %, 50 %, 75 % and 100 %.",
+                    "quiet_from": "Start of quiet hours. During this period NO smartphone notifications are sent (applies to all event types). HA inbox messages are not affected.",
+                    "quiet_to": "End of quiet hours. Smartphone notifications resume afterwards."
+                }
+            },
+            "import": {
+                "title": "Print time source",
+                "description": "Bambu Companion can read the print time directly from the printer or count it itself. Recommendation: leave enabled — this shows the full lifetime of the printer immediately.",
+                "data": {
+                    "import_total_hours": "Import printer operating hours"
+                },
+                "data_description": {
+                    "import_total_hours": "Enabled (recommended): the 'Total print time' sensor shows the hours counted internally by the printer firmware — i.e. the complete lifetime, including before this installation.\nDisabled: Bambu Companion only counts print time from the moment of setup onwards."
                 }
             }
         },
@@ -79,15 +117,29 @@
             },
             "notify": {
                 "title": "Notifications",
-                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.",
+                "description": "Phone channel and HA inbox are independently configurable. Quiet hours suppress all smartphone notifications.\n\n**{camera_hint}**",
                 "data": {
                     "printer_display_name": "Printer display name",
                     "notify_targets": "Mobile device(s) for notifications",
                     "notify_interval": "Progress interval (%)",
                     "quiet_from": "Quiet hours from",
                     "quiet_to": "Quiet hours to",
-                    "notify_mobile_events": "Events → send to phone",
-                    "notify_ha_events": "Events → HA notifications"
+                    "notify_mobile_start": "📱 Print started (phone)",
+                    "notify_mobile_progress": "📱 Progress updates (phone)",
+                    "notify_mobile_done": "📱 Print complete (phone)",
+                    "notify_mobile_error": "📱 Print failed (phone)",
+                    "notify_mobile_maintenance": "📱 Maintenance due (phone)",
+                    "notify_mobile_nozzle_change": "📱 Nozzle change detected (phone)",
+                    "notify_ha_done": "🔔 Print complete (HA inbox)",
+                    "notify_ha_error": "🔔 Print failed (HA inbox)",
+                    "notify_ha_maintenance": "🔔 Maintenance due (HA inbox)",
+                    "notify_ha_nozzle_change": "🔔 Nozzle change detected (HA inbox)",
+                    "action_btn_1_title": "Action 1 Title",
+                    "action_btn_1_uri": "Action 1 action",
+                    "action_btn_2_fallback_title": "Action 2 label",
+                    "action_btn_2_uri": "Action 2 action",
+                    "action_btn_2_camera_entity": "Action 2 camera entity",
+                    "action_btn_3_mode": "Third button mode"
                 },
                 "data_description": {
                     "printer_display_name": "Name of the printer shown in notifications and cards.",
@@ -95,82 +147,154 @@
                     "notify_interval": "A progress update is sent every X percent, e.g. 25 = at 25 %, 50 %, 75 % and 100 %.",
                     "quiet_from": "Start of quiet hours – NO smartphone notifications after this time (applies to all event types). The HA inbox is not affected.",
                     "quiet_to": "End of quiet hours – smartphone notifications resume.",
-                    "notify_mobile_events": "These events are sent as push notifications to the phone. Requires at least one selected mobile device.",
-                    "notify_ha_events": "These events appear in the HA inbox. No smartphone required."
+                    "notify_mobile_start": "Push notification to phone when a print starts.",
+                    "notify_mobile_progress": "Push notification to phone every X percent progress (configure interval above).",
+                    "notify_mobile_done": "Push notification to phone when a print finishes successfully.",
+                    "notify_mobile_error": "Push notification to phone when a print error or cancellation occurs.",
+                    "notify_mobile_maintenance": "Push notification to phone when a maintenance task becomes due.",
+                    "notify_mobile_nozzle_change": "Push notification to phone when a nozzle type or size change is detected.",
+                    "notify_ha_done": "HA inbox notification (bell) when a print finishes successfully.",
+                    "notify_ha_error": "HA inbox notification (bell) when a print error or cancellation occurs.",
+                    "notify_ha_maintenance": "HA inbox notification (bell) when a maintenance task becomes due.",
+                    "notify_ha_nozzle_change": "HA inbox notification (bell) when a nozzle type or size change is detected.",
+                    "action_btn_1_title": "Text for the first notification button.",
+                    "action_btn_1_uri": "Action for button 1. Choose between opening the Bambu App or Home Assistant.",
+                    "action_btn_2_fallback_title": "Label shown on button 2. You can choose Camera, Bambu App or Home Assistant.",
+                    "action_btn_2_uri": "Action for button 2. Choose between opening the Bambu App, Home Assistant, or Camera if available.",
+                    "action_btn_2_camera_entity": "Optional camera entity for button 2 when the camera action is selected.",
+                    "action_btn_3_mode": "Function of the third button. 'Mute Progress' = a push notification action button lets the user enter minutes to mute progress notifications (auto-cleared when print ends)."
                 }
             },
             "maintenance": {
                 "title": "Maintenance intervals",
-                "description": "Intervals in hours or print count. A notification is sent when the interval is reached.",
+                "description": "Enable or disable individual tasks and configure their intervals. A notification is sent when the interval is reached.",
                 "data": {
                     "nozzle_clean": "Clean toolhead nozzle",
+                    "interval_nozzle_clean": "Interval",
                     "nozzle_replace": "Toolhead nozzle replaced (reset hours counter)",
+                    "interval_nozzle_replace": "Interval",
                     "left_nozzle_clean": "Clean toolhead left nozzle (H2D)",
+                    "interval_left_nozzle_clean": "Interval",
                     "left_nozzle_replace": "Toolhead left nozzle replaced – reset hours counter (H2D)",
+                    "interval_left_nozzle_replace": "Interval",
                     "right_nozzle_clean": "Clean toolhead right nozzle (H2D)",
+                    "interval_right_nozzle_clean": "Interval",
                     "right_nozzle_replace": "Toolhead right nozzle replaced – reset hours counter (H2D)",
+                    "interval_right_nozzle_replace": "Interval",
                     "filament_cutter": "Check / replace toolhead filament cutter",
+                    "interval_filament_cutter": "Interval",
                     "ptfe_tube": "Check / replace toolhead PTFE tube",
+                    "interval_ptfe_tube": "Interval",
                     "heatbreak": "Clean toolhead hotend / heatbreak",
+                    "interval_heatbreak": "Interval",
                     "lube_linear": "Clean & preserve Y/Z linear rods",
+                    "interval_lube_linear": "Interval",
                     "lube_z": "Lubricate Z lead screws",
+                    "interval_lube_z": "Interval",
                     "carbon_rods": "Clean carbon rods – IPA only, no oil! (X1/X1C/X1E/P1S)",
+                    "interval_carbon_rods": "Interval",
                     "belt": "Check belt tension (X & Y)",
+                    "interval_belt": "Interval",
                     "extruder_gear": "Clean toolhead extruder gear",
+                    "interval_extruder_gear": "Interval",
                     "toolhead_cable": "Inspect toolhead cable",
+                    "interval_toolhead_cable": "Interval",
                     "clean_bed": "Clean print bed",
+                    "interval_clean_bed": "Interval",
                     "fans_clean": "Clean all fans",
+                    "interval_fans_clean": "Interval",
                     "hepa_filter": "Replace chamber HEPA filter (X1/X1C/X1E)",
+                    "interval_hepa_filter": "Interval",
                     "carbon_filter": "Replace activated carbon filter (X1/X1C/X1E/P1S/H2D)",
+                    "interval_carbon_filter": "Interval",
                     "ams_wiper": "Clean purge wiper (AMS)",
+                    "interval_ams_wiper": "Interval",
                     "ams_gears": "Clean AMS gears / rollers (AMS)",
+                    "interval_ams_gears": "Interval",
                     "resonance_cal": "Resonance compensation calibration",
+                    "interval_resonance_cal": "Interval",
                     "flow_cal": "Flow rate calibration",
+                    "interval_flow_cal": "Interval",
                     "laser_lens": "Clean laser head lens & fan (H2D)",
+                    "interval_laser_lens": "Interval",
                     "laser_deep": "Deep clean laser head (H2D)",
+                    "interval_laser_deep": "Interval",
                     "laser_bed": "Clean laser bed",
+                    "interval_laser_bed": "Interval",
                     "laser_safety": "Check laser safety window (H2D)",
+                    "interval_laser_safety": "Interval",
                     "vortek_lube": "Lubricate rack guides (H2C)",
-                    "vortek_wear": "Check hotend slots for wear (H2C)"
+                    "interval_vortek_lube": "Interval",
+                    "vortek_wear": "Check hotend slots for wear (H2C)",
+                    "interval_vortek_wear": "Interval"
                 },
                 "data_description": {
                     "nozzle_clean": "Trigger: nozzle print hours. Resets reminder only, not the hours counter.",
+                    "interval_nozzle_clean": "hours",
                     "nozzle_replace": "Trigger: nozzle print hours. Resets the full nozzle hours counter to 0 when acknowledged.",
+                    "interval_nozzle_replace": "hours",
                     "left_nozzle_clean": "Trigger: nozzle print hours. Resets reminder only.",
+                    "interval_left_nozzle_clean": "hours",
                     "left_nozzle_replace": "Trigger: nozzle print hours. Resets left nozzle hours counter to 0 when acknowledged.",
+                    "interval_left_nozzle_replace": "hours",
                     "right_nozzle_clean": "Trigger: nozzle print hours. Resets reminder only.",
+                    "interval_right_nozzle_clean": "hours",
                     "right_nozzle_replace": "Trigger: nozzle print hours. Resets right nozzle hours counter to 0 when acknowledged.",
+                    "interval_right_nozzle_replace": "hours",
                     "filament_cutter": "Trigger: print count | Wiki → Bambu: Filament Cutter",
+                    "interval_filament_cutter": "print count",
                     "ptfe_tube": "Trigger: print hours",
+                    "interval_ptfe_tube": "hours",
                     "heatbreak": "Trigger: print hours | Wiki → Bambu: Hotend Cleaning",
+                    "interval_heatbreak": "hours",
                     "lube_linear": "Trigger: print hours | Wiki → Bambu: Linear Rods & Bearings",
+                    "interval_lube_linear": "hours",
                     "lube_z": "Trigger: print hours | Wiki → Bambu: Lead Screws",
+                    "interval_lube_z": "hours",
                     "carbon_rods": "Trigger: print hours | Wiki → Bambu: Carbon Rods",
+                    "interval_carbon_rods": "hours",
                     "belt": "Trigger: print hours | Wiki → Bambu: Belt Tension",
+                    "interval_belt": "hours",
                     "extruder_gear": "Trigger: print hours | Wiki → Bambu: Extruder",
+                    "interval_extruder_gear": "hours",
                     "toolhead_cable": "Trigger: print hours",
+                    "interval_toolhead_cable": "hours",
                     "clean_bed": "Trigger: print count",
+                    "interval_clean_bed": "print count",
                     "fans_clean": "Trigger: print hours | Wiki → Bambu: Part Cooling Fans",
-                    "hepa_filter": "Trigger: total hours",
-                    "carbon_filter": "Trigger: total hours | Wiki → Bambu: Carbon Filter",
+                    "interval_fans_clean": "hours",
+                    "hepa_filter": "Trigger: print hours (all materials) | Wiki → Bambu: Carbon Filter",
+                    "interval_hepa_filter": "hours",
+                    "carbon_filter": "Trigger: fume print hours (ABS, ASA, PA, PC, TPU, ...) + laser hours (H2D) | Wiki → Bambu: Carbon Filter",
+                    "interval_carbon_filter": "hours",
                     "ams_wiper": "Trigger: print count",
+                    "interval_ams_wiper": "print count",
                     "ams_gears": "Trigger: print hours | Wiki → Bambu: AMS Maintenance",
+                    "interval_ams_gears": "hours",
                     "resonance_cal": "Trigger: print hours",
+                    "interval_resonance_cal": "hours",
                     "flow_cal": "Trigger: print hours",
+                    "interval_flow_cal": "hours",
                     "laser_lens": "Trigger: laser hours",
+                    "interval_laser_lens": "hours",
                     "laser_deep": "Trigger: laser hours",
+                    "interval_laser_deep": "hours",
                     "laser_bed": "Trigger: laser jobs",
+                    "interval_laser_bed": "jobs",
                     "laser_safety": "Trigger: laser hours",
+                    "interval_laser_safety": "hours",
                     "vortek_lube": "Trigger: total hours",
-                    "vortek_wear": "Trigger: total hours"
+                    "interval_vortek_lube": "hours",
+                    "vortek_wear": "Trigger: total hours",
+                    "interval_vortek_wear": "hours"
                 }
             },
             "texts": {
                 "title": "Customise notification texts",
                 "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
                 "data": {
-                    "text_start_title": "Print started \u2013 title",
-                    "text_start_msg": "Print started \u2013 message",
+                    "text_start_title": "Print started – title",
+                    "text_start_msg": "Print started – message",
                     "text_progress_title": "Progress – title",
                     "text_done_title": "Done – title",
                     "text_error_title": "Error – title",
@@ -186,17 +310,40 @@
                     "text_btn_cancel": "Button: Cancel",
                     "text_btn_reset_confirm": "Button: Confirm reset",
                     "text_btn_reset_cancel": "Button: Cancel reset",
-                    "text_btn_camera": "Button: Camera"
+                    "text_btn_camera": "Button: Camera",
+                    "text_poweroff_title": "Power-off ask – title",
+                    "text_poweroff_msg": "Power-off ask – message",
+                    "text_btn_poweroff_now": "Button: Power off now",
+                    "text_btn_poweroff_after_dry": "Button: After drying",
+                    "text_btn_poweroff_cancel": "Button: Cancel power-off"
                 }
             },
             "general": {
                 "title": "General settings",
-                "description": "General settings for Bambu Companion.",
+                "description": "Miscellaneous settings for Bambu Companion.",
                 "data": {
-                    "max_history": "Max. stored prints (history)"
+                    "max_history": "Max. stored prints (history)",
+                    "import_total_hours": "Import printer operating hours"
                 },
                 "data_description": {
-                    "max_history": "Maximum number of print jobs stored in the history. 0 = unlimited."
+                    "max_history": "How many completed print jobs are kept in the history. 0 = unlimited.",
+                    "import_total_hours": "Enabled (recommended): the 'Total print time' sensor shows the hours counted internally by the printer firmware — the full lifetime, including before this installation.\nDisabled: Bambu Companion only counts print time from the moment of setup onwards."
+                }
+            },
+            "poweroff": {
+                "title": "Auto power-off",
+                "description": "Automatically turns off the printer's smart plug after a configurable idle period following a completed print. Note: with 'Ask', a push notification is only sent when at least one mobile target is configured. Without a target there is no query, but the power off logic still continues.",
+                "data": {
+                    "auto_poweroff_enabled": "Enable auto power-off",
+                    "auto_poweroff_switch": "Smart plug entity (switch / input boolean)",
+                    "auto_poweroff_delay_min": "Idle time after print end (minutes)",
+                    "auto_poweroff_dry_mode": "Behaviour when AMS is still drying"
+                },
+                "data_description": {
+                    "auto_poweroff_enabled": "When enabled, the smart plug is turned off after the idle period expires, provided no new print has started.",
+                    "auto_poweroff_switch": "Switch or input-boolean entity of the smart plug the printer is connected to.",
+                    "auto_poweroff_delay_min": "Minutes to wait for a new print job after print end before powering off. Default: 60.",
+                    "auto_poweroff_dry_mode": "'Ask': send a push notification with options. 'Always power off': turn off immediately without asking. 'Wait for drying': keep the printer on until the AMS finishes drying."
                 }
             }
         }
@@ -204,12 +351,12 @@
     "entity": {
         "select": {
             "maintenance_task_select": {
-                "name": "Maintenance Task"
+                "name": "Maintenance task"
             }
         },
         "button": {
             "reset_selected_task": {
-                "name": "Reset Maintenance Task"
+                "name": "Reset maintenance task"
             }
         }
     }
