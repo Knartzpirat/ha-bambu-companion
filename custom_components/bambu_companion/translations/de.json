@@ -291,7 +291,7 @@
             },
             "texts": {
                 "title": "Benachrichtigungstexte anpassen",
-                "description": "Passe Titel, Nachrichtentext und Schaltflächenbeschriftungen für jede Benachrichtigung an. Platzhalter: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
+                "description": "Passe Titel, Nachrichtentext und Schaltfl\u00e4chenbeschriftungen f\u00fcr jede Benachrichtigung an. Platzhalter: '{printer}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{maintenance}', '{hours}', '{interval}'.",
                 "data": {
                     "text_start_title": "Gestartet – Titel",
                     "text_start_msg": "Gestartet – Nachricht",

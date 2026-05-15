@@ -684,7 +684,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 print_name = self._last_print_name
                 await self._notify.notify_progress(
                     {
-                        "drucker": printer_name,
+                        "printer": printer_name,
                         "name": print_name,
                         "progress": progress,
                         "remaining": remaining,
@@ -749,7 +749,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         )
         printer_name = self._printer_name
         await self._notify.notify_start(
-            {"drucker": printer_name, "name": self._last_print_name}
+            {"printer": printer_name, "name": self._last_print_name}
         )
         energy_entity_id = self._options.get(CONF_ENERGY_SENSOR)
         if energy_entity_id:
@@ -783,7 +783,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         printer_name = self._printer_name
         currency = self._options.get(CONF_CURRENCY, DEFAULT_CURRENCY)
         variables = {
-            "drucker": printer_name,
+            "printer": printer_name,
             "name": record.get("name", ""),
             "duration": _format_minutes(record.get("duration_min", 0)),
             "weight": f"{record.get('filament_weight_g', 0):.1f} g",
@@ -812,7 +812,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         progress_raw = get_entity_float(self.hass, self._entities, "print_progress")
         await self._notify.notify_error(
             {
-                "drucker": printer_name,
+                "printer": printer_name,
                 "name": record.get("name", ""),
                 "progress": int(progress_raw or 0),
                 "duration": _format_minutes(record.get("duration_min", 0)),
@@ -1126,11 +1126,11 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     printer_name = self._printer_name
                     await self._notify.notify_maintenance(
                         {
-                            "drucker": printer_name,
-                            "wartung": task["name"],
-                            "stunden": f"{since_reset:.1f}",  # legacy, keep for custom templates
-                            "wert": f"{int(since_reset)} Drucke" if trigger in ("print_count", "laser_jobs") else f"{since_reset:.1f} h",
-                            "intervall": f"{int(interval)} Drucke" if trigger in ("print_count", "laser_jobs") else f"{interval:.0f} h",
+                            "printer": printer_name,
+                            "maintenance": task["name"],
+                            "hours": f"{since_reset:.1f}",
+                            "value": f"{int(since_reset)} Drucke" if trigger in ("print_count", "laser_jobs") else f"{since_reset:.1f} h",
+                            "interval": f"{int(interval)} Drucke" if trigger in ("print_count", "laser_jobs") else f"{interval:.0f} h",
                         }
                     )
                     self._maint_notified[key] = now
@@ -1185,7 +1185,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 active = self.get_active_nozzle_label(position)
                 await self._notify.notify_nozzle_change(
                     {
-                        "drucker": self._printer_name,
+                        "printer": self._printer_name,
                         "serial": self._serial,
                         "position": position,
                         "diameter": diameter,

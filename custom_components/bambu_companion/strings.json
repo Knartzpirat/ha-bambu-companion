@@ -291,7 +291,7 @@
             },
             "texts": {
                 "title": "Customise notification texts",
-                "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: '{drucker}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{wartung}', '{stunden}', '{intervall}'.",
+                "description": "Customise titles, message bodies and button labels for each notification. Available placeholders: '{printer}', '{name}', '{progress}', '{remaining}', '{duration}', '{weight}', '{energy}', '{cost}', '{maintenance}', '{hours}', '{interval}'.",
                 "data": {
                     "text_start_title": "Print started \u2013 title",
                     "text_start_msg": "Print started \u2013 message",
