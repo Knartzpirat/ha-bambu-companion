@@ -5,7 +5,7 @@
  *   bambu-companion-maintenance-card
  *   bambu-companion-history-card
  */
-const VERSION = "1.5.13";
+const VERSION = "0.0.1";
 
 // ── Translation maps (ha-bambulab raw values → human-readable DE) ─────────────
 

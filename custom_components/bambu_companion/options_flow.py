@@ -205,7 +205,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_notify(self, user_input=None):
         current = self._current()
         if user_input is not None:
-            # vol.Optional multi-selects return None when nothing is selected — normalise to []
+            # Safety-net: multi-selects may arrive as None when nothing is selected — normalise to []
             for key in (CONF_NOTIFY_MOBILE_EVENTS, CONF_NOTIFY_HA_EVENTS):
                 if user_input.get(key) is None:
                     user_input[key] = []
@@ -279,7 +279,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 CONF_QUIET_TO,
                 default=current.get(CONF_QUIET_TO, DEFAULT_QUIET_TO),
             ): selector.TimeSelector(),
-            vol.Optional(
+            vol.Required(
                 CONF_NOTIFY_MOBILE_EVENTS,
                 default=current.get(CONF_NOTIFY_MOBILE_EVENTS, DEFAULT_NOTIFY_MOBILE_EVENTS),
             ): selector.SelectSelector(
@@ -296,7 +296,7 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
-            vol.Optional(
+            vol.Required(
                 CONF_NOTIFY_HA_EVENTS,
                 default=current.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS),
             ): selector.SelectSelector(
