@@ -163,13 +163,19 @@ class NotifyManager:
         """Build action button list for mobile push notifications from config."""
         buttons = []
 
-        # Button 1: configurable title + URI
+        # Button 1: configurable title + action
         btn1_title = (self._options.get(CONF_ACTION_BTN_1_TITLE) or "").strip()
-        btn1_uri = (self._options.get(CONF_ACTION_BTN_1_URI) or "").strip()
-        if btn1_title and btn1_uri:
+        btn1_action = (self._options.get(CONF_ACTION_BTN_1_URI) or "").strip()
+        if btn1_title and btn1_action:
+            if btn1_action == "open_bambulab":
+                btn1_uri = "app://bbl.intl.bambulab.com"
+            elif btn1_action == "open_homeassistant":
+                btn1_uri = "homeassistant://navigate/lovelace/0"
+            else:
+                btn1_uri = btn1_action
             buttons.append({"action": "URI", "title": btn1_title, "uri": btn1_uri})
 
-        # Button 2: camera action when selected and available, otherwise selected URI action
+        # Button 2: configurable title and action; camera action uses selected or detected camera entity
         camera_eid = self._camera_entity_id()
         btn2_action = (self._options.get(CONF_ACTION_BTN_2_URI) or "").strip()
         btn2_title = (self._options.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "").strip() or ("📷 Kamera" if camera_eid else "🏠 Home Assistant")
@@ -179,6 +185,10 @@ class NotifyManager:
                 buttons.append({"action": "URI", "title": btn2_title, "uri": f"entityId:{btn2_camera_entity}"})
             elif camera_eid:
                 buttons.append({"action": "URI", "title": btn2_title, "uri": f"entityId:{camera_eid}"})
+        elif btn2_action == "open_bambulab":
+            buttons.append({"action": "URI", "title": btn2_title, "uri": "app://bbl.intl.bambulab.com"})
+        elif btn2_action == "open_homeassistant":
+            buttons.append({"action": "URI", "title": btn2_title, "uri": "homeassistant://navigate/lovelace/0"})
         elif btn2_action:
             buttons.append({"action": "URI", "title": btn2_title, "uri": btn2_action})
 

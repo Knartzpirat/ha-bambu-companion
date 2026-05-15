@@ -277,13 +277,31 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     break
 
         # Default suggested values – pre-fill when no value is saved yet
-        lovelace_uri_options = self._get_lovelace_uri_options()
-        btn1_options = lovelace_uri_options
-        btn2_options = [{"value": "camera", "label": "Kamera"}] + lovelace_uri_options
+        action_options = [
+            {"value": "open_bambulab", "label": "Öffne Bambu App"},
+            {"value": "open_homeassistant", "label": "Öffne Home Assistant"},
+        ]
         default_btn1_title = current.get(CONF_ACTION_BTN_1_TITLE) or "📱 Bambu App"
-        default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or (lovelace_uri_options[0]["value"] if lovelace_uri_options else "app://bbl.intl.bambulab.com")
+        raw_btn1_action = current.get(CONF_ACTION_BTN_1_URI, "")
+        if raw_btn1_action in ("open_bambulab", "open_homeassistant"):
+            default_btn1_uri = raw_btn1_action
+        elif raw_btn1_action == "app://bbl.intl.bambulab.com" or raw_btn1_action == "bambulab://":
+            default_btn1_uri = "open_bambulab"
+        elif raw_btn1_action.startswith("homeassistant://"):
+            default_btn1_uri = "open_homeassistant"
+        else:
+            default_btn1_uri = "open_bambulab"
+
         default_btn2_title = current.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or ("📷 Kamera" if camera_entity_id else "🏠 Home Assistant")
-        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or ("camera" if camera_entity_id else (lovelace_uri_options[0]["value"] if lovelace_uri_options else "homeassistant://navigate/lovelace/0"))
+        raw_btn2_action = current.get(CONF_ACTION_BTN_2_URI, "")
+        if raw_btn2_action in ("camera", "open_bambulab", "open_homeassistant"):
+            default_btn2_uri = raw_btn2_action
+        elif raw_btn2_action == "app://bbl.intl.bambulab.com":
+            default_btn2_uri = "open_bambulab"
+        elif raw_btn2_action.startswith("homeassistant://"):
+            default_btn2_uri = "open_homeassistant"
+        else:
+            default_btn2_uri = "camera" if camera_entity_id else "open_homeassistant"
         default_btn2_camera_entity = current.get(CONF_ACTION_BTN_2_CAMERA_ENTITY, "")
         default_btn3_mode = current.get(CONF_ACTION_BTN_3_MODE) or "off"
 
@@ -367,32 +385,24 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 description={"suggested_value": default_btn1_uri},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=btn1_options,
-                    custom_value=True,
+                    options=action_options,
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Optional(
                 CONF_ACTION_BTN_2_FALLBACK_TITLE,
                 description={"suggested_value": default_btn2_title},
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "📷 Kamera", "label": "📷 Kamera"},
-                        {"value": "📱 Bambu App", "label": "📱 Bambu App"},
-                        {"value": "🏠 Home Assistant", "label": "🏠 Home Assistant"},
-                    ],
-                    custom_value=True,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
+            ): selector.TextSelector(),
             vol.Optional(
                 CONF_ACTION_BTN_2_URI,
                 description={"suggested_value": default_btn2_uri},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=btn2_options,
-                    custom_value=True,
+                    options=[
+                        {"value": "camera", "label": "Kamera"},
+                        {"value": "open_bambulab", "label": "Öffne Bambu App"},
+                        {"value": "open_homeassistant", "label": "Öffne Home Assistant"},
+                    ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
