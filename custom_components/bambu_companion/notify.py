@@ -11,9 +11,9 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_ACTION_BTN_1_TITLE,
     CONF_ACTION_BTN_1_URI,
-    CONF_ACTION_BTN_2_CAMERA_TITLE,
     CONF_ACTION_BTN_2_FALLBACK_TITLE,
     CONF_ACTION_BTN_2_URI,
+    CONF_ACTION_BTN_2_CAMERA_ENTITY,
     CONF_ACTION_BTN_3_MODE,
     CONF_NOTIFY_HA_EVENTS,
     CONF_NOTIFY_INTERVAL,
@@ -169,16 +169,18 @@ class NotifyManager:
         if btn1_title and btn1_uri:
             buttons.append({"action": "URI", "title": btn1_title, "uri": btn1_uri})
 
-        # Button 2: camera (auto-uri) when available, otherwise fallback URI
+        # Button 2: camera action when selected and available, otherwise selected URI action
         camera_eid = self._camera_entity_id()
-        if camera_eid:
-            btn2_title = (self._options.get(CONF_ACTION_BTN_2_CAMERA_TITLE) or "").strip() or "📷 Kamera"
-            buttons.append({"action": "URI", "title": btn2_title, "uri": f"entityId:{camera_eid}"})
-        else:
-            btn2_fallback_title = (self._options.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "").strip()
-            btn2_fallback_uri = (self._options.get(CONF_ACTION_BTN_2_URI) or "").strip()
-            if btn2_fallback_title and btn2_fallback_uri:
-                buttons.append({"action": "URI", "title": btn2_fallback_title, "uri": btn2_fallback_uri})
+        btn2_action = (self._options.get(CONF_ACTION_BTN_2_URI) or "").strip()
+        btn2_title = (self._options.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "").strip() or ("📷 Kamera" if camera_eid else "🏠 Home Assistant")
+        btn2_camera_entity = (self._options.get(CONF_ACTION_BTN_2_CAMERA_ENTITY) or "").strip()
+        if btn2_action == "camera":
+            if btn2_camera_entity:
+                buttons.append({"action": "URI", "title": btn2_title, "uri": f"entityId:{btn2_camera_entity}"})
+            elif camera_eid:
+                buttons.append({"action": "URI", "title": btn2_title, "uri": f"entityId:{camera_eid}"})
+        elif btn2_action:
+            buttons.append({"action": "URI", "title": btn2_title, "uri": btn2_action})
 
         # Button 3: mute progress (textInput behavior on iOS/Android)
         btn3_mode = (self._options.get(CONF_ACTION_BTN_3_MODE) or "off").strip()

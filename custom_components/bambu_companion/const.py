@@ -98,14 +98,13 @@ CONF_TEXT_BTN_POWEROFF_CANCEL = "text_btn_poweroff_cancel"
 
 # Action buttons in mobile push notifications
 # Button 1: configurable title + URI (e.g. open Bambu App)
-# Button 2 with camera: label when camera is present (uri = entityId:camera.xxx auto-built)
-# Button 2 without camera: label + URI fallback when no camera
+# Button 2: label and action (camera/app/homeassistant) with optional external camera entity
 # Button 3: mode selector – "off" / "mute_progress" / "custom"
 CONF_ACTION_BTN_1_TITLE = "action_btn_1_title"
 CONF_ACTION_BTN_1_URI = "action_btn_1_uri"
-CONF_ACTION_BTN_2_CAMERA_TITLE = "action_btn_2_camera_title"
 CONF_ACTION_BTN_2_FALLBACK_TITLE = "action_btn_2_fallback_title"
-CONF_ACTION_BTN_2_URI = "action_btn_2_uri"       # fallback URI (no camera)
+CONF_ACTION_BTN_2_URI = "action_btn_2_uri"       # action for button 2 (camera/app/homeassistant)
+CONF_ACTION_BTN_2_CAMERA_ENTITY = "action_btn_2_camera_entity"
 CONF_ACTION_BTN_3_MODE = "action_btn_3_mode"     # "off" | "mute_progress" | "custom"
 
 # Auto-poweroff after print

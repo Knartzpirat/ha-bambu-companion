@@ -135,10 +135,10 @@
                     "notify_ha_maintenance": "🔔 Wartung fällig (HA-Posteingang)",
                     "notify_ha_nozzle_change": "🔔 Düsenwechsel erkannt (HA-Posteingang)",
                     "action_btn_1_title": "Schaltfläche 1 – Beschriftung",
-                    "action_btn_1_uri": "Schaltfläche 1 – URI / Link",
-                    "action_btn_2_camera_title": "Schaltfläche 2 – Beschriftung (mit Kamera)",
-                    "action_btn_2_fallback_title": "Schaltfläche 2 – Beschriftung (ohne Kamera)",
-                    "action_btn_2_uri": "Schaltfläche 2 – URI / Link (ohne Kamera)",
+                    "action_btn_1_uri": "Schaltfläche 1 – Aktion",
+                    "action_btn_2_fallback_title": "Schaltfläche 2 – Beschriftung",
+                    "action_btn_2_uri": "Schaltfläche 2 – Aktion",
+                    "action_btn_2_camera_entity": "Schaltfläche 2 – Kamera-Entity",
                     "action_btn_3_mode": "Schaltfläche 3 – Funktion"
                 },
                 "data_description": {
@@ -158,10 +158,10 @@
                     "notify_ha_maintenance": "Meldung im HA-Posteingang (Glocke) wenn eine Wartungsaufgabe fällig wird.",
                     "notify_ha_nozzle_change": "Meldung im HA-Posteingang (Glocke) wenn ein Düsen-Typ- oder -größenwechsel erkannt wird.",
                     "action_btn_1_title": "Text für den ersten Benachrichtigungsbutton.",
-                    "action_btn_1_uri": "URI/URL die bei Tippen auf Aktion 1 geöffnet wird. Voreinstellung wählen oder eigenen Pfad eingeben.",
-                    "action_btn_2_camera_title": "Text für die zweite Schaltfläche, wenn eine Kamera erkannt wurde. Die URI wird automatisch gebaut (entityId:camera.xxx).",
-                    "action_btn_2_fallback_title": "Text für die zweite Schaltfläche, wenn KEINE Kamera gefunden wurde. Leer lassen um Schaltfläche 2 zu deaktivieren.",
-                    "action_btn_2_uri": "URI die geöffnet wird, wenn KEINE Kamera vorhanden ist. Voreinstellung wählen oder eigenen Pfad eingeben.",
+                    "action_btn_1_uri": "Aktion für Schaltfläche 1. Wähle zwischen Öffne Bambu App und Öffne Home Assistant.",
+                    "action_btn_2_fallback_title": "Beschriftung für Schaltfläche 2. Wähle Kamera, Bambu App oder Home Assistant.",
+                    "action_btn_2_uri": "Aktion für Schaltfläche 2. Wähle zwischen Öffne Bambu App, Öffne Home Assistant oder Kamera.",
+                    "action_btn_2_camera_entity": "Optional: externe Kamera-Entity, die verwendet wird, wenn die Kamera-Aktion ausgewählt ist.",
                     "action_btn_3_mode": "Funktion der dritten Schaltfläche. 'Stummschalten' = eine Aktionsschaltfläche in der Benachrichtigung erlaubt die Eingabe der Minuten, für die Fortschritts-Benachrichtigungen unterdrückt werden. Wird beim Druckende automatisch zurückgesetzt."
                 }
             },

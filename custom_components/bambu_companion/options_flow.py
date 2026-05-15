@@ -9,9 +9,9 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_ACTION_BTN_1_TITLE,
     CONF_ACTION_BTN_1_URI,
-    CONF_ACTION_BTN_2_CAMERA_TITLE,
     CONF_ACTION_BTN_2_FALLBACK_TITLE,
     CONF_ACTION_BTN_2_URI,
+    CONF_ACTION_BTN_2_CAMERA_ENTITY,
     CONF_ACTION_BTN_3_MODE,
     CONF_AUTO_POWEROFF_DELAY_MIN,
     CONF_AUTO_POWEROFF_DRY_MODE,
@@ -277,11 +277,14 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                     break
 
         # Default suggested values – pre-fill when no value is saved yet
+        lovelace_uri_options = self._get_lovelace_uri_options()
+        btn1_options = lovelace_uri_options
+        btn2_options = [{"value": "camera", "label": "Kamera"}] + lovelace_uri_options
         default_btn1_title = current.get(CONF_ACTION_BTN_1_TITLE) or "📱 Bambu App"
-        default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or "app://bbl.intl.bambulab.com"
-        default_btn2_camera_title = current.get(CONF_ACTION_BTN_2_CAMERA_TITLE) or "📷 Kamera"
-        default_btn2_fallback_title = current.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or "🏠 Home Assistant"
-        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or "homeassistant://navigate/lovelace/0"
+        default_btn1_uri = current.get(CONF_ACTION_BTN_1_URI) or (lovelace_uri_options[0]["value"] if lovelace_uri_options else "app://bbl.intl.bambulab.com")
+        default_btn2_title = current.get(CONF_ACTION_BTN_2_FALLBACK_TITLE) or ("📷 Kamera" if camera_entity_id else "🏠 Home Assistant")
+        default_btn2_uri = current.get(CONF_ACTION_BTN_2_URI) or ("camera" if camera_entity_id else (lovelace_uri_options[0]["value"] if lovelace_uri_options else "homeassistant://navigate/lovelace/0"))
+        default_btn2_camera_entity = current.get(CONF_ACTION_BTN_2_CAMERA_ENTITY, "")
         default_btn3_mode = current.get(CONF_ACTION_BTN_3_MODE) or "off"
 
         schema_fields: dict = {
@@ -364,31 +367,41 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 description={"suggested_value": default_btn1_uri},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
+                    options=btn1_options,
+                    custom_value=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_ACTION_BTN_2_FALLBACK_TITLE,
+                description={"suggested_value": default_btn2_title},
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
                     options=[
-                        {"value": "app://bbl.intl.bambulab.com", "label": "Bambu App (app://bbl.intl.bambulab.com)"},
-                        {"value": "bambulab://", "label": "Bambu App alt (bambulab://)"},
-                        {"value": "/", "label": "Home Assistant (/)"},
+                        {"value": "📷 Kamera", "label": "📷 Kamera"},
+                        {"value": "📱 Bambu App", "label": "📱 Bambu App"},
+                        {"value": "🏠 Home Assistant", "label": "🏠 Home Assistant"},
                     ],
                     custom_value=True,
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Optional(
-                CONF_ACTION_BTN_2_CAMERA_TITLE,
-                description={"suggested_value": default_btn2_camera_title},
-            ): selector.TextSelector(),
-            vol.Optional(
-                CONF_ACTION_BTN_2_FALLBACK_TITLE,
-                description={"suggested_value": default_btn2_fallback_title},
-            ): selector.TextSelector(),
-            vol.Optional(
                 CONF_ACTION_BTN_2_URI,
                 description={"suggested_value": default_btn2_uri},
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=self._get_lovelace_uri_options(),
+                    options=btn2_options,
                     custom_value=True,
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_ACTION_BTN_2_CAMERA_ENTITY,
+                description={"suggested_value": default_btn2_camera_entity},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="camera",
                 )
             ),
             vol.Optional(
