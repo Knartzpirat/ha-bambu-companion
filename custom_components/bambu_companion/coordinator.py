@@ -820,6 +820,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         )
         self._schedule_poweroff()
 
+    def _get_printer_camera_entity_id(self) -> str | None:
+        """Return the camera entity_id for this printer's device, if any."""
+        device_id = self._entry.data.get("device_id", "")
+        if not device_id:
+            return None
+        from homeassistant.helpers import entity_registry as er
+        registry = er.async_get(self.hass)
+        for entry in registry.entities.values():
+            if entry.device_id == device_id and entry.domain == "camera":
+                return entry.entity_id
+        return None
+
     async def _build_print_record(self, success: bool) -> dict:
         now = dt_util.now()
         start = self._print_start_time or now
@@ -880,6 +892,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                             cover_image_data = f"data:{mime};base64,{b64}"
             except Exception:
                 _LOGGER.debug("[%s] Could not fetch cover image bytes", self._serial)
+        camera_snapshot_data = ""
+        camera_entity_id = self._get_printer_camera_entity_id()
+        if camera_entity_id:
+            try:
+                from homeassistant.components.camera import async_get_image
+                img = await async_get_image(self.hass, camera_entity_id, timeout=10)
+                if img and img.content:
+                    mime = getattr(img, "content_type", "image/jpeg") or "image/jpeg"
+                    b64 = base64.b64encode(img.content).decode("utf-8")
+                    camera_snapshot_data = f"data:{mime};base64,{b64}"
+            except Exception:
+                _LOGGER.debug("[%s] Could not capture camera snapshot from %s", self._serial, camera_entity_id)
         _LOGGER.info(
             "[%s] _build_print_record: name=%r, cover_image_entity=%r, has_image=%s",
             self._serial, name, cover_image_entity, bool(cover_image_data),
@@ -951,6 +975,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "trays_used": trays_list,
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,
+            "camera_snapshot_url": camera_snapshot_data,
         }
         # Reset cached cover image after recording so next print starts fresh.
         self._last_cover_image_url = ""

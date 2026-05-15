@@ -955,12 +955,27 @@ class BambuCompanionHistoryCard extends HTMLElement {
           border-radius: 12px; padding: 0; max-width: 480px; width: 100%;
           max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
         }
-        .modal-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px 12px 0 0; display: block; }
+        .img-area { border-radius: 12px 12px 0 0; overflow: hidden; background: var(--secondary-background-color); }
+        .modal-img { width: 100%; max-height: 300px; object-fit: contain; display: block; }
         .modal-img-placeholder {
           width: 100%; height: 120px; background: var(--secondary-background-color);
-          border-radius: 12px 12px 0 0; display: flex; align-items: center;
-          justify-content: center; font-size: 3em;
+          display: flex; align-items: center; justify-content: center; font-size: 3em;
         }
+        .slide-ctrl {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 5px 12px; border-top: 1px solid var(--divider-color);
+          background: var(--secondary-background-color);
+        }
+        .slide-btn {
+          background: none; border: none; cursor: pointer; padding: 0 6px;
+          font-size: 1.4em; color: var(--primary-text-color); opacity: 0.65; line-height: 1;
+        }
+        .slide-btn:hover { opacity: 1; }
+        .slide-center { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .slide-label { font-size: 0.73em; color: var(--secondary-text-color); font-weight: 500; }
+        .slide-dots { display: flex; gap: 5px; }
+        .slide-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--divider-color); cursor: pointer; transition: background 0.15s; }
+        .slide-dot.active { background: var(--primary-color); }
         .modal-body { padding: 16px; }
         .modal-title { font-size: 1.05em; font-weight: 600; margin-bottom: 4px; }
         .modal-date { font-size: 0.78em; color: var(--secondary-text-color); margin-bottom: 12px; }
@@ -1048,9 +1063,30 @@ class BambuCompanionHistoryCard extends HTMLElement {
 
         const stored = p.cover_image_url || "";
         const imgUrl = stored.startsWith("data:") ? stored : "";
-        const imgHtml = imgUrl
-            ? `<img class="modal-img" src="${imgUrl}">`
-            : `<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div>`;
+        const camStored = p.camera_snapshot_url || "";
+        const cameraUrl = camStored.startsWith("data:") ? camStored : "";
+        const hasBothImages = !!(imgUrl && cameraUrl);
+        const imgAreaHtml = (() => {
+            if (!imgUrl && !cameraUrl)
+                return `<div class="img-area"><div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div></div>`;
+            if (hasBothImages)
+                return `<div class="img-area">
+                  <img class="modal-img" id="slide-cover" src="${imgUrl}">
+                  <img class="modal-img" id="slide-camera" src="${cameraUrl}" style="display:none">
+                  <div class="slide-ctrl">
+                    <button class="slide-btn" id="slide-prev">&#8249;</button>
+                    <div class="slide-center">
+                      <span class="slide-label" id="slide-label">&#128444;&#65039; Druckvorschau</span>
+                      <div class="slide-dots">
+                        <span class="slide-dot active" id="dot-0"></span>
+                        <span class="slide-dot" id="dot-1"></span>
+                      </div>
+                    </div>
+                    <button class="slide-btn" id="slide-next">&#8250;</button>
+                  </div>
+                </div>`;
+            return `<div class="img-area"><img class="modal-img" src="${imgUrl || cameraUrl}"></div>`;
+        })();
 
         const tray = p.active_tray || {};
 
@@ -1149,7 +1185,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
         overlay.innerHTML = `
           <div class="modal">
             <button class="close-btn" id="close-modal">✕</button>
-            ${imgHtml}
+            ${imgAreaHtml}
             <div class="modal-body">
               <div class="modal-title">${printName || (ok ? "Erfolgreicher Druck" : "Fehlgeschlagener Druck")}</div>
               <div class="modal-date">Beendet: ${dateEnd}</div>
@@ -1190,6 +1226,22 @@ class BambuCompanionHistoryCard extends HTMLElement {
             </div>
           </div>`;
 
+        if (hasBothImages) {
+            const slides  = [overlay.querySelector("#slide-cover"), overlay.querySelector("#slide-camera")];
+            const dots    = [overlay.querySelector("#dot-0"),       overlay.querySelector("#dot-1")];
+            const labels  = ["\u{1F5BC}\uFE0F Druckvorschau", "\u{1F4F7} Kameraaufnahme"];
+            const labelEl = overlay.querySelector("#slide-label");
+            let current = 0;
+            const showSlide = (idx) => {
+                slides.forEach((s, i) => { s.style.display = i === idx ? "block" : "none"; });
+                dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+                labelEl.textContent = labels[idx];
+                current = idx;
+            };
+            overlay.querySelector("#slide-prev").addEventListener("click", e => { e.stopPropagation(); showSlide((current + slides.length - 1) % slides.length); });
+            overlay.querySelector("#slide-next").addEventListener("click", e => { e.stopPropagation(); showSlide((current + 1) % slides.length); });
+            dots.forEach((d, i) => d.addEventListener("click", e => { e.stopPropagation(); showSlide(i); }));
+        }
         let _downOnOverlay = false;
         overlay.addEventListener("mousedown", e => { _downOnOverlay = e.target === overlay; });
         overlay.addEventListener("mouseup",   e => { if (_downOnOverlay && e.target === overlay) overlay.remove(); });
