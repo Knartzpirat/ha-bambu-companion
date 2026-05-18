@@ -1062,18 +1062,12 @@ class BambuCompanionHistoryCard extends HTMLElement {
         const dateEnd = ts ? (typeof ts === "number" ? new Date(ts * 1000) : new Date(ts)).toLocaleString() : "–";
         const dateStart = tsStart ? (typeof tsStart === "number" ? new Date(tsStart * 1000) : new Date(tsStart)).toLocaleString() : "–";
 
-        const stored = p.cover_image_url || "";
-        const imgUrl = stored.startsWith("data:") ? stored : "";
-        const camStored = p.camera_snapshot_url || "";
-        const cameraUrl = camStored.startsWith("data:") ? camStored : "";
-        const hasBothImages = !!(imgUrl && cameraUrl);
-        const closeBtn = `<button class="close-btn" id="close-modal">&#x2715;</button>`;
-        const imgAreaHtml = (() => {
+        const _makeImgArea = (imgUrl, cameraUrl) => {
+            const cb = `<button class="close-btn">&#x2715;</button>`;
             if (!imgUrl && !cameraUrl)
-                return `<div class="img-area">${closeBtn}<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div></div>`;
-            if (hasBothImages)
-                return `<div class="img-area">
-                  ${closeBtn}
+                return `${cb}<div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div>`;
+            if (imgUrl && cameraUrl)
+                return `${cb}
                   <img class="modal-img" id="slide-cover" src="${imgUrl}">
                   <img class="modal-img" id="slide-camera" src="${cameraUrl}" style="display:none">
                   <div class="slide-ctrl">
@@ -1086,10 +1080,26 @@ class BambuCompanionHistoryCard extends HTMLElement {
                       </div>
                     </div>
                     <button class="slide-btn" id="slide-next">&#8250;</button>
-                  </div>
-                </div>`;
-            return `<div class="img-area">${closeBtn}<img class="modal-img" src="${imgUrl || cameraUrl}"></div>`;
-        })();
+                  </div>`;
+            return `${cb}<img class="modal-img" src="${imgUrl || cameraUrl}">`;
+        };
+        const _applySlider = (imgArea) => {
+            const slides  = [imgArea.querySelector("#slide-cover"), imgArea.querySelector("#slide-camera")];
+            const dots    = [imgArea.querySelector("#dot-0"),       imgArea.querySelector("#dot-1")];
+            const labels  = ["\u{1F5BC}\uFE0F Druckvorschau", "\u{1F4F7} Kameraaufnahme"];
+            const labelEl = imgArea.querySelector("#slide-label");
+            let cur = 0;
+            const go = (i) => {
+                slides.forEach((s, j) => { s.style.display = j === i ? "block" : "none"; });
+                dots.forEach((d, j) => d.classList.toggle("active", j === i));
+                labelEl.textContent = labels[i];
+                cur = i;
+            };
+            imgArea.querySelector("#slide-prev").addEventListener("click", e => { e.stopPropagation(); go((cur + slides.length - 1) % slides.length); });
+            imgArea.querySelector("#slide-next").addEventListener("click", e => { e.stopPropagation(); go((cur + 1) % slides.length); });
+            dots.forEach((d, i) => d.addEventListener("click", e => { e.stopPropagation(); go(i); }));
+        };
+        const imgAreaHtml = `<div class="img-area" id="popup-img-area"><button class="close-btn">&#x2715;</button><div class="modal-img-placeholder" style="height:80px">&#x23F3;</div></div>`;
 
         const tray = p.active_tray || {};
 
@@ -1228,27 +1238,28 @@ class BambuCompanionHistoryCard extends HTMLElement {
             </div>
           </div>`;
 
-        if (hasBothImages) {
-            const slides  = [overlay.querySelector("#slide-cover"), overlay.querySelector("#slide-camera")];
-            const dots    = [overlay.querySelector("#dot-0"),       overlay.querySelector("#dot-1")];
-            const labels  = ["\u{1F5BC}\uFE0F Druckvorschau", "\u{1F4F7} Kameraaufnahme"];
-            const labelEl = overlay.querySelector("#slide-label");
-            let current = 0;
-            const showSlide = (idx) => {
-                slides.forEach((s, i) => { s.style.display = i === idx ? "block" : "none"; });
-                dots.forEach((d, i) => d.classList.toggle("active", i === idx));
-                labelEl.textContent = labels[idx];
-                current = idx;
-            };
-            overlay.querySelector("#slide-prev").addEventListener("click", e => { e.stopPropagation(); showSlide((current + slides.length - 1) % slides.length); });
-            overlay.querySelector("#slide-next").addEventListener("click", e => { e.stopPropagation(); showSlide((current + 1) % slides.length); });
-            dots.forEach((d, i) => d.addEventListener("click", e => { e.stopPropagation(); showSlide(i); }));
-        }
+        // Close button via event delegation – survives async img-area rebuild
+        overlay.addEventListener("click", e => { if (e.target.closest(".close-btn")) overlay.remove(); });
         let _downOnOverlay = false;
         overlay.addEventListener("mousedown", e => { _downOnOverlay = e.target === overlay; });
         overlay.addEventListener("mouseup",   e => { if (_downOnOverlay && e.target === overlay) overlay.remove(); });
-        overlay.querySelector("#close-modal").addEventListener("click", () => overlay.remove());
         this.shadowRoot.appendChild(overlay);
+        // Images are stripped from sensor attributes to stay below HA's 16 kB limit.
+        // Fetch them lazily via WebSocket when the popup is open.
+        const _serial = (this._config?.serial ?? "").toLowerCase();
+        this._hass.callWS({ type: "bambu_companion/get_print_images", serial: _serial, idx })
+            .then(result => {
+                const imgArea = overlay.querySelector("#popup-img-area");
+                if (!imgArea || !overlay.isConnected) return;
+                const iUrl = (result.cover_image_url    || "").startsWith("data:") ? result.cover_image_url    : "";
+                const cUrl = (result.camera_snapshot_url || "").startsWith("data:") ? result.camera_snapshot_url : "";
+                imgArea.innerHTML = _makeImgArea(iUrl, cUrl);
+                if (iUrl && cUrl) _applySlider(imgArea);
+            })
+            .catch(() => {
+                const imgArea = overlay.querySelector("#popup-img-area");
+                if (imgArea) imgArea.innerHTML = `<button class="close-btn">&#x2715;</button><div class="modal-img-placeholder">${ok ? "✅" : "❌"}</div>`;
+            });
     }
 
     getCardSize() { return 5; }

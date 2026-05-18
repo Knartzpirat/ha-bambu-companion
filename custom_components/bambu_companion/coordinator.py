@@ -34,7 +34,6 @@ from .const import (
     DEFAULT_ELECTRICITY_PRICE,
     DEFAULT_FILAMENT_COST_PER_KG,
     DOMAIN,
-    FUME_FILAMENT_PREFIXES,
     MAINTENANCE_TASKS,
     NOZZLE_ACTIVE_TEMP_THRESHOLD,
     PRINT_STATUS_FAILED,
@@ -96,7 +95,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._last_progress: int = 0
         self._last_print_name: str = ""
         self._last_cover_image_url: str = ""
-        self._trays_seen: dict[str, dict] = {}   # all trays seen during print, keyed by "ams_slot"
 
         # Accumulated per-session seconds for nozzle/laser tracking
         self._nozzle_session_start: datetime | None = None
@@ -123,11 +121,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Graceful-degradation flags
         self._entities_missing_logged: bool = False  # throttle "no entities" warning
         self._printer_offline: bool = False  # True while status entity is unavailable
-
-        # Timestamp of last runtime-tracker call — used to measure REAL elapsed time
-        # instead of assuming a fixed UPDATE_INTERVAL per call (state-change events can
-        # fire much more often than the 30 s poll interval).
-        self._last_tracker_ts: datetime | None = None
 
     # ------------------------------------------------------------------
     # Properties
@@ -206,17 +199,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
             # ── Auto-poweroff: user tapped "Power off now" ───────────────
             if action == f"bc_poweroff_now_{self._serial}":
-                self._cancel_poweroff_task()  # cancel waiting timer to avoid duplicate poweroff
                 self.hass.async_create_task(self._execute_poweroff())
-                return
-
-            # ── Auto-poweroff: user tapped "After drying" ──────────────
-            if action == f"bc_poweroff_after_dry_{self._serial}":
-                _LOGGER.info("[%s] User chose 'after drying' — starting drying-wait poweroff.", self._serial)
-                self._cancel_poweroff_task()
-                self._poweroff_task = self.hass.async_create_task(
-                    self._poweroff_after_drying()
-                )
                 return
 
             # ── Auto-poweroff: user tapped "Wait / Cancel" ───────────────
@@ -294,30 +277,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         if is_drying and dry_mode == "ask":
             _LOGGER.info("[%s] Auto-poweroff: AMS is drying — asking user.", self._serial)
-            await self._notify.notify_poweroff_ask(self._printer_name)
-            # Fallback: wait 30 min for user response, then apply drying-wait logic
-            try:
-                await asyncio.sleep(30 * 60)
-            except asyncio.CancelledError:
-                _LOGGER.debug("[%s] Poweroff ask (drying) cancelled by user response or new print.", self._serial)
-                return
-            _LOGGER.info("[%s] Auto-poweroff ask timeout: no response — waiting for drying to finish.", self._serial)
-            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
-                return
-            try:
-                while self._ams_is_drying():
-                    await asyncio.sleep(60)
-                _LOGGER.info("[%s] Auto-poweroff: drying finished — 15 min cooldown before poweroff.", self._serial)
-                await asyncio.sleep(15 * 60)
-            except asyncio.CancelledError:
-                _LOGGER.debug("[%s] Poweroff wait cancelled during post-ask drying phase.", self._serial)
-                return
-            if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
-                return
-            await self._execute_poweroff()
+            await self._notify.notify_poweroff_ask(self._printer_name, is_drying=True)
             return
 
-        # dry_mode == "poweroff" (or not drying + any mode except "wait" while drying)
+        if not is_drying and dry_mode == "ask":
+            # No drying and mode ask → still ask (user can confirm)
+            _LOGGER.info("[%s] Auto-poweroff: no drying — asking user.", self._serial)
+            await self._notify.notify_poweroff_ask(self._printer_name, is_drying=False)
+            return
+
+        # dry_mode == "poweroff" or (not drying and mode != ask/wait)
         await self._execute_poweroff()
 
     async def _execute_poweroff(self) -> None:
@@ -336,21 +305,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             )
         except Exception as exc:  # noqa: BLE001
             _LOGGER.warning("[%s] Auto-poweroff: failed to turn off '%s': %s", self._serial, switch_entity, exc)
-
-    async def _poweroff_after_drying(self) -> None:
-        """Wait for AMS drying to finish, apply 15-min cooldown, then power off."""
-        try:
-            while self._ams_is_drying():
-                await asyncio.sleep(60)
-            _LOGGER.info("[%s] Auto-poweroff: drying finished — 15 min cooldown before poweroff.", self._serial)
-            await asyncio.sleep(15 * 60)
-        except asyncio.CancelledError:
-            _LOGGER.debug("[%s] Poweroff-after-drying task cancelled.", self._serial)
-            return
-        if self._print_status not in (PRINT_STATUS_IDLE, PRINT_STATUS_FINISH):
-            _LOGGER.info("[%s] Auto-poweroff: new print started during drying wait — aborting.", self._serial)
-            return
-        await self._execute_poweroff()
 
     def _ams_is_drying(self) -> bool:
         """Return True if any AMS unit is currently drying filament.
@@ -416,7 +370,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "last_print": self._store.get_last_print(),
                 "printer_offline": True,
                 "nozzle_slots": {
-                    "pool": dict(self._store.get_nozzle_pool()),
+                    "single": dict(self._store.get_nozzle_slots("single")),
+                    "left": dict(self._store.get_nozzle_slots("left")),
+                    "right": dict(self._store.get_nozzle_slots("right")),
                     "active": {
                         "single": self._store.get_active_nozzle_slot("single"),
                         "left": self._store.get_active_nozzle_slot("left"),
@@ -456,7 +412,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 "last_print": self._store.get_last_print(),
                 "printer_offline": True,
                 "nozzle_slots": {
-                    "pool": dict(self._store.get_nozzle_pool()),
+                    "single": dict(self._store.get_nozzle_slots("single")),
+                    "left": dict(self._store.get_nozzle_slots("left")),
+                    "right": dict(self._store.get_nozzle_slots("right")),
                     "active": {
                         "single": self._store.get_active_nozzle_slot("single"),
                         "left": self._store.get_active_nozzle_slot("left"),
@@ -507,7 +465,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     "monthly": self._store.get_monthly_stats(),
                     "last_print": self._store.get_last_print(),
                     "nozzle_slots": {
-                        "pool": dict(self._store.get_nozzle_pool()),
+                        "single": dict(self._store.get_nozzle_slots("single")),
+                        "left": dict(self._store.get_nozzle_slots("left")),
+                        "right": dict(self._store.get_nozzle_slots("right")),
                         "active": {
                             "single": self._store.get_active_nozzle_slot("single"),
                             "left": self._store.get_active_nozzle_slot("left"),
@@ -538,12 +498,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     url = cov_state.attributes.get("entity_picture", "")
                     if url:
                         self._last_cover_image_url = url
-            # Continuously accumulate tray data — multi-filament prints cycle through
-            # different active trays; we collect all (ams, slot) combinations seen.
-            live_tray = self._read_tray_snapshot()
-            if live_tray is not None:
-                _key = f"{live_tray.get('ams', 'x')}_{live_tray.get('slot', 'x')}"
-                self._trays_seen[_key] = live_tray
 
         # Track nozzle/laser hours
         await self._update_runtime_trackers(new_status)
@@ -579,7 +533,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "last_print": self._store.get_last_print(),
             "printer_offline": False,
             "nozzle_slots": {
-                "pool": dict(self._store.get_nozzle_pool()),
+                "single": dict(self._store.get_nozzle_slots("single")),
+                "left": dict(self._store.get_nozzle_slots("left")),
+                "right": dict(self._store.get_nozzle_slots("right")),
                 "active": {
                     "single": self._store.get_active_nozzle_slot("single"),
                     "left": self._store.get_active_nozzle_slot("left"),
@@ -693,54 +649,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         self._print_status = new_status
 
-    def _read_tray_snapshot(self) -> dict | None:
-        """Capture active tray data from HA entities while the tray is active.
-
-        Returns a snapshot dict, or None if the tray state is unavailable/empty.
-        ha-bambulab resets active_tray to 'none' after a print ends, so this must
-        be called while printing.
-        """
-        name = get_entity_state(self.hass, self._entities, "active_tray") or ""
-        name_lower = name.lower()
-        if name_lower in ("none", "unknown", "empty", ""):
-            return None
-        color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
-        cols  = get_entity_attribute(self.hass, self._entities, "active_tray", "cols") or []
-        type_ = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
-        slot  = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
-        ams   = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
-        ams_model = ""
-        printer_device_id = self._entry.data.get("device_id", "")
-        if self._ams_device_ids and ams is not None:
-            ams_devices = get_ams_devices(self.hass, printer_device_id)
-            try:
-                ams_idx = int(ams)
-                if 128 <= ams_idx < 254:
-                    ht_devices = [d for d in ams_devices if "HT" in d.get("model", "")]
-                    ht_pos = ams_idx - 128
-                    if ht_pos < len(ht_devices):
-                        ams_model = ht_devices[ht_pos].get("model", "")
-                    elif ht_devices:
-                        ams_model = ht_devices[0].get("model", "")
-                elif 0 <= ams_idx < 128:
-                    non_ht = [d for d in ams_devices if "HT" not in d.get("model", "")]
-                    if ams_idx < len(non_ht):
-                        ams_model = non_ht[ams_idx].get("model", "")
-            except (TypeError, ValueError):
-                pass
-        return {
-            "name":      name,
-            "color":     color,
-            "cols":      cols,
-            "type":      type_,
-            "slot":      slot,
-            "ams":       ams,
-            "ams_model": ams_model,
-        }
-
     async def _on_print_start(self) -> None:
         self._cancel_poweroff_task()  # new print started — abort any pending poweroff
-        self._trays_seen = {}          # reset multi-filament accumulator for new print
         self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
         _LOGGER.info(
@@ -820,18 +730,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         )
         self._schedule_poweroff()
 
-    def _get_printer_camera_entity_id(self) -> str | None:
-        """Return the camera entity_id for this printer's device, if any."""
-        device_id = self._entry.data.get("device_id", "")
-        if not device_id:
-            return None
-        from homeassistant.helpers import entity_registry as er
-        registry = er.async_get(self.hass)
-        for entry in registry.entities.values():
-            if entry.device_id == device_id and entry.domain == "camera":
-                return entry.entity_id
-        return None
-
     async def _build_print_record(self, success: bool) -> dict:
         now = dt_util.now()
         start = self._print_start_time or now
@@ -855,24 +753,27 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Also strip .gcode if double-extension like .gcode.3mf
             name = re.sub(r'\.gcode$', '', name, flags=re.IGNORECASE)
         plate, project_name = _extract_plate_info(gcode_file)
-        # Active tray / filament slot snapshot.
-        # Use trays accumulated during the print — ha-bambulab resets active_tray
-        # to "none" as soon as the print completes, so reading it here would return empty.
-        # Sort by (ams, slot) so the list is deterministic; AMS HT (128+) comes after normal AMS.
-        trays_list = sorted(
-            self._trays_seen.values(),
-            key=lambda t: (int(t.get("ams") or 0), int(t.get("slot") or 0)),
-        )
-        self._trays_seen = {}  # clear for next print
-        # Primary tray (for backward-compat active_tray field and single-filament display)
-        _tray = trays_list[0] if trays_list else {}
-        active_tray_name  = _tray.get("name", "")
-        active_tray_color = _tray.get("color", "")
-        active_tray_cols  = _tray.get("cols", [])
-        active_tray_type  = _tray.get("type", "")
-        active_tray_slot  = _tray.get("slot")
-        active_tray_ams   = _tray.get("ams")
-        ams_model         = _tray.get("ams_model", "")
+        # Active tray / filament slot snapshot
+        active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
+        active_tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
+        active_tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
+        active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
+        active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
+        # AMS model name (e.g. "AMS 2 Pro", "AMS HT", "AMS Lite") from device registry
+        printer_device_id = self._entry.data.get("device_id", "")
+        ams_model = ""
+        if self._ams_device_ids and active_tray_ams is not None:
+            ams_devices = get_ams_devices(self.hass, printer_device_id)
+            # Match by index (AMS devices are ordered by their position)
+            try:
+                ams_idx = int(active_tray_ams)
+                if 0 <= ams_idx < len(ams_devices):
+                    ams_model = ams_devices[ams_idx].get("model", "")
+                elif ams_devices:
+                    ams_model = ams_devices[0].get("model", "")
+            except (TypeError, ValueError):
+                if ams_devices:
+                    ams_model = ams_devices[0].get("model", "")
         cover_image_entity = self._entities.get("cover_image", "")
         # Fetch the raw image bytes from the HA image entity and encode as base64
         # data-URL so the history card can display it without relying on a
@@ -892,18 +793,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                             cover_image_data = f"data:{mime};base64,{b64}"
             except Exception:
                 _LOGGER.debug("[%s] Could not fetch cover image bytes", self._serial)
-        camera_snapshot_data = ""
-        camera_entity_id = self._get_printer_camera_entity_id()
-        if camera_entity_id:
-            try:
-                from homeassistant.components.camera import async_get_image
-                img = await async_get_image(self.hass, camera_entity_id, timeout=10)
-                if img and img.content:
-                    mime = getattr(img, "content_type", "image/jpeg") or "image/jpeg"
-                    b64 = base64.b64encode(img.content).decode("utf-8")
-                    camera_snapshot_data = f"data:{mime};base64,{b64}"
-            except Exception:
-                _LOGGER.debug("[%s] Could not capture camera snapshot from %s", self._serial, camera_entity_id)
         _LOGGER.info(
             "[%s] _build_print_record: name=%r, cover_image_entity=%r, has_image=%s",
             self._serial, name, cover_image_entity, bool(cover_image_data),
@@ -966,16 +855,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "active_tray": {
                 "name": active_tray_name,
                 "color": active_tray_color,
-                "cols": active_tray_cols,
                 "type": active_tray_type,
                 "slot": active_tray_slot,
                 "ams": active_tray_ams,
                 "ams_model": ams_model,
             },
-            "trays_used": trays_list,
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,
-            "camera_snapshot_url": camera_snapshot_data,
         }
         # Reset cached cover image after recording so next print starts fresh.
         self._last_cover_image_url = ""
@@ -985,29 +871,13 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     # ------------------------------------------------------------------
 
     async def _update_runtime_trackers(self, print_status: str) -> None:
-        now = dt_util.now()
-        if self._last_tracker_ts is None:
-            # First call after startup — record timestamp but don't count any time yet.
-            self._last_tracker_ts = now
-            return
-        elapsed_s = (now - self._last_tracker_ts).total_seconds()
-        # Cap at 2× UPDATE_INTERVAL to ignore suspiciously long gaps (HA restarts, sleep).
-        elapsed_s = min(elapsed_s, UPDATE_INTERVAL.total_seconds() * 2)
-        if elapsed_s <= 0:
-            return
-        self._last_tracker_ts = now
-        interval_h = elapsed_s / 3600
+        interval_h = UPDATE_INTERVAL.total_seconds() / 3600
         changed = False
 
         # Print hours
         if print_status == PRINT_STATUS_PRINTING:
             self._store.increment_counter("print_hours", interval_h)
             changed = True
-
-            # Fume print hours — only filaments that produce significant VOCs
-            active_type = (get_entity_state(self.hass, self._entities, "active_tray_type") or "").strip().upper()
-            if active_type and any(active_type.startswith(p) for p in FUME_FILAMENT_PREFIXES):
-                self._store.increment_counter("fume_print_hours", interval_h)
 
         # Nozzle hours (single nozzle)
         if not self._features.get("dual_nozzle"):
@@ -1038,9 +908,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             is_lasering = tool_state == "laser"
             if is_lasering:
                 self._store.increment_counter("laser_hours", interval_h)
-                # Laser generates fumes → counts toward carbon filter (same as ABS/ASA printing).
-                # Plotting (knife / pen) has a different tool_state and does NOT reach here.
-                self._store.increment_counter("fume_print_hours", interval_h)
                 changed = True
             if was_lasering and not is_lasering:
                 # Transition: laser job completed
@@ -1225,7 +1092,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             return bambu_total_hours
         mapping = {
             "print_hours": "print_hours",
-            "fume_print_hours": "fume_print_hours",
             "nozzle_hours": "nozzle_hours",
             "left_nozzle_hours": "left_nozzle_hours",
             "right_nozzle_hours": "right_nozzle_hours",
@@ -1275,12 +1141,6 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Use explicit counter_key override when provided (e.g. left/right nozzle)
             actual_counter = task_def.get("counter_key", counter_key)
             self._store.set_counter(actual_counter, 0)
-            # Also reset baselines for all sibling tasks that share the same trigger
-            # (e.g. nozzle_clean must restart from 0 when nozzle_replace zeroes the counter).
-            sibling_trigger = task_def["trigger"]
-            for sibling in MAINTENANCE_TASKS:
-                if sibling["key"] != task_key and sibling["trigger"] == sibling_trigger:
-                    self._store.set_maintenance_baseline(sibling["key"], 0.0, from_bambu=False)
 
         # For total_hours tasks, reset against real bambu_total_hours if available
         if trigger == "total_hours":
@@ -1299,11 +1159,10 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
     async def _reset_with_baseline(self, task_key: str, counter_key: str) -> None:
         current = float(self._store.counters.get(counter_key, 0))
-        # Use set_maintenance_baseline so baseline_from_fallback is correctly recorded.
-        # Tasks reaching here always use an internal counter (not bambu_total_hours),
-        # so from_bambu=False is always correct.
-        self._store.set_maintenance_baseline(task_key, current, from_bambu=False)
         maint = self._store.get_maintenance()
+        if task_key not in maint:
+            maint[task_key] = {}
+        maint[task_key]["baseline"] = current
         maint[task_key]["value"] = 0
         maint[task_key]["last_reset"] = dt_util.now().isoformat()
         self._maint_notified.pop(task_key, None)
@@ -1315,20 +1174,20 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
     # ------------------------------------------------------------------
 
     def get_nozzle_slot_labels(self, position: str) -> list[str]:
-        """Return ordered list of ALL slot labels from shared pool."""
-        pool = self._store.get_nozzle_pool()
-        return [pool[k]["label"] for k in sorted(pool.keys(), key=lambda x: int(x) if x.isdigit() else 0)]
+        """Return ordered list of slot labels for the given position."""
+        slots = self._store.get_nozzle_slots(position)
+        return [slots[k]["label"] for k in sorted(slots.keys(), key=lambda x: int(x) if x.isdigit() else 0)]
 
     def get_active_nozzle_label(self, position: str) -> str | None:
-        """Return the label of the currently active pool slot."""
-        pool = self._store.get_nozzle_pool()
+        """Return the label of the currently active slot."""
+        slots = self._store.get_nozzle_slots(position)
         active_id = self._store.get_active_nozzle_slot(position)
-        return pool.get(active_id, {}).get("label")
+        return slots.get(active_id, {}).get("label")
 
     async def async_select_nozzle_slot(self, position: str, label: str) -> None:
-        """Activate the pool slot with the given label for this position."""
-        pool = self._store.get_nozzle_pool()
-        for slot_id, slot_data in pool.items():
+        """Activate the slot with the given label."""
+        slots = self._store.get_nozzle_slots(position)
+        for slot_id, slot_data in slots.items():
             if slot_data["label"] == label:
                 self._store.set_active_nozzle_slot(position, slot_id)
                 await self._store.async_save()
@@ -1336,9 +1195,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 return
 
     async def async_add_nozzle_slot(self, position: str) -> str:
-        """Add a new nozzle slot to the shared pool, activate it for position, return its label."""
+        """Add a new nozzle slot, activate it, return its label."""
         new_id = self._store.add_nozzle_slot(position)
-        new_label = self._store.get_nozzle_pool()[new_id]["label"]
+        new_label = self._store.get_nozzle_slots(position)[new_id]["label"]
         await self._store.async_save()
         await self.async_refresh()
         return new_label

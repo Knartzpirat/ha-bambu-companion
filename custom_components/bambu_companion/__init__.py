@@ -7,6 +7,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
+import voluptuous as vol
+from homeassistant.components import websocket_api
+
 from .const import (
     CONF_CURRENCY,
     CONF_NOTIFY_HA_EVENTS,
@@ -35,6 +38,40 @@ _BASE_STAT_KEYS = [
     "last_print_duration", "last_print_cost",
     "total_filament_cost", "total_energy_cost",
 ]
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "bambu_companion/get_print_images",
+        vol.Required("serial"): str,
+        vol.Required("idx"): int,
+    }
+)
+@websocket_api.async_response
+async def _ws_get_print_images(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Return cover and camera image data for a specific print record."""
+    serial_lower = msg["serial"].lower()
+    idx = msg["idx"]
+    coordinator = next(
+        (
+            c for c in hass.data.get(DOMAIN, {}).values()
+            if hasattr(c, "config_entry")
+            and c.config_entry.data.get("serial", "").lower() == serial_lower
+        ),
+        None,
+    )
+    images: dict[str, str] = {"cover_image_url": "", "camera_snapshot_url": ""}
+    if coordinator and coordinator.data:
+        history: list = coordinator.data.get("history", [])
+        if 0 <= idx < len(history):
+            record = history[idx]
+            images["cover_image_url"] = record.get("cover_image_url", "")
+            images["camera_snapshot_url"] = record.get("camera_snapshot_url", "")
+    connection.send_result(msg["id"], images)
 
 
 async def _async_migrate_sensor_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -130,6 +167,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # Register WebSocket command once per HA session (idempotent guard)
+    if "websocket_commands_registered" not in hass.data[DOMAIN]:
+        websocket_api.async_register_command(hass, _ws_get_print_images)
+        hass.data[DOMAIN]["websocket_commands_registered"] = True
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

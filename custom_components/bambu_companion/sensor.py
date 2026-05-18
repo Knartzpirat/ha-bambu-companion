@@ -100,9 +100,6 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit
         self._attr_device_info = device_info(entry, serial)
-        # Force HA to always push attribute updates via WebSocket even when the
-        # numeric state value hasn't changed (needed for live history updates).
-        self._attr_force_update = True
 
     @property
     def available(self) -> bool:
@@ -176,7 +173,13 @@ class BcStatSensor(CoordinatorEntity, SensorEntity):
         if self.coordinator.data is None:
             return {}
         if self._stat_key == "total_prints":
-            return {"history": self.coordinator.data.get("history", [])}
+            _STRIP = frozenset({"cover_image_url", "camera_snapshot_url", "cover_image_entity"})
+            return {
+                "history": [
+                    {k: v for k, v in r.items() if k not in _STRIP}
+                    for r in self.coordinator.data.get("history", [])
+                ]
+            }
         # Expose all nozzle slots as attributes for the three nozzle sensors
         position_map = {"nozzle_hours": "single", "left_nozzle_hours": "left", "right_nozzle_hours": "right"}
         if self._stat_key in position_map:
