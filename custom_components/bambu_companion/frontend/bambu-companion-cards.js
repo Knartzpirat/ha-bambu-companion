@@ -734,7 +734,10 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
               <div class="task-sub ${warn ? "warning" : "muted"}">${subText}</div>
             </div>
           </div>
-          ${warn ? `<button class="reset-btn" data-task-name="${t.name}" data-select="${selectEntityId}" data-button="${resetBtnId}">✅ Erledigt</button>` : ""}
+          ${warn
+            ? `<button class="reset-btn" data-task-name="${t.name}" data-select="${selectEntityId}" data-button="${resetBtnId}">✅ Erledigt</button>`
+            : `<button class="reset-btn-small" data-task-name="${t.name}" data-select="${selectEntityId}" data-button="${resetBtnId}" title="Wartung zurücksetzen">🔄</button>`
+          }
         </div>`;
         }).join("");
 
@@ -758,6 +761,12 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
           cursor: pointer; font-size: 0.82em; white-space: nowrap;
         }
         .reset-btn:hover { opacity: 0.85; }
+        .reset-btn-small {
+          background: none; border: 1px solid var(--divider-color, #ccc);
+          border-radius: 4px; padding: 4px 8px; cursor: pointer;
+          font-size: 1em; line-height: 1; flex-shrink: 0;
+        }
+        .reset-btn-small:hover { background: var(--secondary-background-color); }
         .toggle-btn {
           background: none; border: 1px solid var(--divider-color, #ccc);
           border-radius: 4px; padding: 3px 8px; cursor: pointer;
@@ -789,7 +798,7 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
             this._render();
         });
 
-        this.shadowRoot.querySelectorAll(".reset-btn").forEach(btn => {
+        this.shadowRoot.querySelectorAll(".reset-btn, .reset-btn-small").forEach(btn => {
             btn.addEventListener("click", async () => {
                 const selectEid = btn.dataset.select;
                 const buttonEid = btn.dataset.button;
