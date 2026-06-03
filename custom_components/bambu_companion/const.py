@@ -8,7 +8,7 @@ URL_BASE = "/bambu_companion_static"
 BAMBU_COMPANION_CARDS = [
     {
         "filename": "bambu-companion-cards.js",
-        "version": "1.5.14",
+        "version": "1.5.15",
         "name": "Bambu Companion Cards",
     }
 ]

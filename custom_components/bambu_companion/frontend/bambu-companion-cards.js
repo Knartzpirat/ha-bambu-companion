@@ -615,13 +615,14 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         super();
         this.attachShadow({ mode: "open" });
         this._showAll = false; // default: only show warnings
+        this._confirmVisible = false;
     }
 
     setConfig(config) {
         this._config = config;
     }
 
-    set hass(hass) { this._hass = hass; this._render(); }
+    set hass(hass) { this._hass = hass; if (!this._confirmVisible) this._render(); }
 
     _render() {
         if (!this._hass || !this._config) return;
@@ -847,9 +848,11 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
             _pendingTaskName = taskName;
             confirmMsg.textContent = `"${taskName}" wirklich auf 0 zurücksetzen? Diese Aktion kann nicht rückgängig gemacht werden.`;
             overlay.classList.add("visible");
+            this._confirmVisible = true;
         };
         const hideConfirm = () => {
             overlay.classList.remove("visible");
+            this._confirmVisible = false;
             _pendingSelect = null;
             _pendingButton = null;
             _pendingTaskName = null;
