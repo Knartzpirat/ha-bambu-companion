@@ -990,12 +990,23 @@ class BambuCompanionHistoryCard extends HTMLElement {
             const thumbHtml = imgUrl
                 ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
                 : `<div style="width:48px;height:48px;border-radius:4px;background:var(--divider-color);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${ok ? "✅" : "❌"}</div>`;
+            // Build filament color swatches for the row (use trays_used if available)
+            const rowTrays = (Array.isArray(p.trays_used) && p.trays_used.length > 0)
+                ? p.trays_used
+                : (p.active_tray ? [p.active_tray] : []);
+            const rowSwatches = rowTrays.map(t => {
+                const col = (typeof t.color === "string" ? t.color : "").replace(/^#/, "");
+                const hexC = (col.length >= 8 && col.slice(6, 8).toLowerCase() === "00") ? "" : col.slice(0, 6);
+                return hexC ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#${hexC};border:1px solid var(--divider-color);flex-shrink:0;"></span>` : "";
+            }).filter(Boolean).join("");
+            const swatchesRow = rowSwatches ? `<div style="display:flex;gap:3px;margin-top:3px;padding-left:2px;flex-wrap:wrap;">${rowSwatches}</div>` : "";
             return `
         <tr class="print-row" data-idx="${idx}" style="cursor:pointer">
           <td style="width:56px;padding-right:4px">${thumbHtml}</td>
           <td>
             <div style="font-weight:500;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${printName || (ok ? "✅ Erfolgreich" : "❌ Fehlgeschlagen")}</div>
             <div class="muted" style="font-size:0.78em">${dateStr}</div>
+            ${swatchesRow}
           </td>
           <td class="right">${duration}</td>
           <td class="right">${fil}</td>
@@ -1072,7 +1083,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
         .detail-item label { font-size: 0.72em; color: var(--secondary-text-color); display: block; margin-bottom: 1px; }
         .detail-item span  { font-size: 0.88em; font-weight: 500; }
         .detail-item.detail-full { grid-column: 1 / -1; }
-        .tray-list { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+        .tray-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding-left: 8px; border-left: 2px solid var(--divider-color); }
         .tray-row  { display: flex; align-items: center; gap: 6px; font-size: 0.88em; font-weight: 500; }
         .tray-row .tray-name  { flex: 1; }
         .tray-row .tray-slot  { font-size: 0.8em; color: var(--secondary-text-color); white-space: nowrap; }

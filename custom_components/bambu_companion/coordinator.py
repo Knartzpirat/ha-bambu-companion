@@ -95,6 +95,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._last_progress: int = 0
         self._last_print_name: str = ""
         self._last_cover_image_url: str = ""
+        # Trays used during current print (snapshotted at start + tracked during print)
+        self._trays_used_snapshot: list[dict] = []
+        self._last_active_tray_key: str = ""
 
         # Accumulated per-session seconds for nozzle/laser tracking
         self._nozzle_session_start: datetime | None = None
@@ -498,6 +501,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                     url = cov_state.attributes.get("entity_picture", "")
                     if url:
                         self._last_cover_image_url = url
+            # Track which AMS slots are used during this print
+            self._update_trays_used()
 
         # Track nozzle/laser hours
         await self._update_runtime_trackers(new_status)
@@ -649,13 +654,70 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
 
         self._print_status = new_status
 
+    def _snapshot_active_tray(self) -> dict | None:
+        """Capture the currently active tray as a snapshot dict. Returns None if no data."""
+        tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
+        tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
+        tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
+        tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
+        tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
+        # Skip if clearly unloaded / unknown
+        rl = (tray_name or "").lower()
+        if rl in ("none", "unknown", "empty", ""):
+            if not tray_color and tray_slot is None:
+                return None
+        ams_model = ""
+        if self._ams_device_ids and tray_ams is not None:
+            ams_devices = get_ams_devices(self.hass, self._device_id)
+            try:
+                ams_idx = int(tray_ams)
+                if 0 <= ams_idx < len(ams_devices):
+                    ams_model = ams_devices[ams_idx].get("model", "")
+                elif ams_devices:
+                    ams_model = ams_devices[0].get("model", "")
+            except (TypeError, ValueError):
+                if ams_devices:
+                    ams_model = ams_devices[0].get("model", "")
+        return {
+            "name": tray_name,
+            "color": tray_color,
+            "type": tray_type,
+            "slot": tray_slot,
+            "ams": tray_ams,
+            "ams_model": ams_model,
+        }
+
+    def _update_trays_used(self) -> None:
+        """Called during printing to track all trays that are used. Deduplicates by (ams, slot)."""
+        snap = self._snapshot_active_tray()
+        if snap is None:
+            return
+        key = f"{snap.get('ams')}:{snap.get('slot')}"
+        if key != self._last_active_tray_key:
+            self._last_active_tray_key = key
+            # Replace existing entry for same (ams, slot) or append new one
+            existing = next(
+                (i for i, t in enumerate(self._trays_used_snapshot)
+                 if f"{t.get('ams')}:{t.get('slot')}" == key),
+                None,
+            )
+            if existing is not None:
+                self._trays_used_snapshot[existing] = snap
+            else:
+                self._trays_used_snapshot.append(snap)
+
     async def _on_print_start(self) -> None:
         self._cancel_poweroff_task()  # new print started — abort any pending poweroff
         self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
+        # Snapshot the active tray at print start (before AMS can reset it)
+        self._trays_used_snapshot = []
+        self._last_active_tray_key = ""
+        self._update_trays_used()
         _LOGGER.info(
-            "[%s] Print started: name='%s', start_time=%s",
+            "[%s] Print started: name='%s', start_time=%s, initial_tray=%s",
             self._serial, self._last_print_name, self._print_start_time,
+            self._trays_used_snapshot[0] if self._trays_used_snapshot else None,
         )
         printer_name = self._printer_name
         await self._notify.notify_start(
@@ -753,27 +815,24 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             # Also strip .gcode if double-extension like .gcode.3mf
             name = re.sub(r'\.gcode$', '', name, flags=re.IGNORECASE)
         plate, project_name = _extract_plate_info(gcode_file)
-        # Active tray / filament slot snapshot
-        active_tray_name = get_entity_state(self.hass, self._entities, "active_tray") or ""
-        active_tray_color = get_entity_attribute(self.hass, self._entities, "active_tray", "color") or ""
-        active_tray_type = get_entity_attribute(self.hass, self._entities, "active_tray", "type") or ""
-        active_tray_slot = get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index")
-        active_tray_ams = get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index")
-        # AMS model name (e.g. "AMS 2 Pro", "AMS HT", "AMS Lite") from device registry
-        printer_device_id = self._entry.data.get("device_id", "")
-        ams_model = ""
-        if self._ams_device_ids and active_tray_ams is not None:
-            ams_devices = get_ams_devices(self.hass, printer_device_id)
-            # Match by index (AMS devices are ordered by their position)
-            try:
-                ams_idx = int(active_tray_ams)
-                if 0 <= ams_idx < len(ams_devices):
-                    ams_model = ams_devices[ams_idx].get("model", "")
-                elif ams_devices:
-                    ams_model = ams_devices[0].get("model", "")
-            except (TypeError, ValueError):
-                if ams_devices:
-                    ams_model = ams_devices[0].get("model", "")
+        # Use the tray snapshots captured DURING the print (not at print end, since the
+        # AMS resets to slot 0 after the print finishes). Fall back to current state only
+        # if no snapshot was taken (e.g. HA reloaded mid-print).
+        if self._trays_used_snapshot:
+            trays_used = list(self._trays_used_snapshot)
+            active_tray_dict = trays_used[0]
+        else:
+            # Fallback: read current active_tray (may be wrong slot after AMS reset)
+            snap = self._snapshot_active_tray()
+            trays_used = [snap] if snap else []
+            active_tray_dict = snap or {
+                "name": get_entity_state(self.hass, self._entities, "active_tray") or "",
+                "color": get_entity_attribute(self.hass, self._entities, "active_tray", "color") or "",
+                "type": get_entity_attribute(self.hass, self._entities, "active_tray", "type") or "",
+                "slot": get_entity_attribute(self.hass, self._entities, "active_tray", "tray_index"),
+                "ams": get_entity_attribute(self.hass, self._entities, "active_tray", "ams_index"),
+                "ams_model": "",
+            }
         cover_image_entity = self._entities.get("cover_image", "")
         # Fetch the raw image bytes from the HA image entity and encode as base64
         # data-URL so the history card can display it without relying on a
@@ -852,14 +911,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "avg_nozzle_temp": nozzle_temp,
             "layer_count": int(layer_count),
             "current_layer": int(current_layer),
-            "active_tray": {
-                "name": active_tray_name,
-                "color": active_tray_color,
-                "type": active_tray_type,
-                "slot": active_tray_slot,
-                "ams": active_tray_ams,
-                "ams_model": ams_model,
-            },
+            "active_tray": active_tray_dict,
+            "trays_used": trays_used,
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,
         }
