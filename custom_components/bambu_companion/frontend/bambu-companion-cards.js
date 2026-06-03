@@ -922,7 +922,13 @@ class BambuCompanionMaintenanceCardEditor extends HTMLElement {
 // ── History Card ──────────────────────────────────────────────────────────────
 
 class BambuCompanionHistoryCard extends HTMLElement {
-    constructor() { super(); this.attachShadow({ mode: "open" }); }
+    constructor() {
+        super();
+        this.attachShadow({ mode: "open" });
+        this._imgCache   = new Map(); // idx → { cover: dataUrl, camera: dataUrl }
+        this._imgPending = new Set(); // idx currently being fetched
+        this._imgObserver = null;
+    }
 
     setConfig(config) {
         this._config = config;
@@ -981,15 +987,15 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 const fname = p.gcode_file.split("/").pop() || "";
                 printName = fname.replace(/\.[^.]+$/, "").replace(/_/g, " ");
             }
-            // Cover image: only use base64 data-URLs (saved at print-finish).
-            // Old records without a saved image get a static placeholder — never
-            // show the live entity_picture because that changes with every new print
-            // and would make all history entries show the same current image.
+            // Cover image: show cached image immediately; otherwise a placeholder
+            // that the IntersectionObserver will replace once the row scrolls into view.
             const stored = p.cover_image_url || "";
-            const imgUrl = stored.startsWith("data:") ? stored : "";
-            const thumbHtml = imgUrl
+            const cachedImg = this._imgCache.get(idx);
+            const imgUrl = (cachedImg?.cover || cachedImg?.camera) || (stored.startsWith("data:") ? stored : "");
+            const thumbInner = imgUrl
                 ? `<img src="${imgUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`
-                : `<div style="width:48px;height:48px;border-radius:4px;background:var(--divider-color);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${ok ? "✅" : "❌"}</div>`;
+                : `<div class="thumb-ph" style="width:48px;height:48px;border-radius:4px;background:var(--divider-color);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${ok ? "✅" : "❌"}</div>`;
+            const thumbHtml = `<div class="thumb-wrap" data-idx="${idx}" style="width:48px;height:48px;flex-shrink:0;">${thumbInner}</div>`;
             // Build filament color swatches for the row (use trays_used if available)
             const rowTrays = (Array.isArray(p.trays_used) && p.trays_used.length > 0)
                 ? p.trays_used
@@ -1126,11 +1132,60 @@ class BambuCompanionHistoryCard extends HTMLElement {
         this._historyData = history;
         this._currency = currency;
 
+        // Lazy-load thumbnails as rows scroll into view
+        this._setupThumbObserver(serial);
+
         // Single delegated click on table rows
         this.shadowRoot.querySelector("tbody")?.addEventListener("click", e => {
             const row = e.target.closest(".print-row");
             if (row) this._showDetail(parseInt(row.dataset.idx, 10));
         });
+    }
+
+    _setupThumbObserver(serial) {
+        if (this._imgObserver) { this._imgObserver.disconnect(); this._imgObserver = null; }
+        const wraps = this.shadowRoot.querySelectorAll(".thumb-wrap");
+        if (!wraps.length) return;
+        this._imgObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const wrap = entry.target;
+                const idx = parseInt(wrap.dataset.idx, 10);
+                // Already resolved (has real img tag)
+                if (wrap.querySelector("img")) { this._imgObserver.unobserve(wrap); return; }
+                // Cached from a previous fetch
+                if (this._imgCache.has(idx)) {
+                    this._applyThumb(wrap, idx);
+                    this._imgObserver.unobserve(wrap);
+                    return;
+                }
+                // Kick off a WS fetch — unobserve first to prevent duplicate calls
+                if (this._imgPending.has(idx)) return;
+                this._imgPending.add(idx);
+                this._imgObserver.unobserve(wrap);
+                this._hass.callWS({ type: "bambu_companion/get_print_images", serial, idx })
+                    .then(result => {
+                        this._imgPending.delete(idx);
+                        const iUrl = (result.cover_image_url    || "").startsWith("data:") ? result.cover_image_url    : "";
+                        const cUrl = (result.camera_snapshot_url || "").startsWith("data:") ? result.camera_snapshot_url : "";
+                        if (iUrl || cUrl) {
+                            this._imgCache.set(idx, { cover: iUrl, camera: cUrl });
+                            const w = this.shadowRoot.querySelector(`.thumb-wrap[data-idx="${idx}"]`);
+                            if (w) this._applyThumb(w, idx);
+                        }
+                    })
+                    .catch(() => { this._imgPending.delete(idx); });
+            });
+        }, { threshold: 0.1, rootMargin: "100px" });
+        // Only observe rows that don't already show a real image
+        wraps.forEach(w => { if (!w.querySelector("img")) this._imgObserver.observe(w); });
+    }
+
+    _applyThumb(wrap, idx) {
+        if (!wrap.isConnected) return;
+        const cached = this._imgCache.get(idx);
+        const url = cached?.cover || cached?.camera || "";
+        if (url) wrap.innerHTML = `<img src="${url}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;display:block;">`;
     }
 
     _showDetail(idx) {
