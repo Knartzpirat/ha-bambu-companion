@@ -1007,7 +1007,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
             }).filter(Boolean).join("");
             const swatchesRow = rowSwatches ? `<div style="display:flex;gap:3px;margin-top:3px;padding-left:2px;flex-wrap:wrap;">${rowSwatches}</div>` : "";
             return `
-        <tr class="print-row" data-idx="${idx}" style="cursor:pointer">
+        <tr class="print-row${ok ? "" : " row-failed"}" data-idx="${idx}" style="cursor:pointer">
           <td style="width:56px;padding-right:4px">${thumbHtml}</td>
           <td>
             <div style="font-weight:500;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${printName || (ok ? "✅ Erfolgreich" : "❌ Fehlgeschlagen")}</div>
@@ -1038,6 +1038,8 @@ class BambuCompanionHistoryCard extends HTMLElement {
         .right { text-align: right; }
         .empty { color: var(--secondary-text-color); text-align: center; padding: 20px; }
         .print-row:hover td { background: var(--secondary-background-color); }
+        .row-failed td { color: var(--error-color, #db4437); }
+        .row-failed .muted { color: color-mix(in srgb, var(--error-color, #db4437) 70%, transparent); }
         /* ── Detail Modal ── */
         .modal-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.55);
