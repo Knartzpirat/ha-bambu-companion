@@ -8,7 +8,7 @@ URL_BASE = "/bambu_companion_static"
 BAMBU_COMPANION_CARDS = [
     {
         "filename": "bambu-companion-cards.js",
-        "version": "1.5.18",
+        "version": "1.5.12",
         "name": "Bambu Companion Cards",
     }
 ]
@@ -53,20 +53,6 @@ CONF_IMPORT_TOTAL_HOURS = "import_total_hours"        # True = show printer firm
 
 DEFAULT_NOTIFY_MOBILE_EVENTS: list[str] = ["start", "done", "error"]
 DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done", "maintenance", "error", "nozzle_change"]
-DEFAULT_NOTIFY_MOBILE_BOOLS: dict[str, bool] = {
-    "notify_mobile_start": True,
-    "notify_mobile_progress": False,
-    "notify_mobile_done": True,
-    "notify_mobile_error": True,
-    "notify_mobile_maintenance": False,
-    "notify_mobile_nozzle_change": False,
-}
-DEFAULT_NOTIFY_HA_BOOLS: dict[str, bool] = {
-    "notify_ha_done": True,
-    "notify_ha_error": True,
-    "notify_ha_maintenance": True,
-    "notify_ha_nozzle_change": True,
-}
 
 # Custom text keys
 CONF_TEXT_START_TITLE = "text_start_title"
@@ -75,23 +61,18 @@ CONF_TEXT_DONE_TITLE = "text_done_title"
 CONF_TEXT_ERROR_TITLE = "text_error_title"
 CONF_TEXT_MAINT_TITLE = "text_maint_title"
 CONF_TEXT_RESET_TITLE = "text_reset_title"
-CONF_TEXT_POWEROFF_TITLE = "text_poweroff_title"
 CONF_TEXT_START_MSG = "text_start_msg"
 CONF_TEXT_PROGRESS_MSG = "text_progress_msg"
 CONF_TEXT_DONE_MSG = "text_done_msg"
 CONF_TEXT_ERROR_MSG = "text_error_msg"
 CONF_TEXT_MAINT_MSG = "text_maint_msg"
 CONF_TEXT_RESET_MSG = "text_reset_msg"
-CONF_TEXT_POWEROFF_MSG = "text_poweroff_msg"
 CONF_TEXT_BTN_DONE = "text_btn_done"
 CONF_TEXT_BTN_SNOOZE = "text_btn_snooze"
 CONF_TEXT_BTN_CANCEL = "text_btn_cancel"
 CONF_TEXT_BTN_RESET_CONFIRM = "text_btn_reset_confirm"
 CONF_TEXT_BTN_RESET_CANCEL = "text_btn_reset_cancel"
 CONF_TEXT_BTN_CAMERA = "text_btn_camera"
-CONF_TEXT_BTN_POWEROFF_NOW = "text_btn_poweroff_now"
-CONF_TEXT_BTN_POWEROFF_AFTER_DRY = "text_btn_poweroff_after_dry"
-CONF_TEXT_BTN_POWEROFF_CANCEL = "text_btn_poweroff_cancel"
 
 # Action buttons in mobile push notifications
 # Button 1: configurable title + URI (e.g. open Bambu App)
@@ -101,7 +82,6 @@ CONF_TEXT_BTN_POWEROFF_CANCEL = "text_btn_poweroff_cancel"
 CONF_ACTION_BTN_1_TITLE = "action_btn_1_title"
 CONF_ACTION_BTN_1_URI = "action_btn_1_uri"
 CONF_ACTION_BTN_2_CAMERA_TITLE = "action_btn_2_camera_title"
-CONF_ACTION_BTN_2_CAMERA_ENTITY = "action_btn_2_camera_entity"
 CONF_ACTION_BTN_2_FALLBACK_TITLE = "action_btn_2_fallback_title"
 CONF_ACTION_BTN_2_URI = "action_btn_2_uri"       # fallback URI (no camera)
 CONF_ACTION_BTN_3_MODE = "action_btn_3_mode"     # "off" | "mute_progress" | "custom"
@@ -134,11 +114,6 @@ DEFAULT_TEXTS = {
     CONF_TEXT_BTN_RESET_CONFIRM: "✅ Ja, zurücksetzen",
     CONF_TEXT_BTN_RESET_CANCEL: "❌ Abbrechen",
     CONF_TEXT_BTN_CAMERA: "📷 Kamera",
-    CONF_TEXT_POWEROFF_TITLE: "🔌 {drucker} – Drucker ausschalten?",
-    CONF_TEXT_POWEROFF_MSG: "Der Druck ist abgeschlossen. Möchtest du den Drucker ausschalten?",
-    CONF_TEXT_BTN_POWEROFF_NOW: "🔌 Jetzt ausschalten",
-    CONF_TEXT_BTN_POWEROFF_AFTER_DRY: "⏳ Nach Trocknung",
-    CONF_TEXT_BTN_POWEROFF_CANCEL: "❌ Nicht ausschalten",
 }
 
 # Print status values (from ha-bambulab gcode_state.lower())
