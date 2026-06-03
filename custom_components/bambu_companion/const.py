@@ -54,6 +54,22 @@ CONF_IMPORT_TOTAL_HOURS = "import_total_hours"        # True = show printer firm
 DEFAULT_NOTIFY_MOBILE_EVENTS: list[str] = ["start", "done", "error"]
 DEFAULT_NOTIFY_HA_EVENTS: list[str] = ["done", "maintenance", "error", "nozzle_change"]
 
+# Boolean defaults derived from the event lists above (used by options_flow + notify)
+DEFAULT_NOTIFY_MOBILE_BOOLS: dict[str, bool] = {
+    "notify_mobile_start": True,
+    "notify_mobile_progress": False,
+    "notify_mobile_done": True,
+    "notify_mobile_error": True,
+    "notify_mobile_maintenance": False,
+    "notify_mobile_nozzle_change": False,
+}
+DEFAULT_NOTIFY_HA_BOOLS: dict[str, bool] = {
+    "notify_ha_done": True,
+    "notify_ha_error": True,
+    "notify_ha_maintenance": True,
+    "notify_ha_nozzle_change": True,
+}
+
 # Custom text keys
 CONF_TEXT_START_TITLE = "text_start_title"
 CONF_TEXT_PROGRESS_TITLE = "text_progress_title"
