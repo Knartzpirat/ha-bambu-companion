@@ -767,6 +767,34 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
           font-size: 1em; line-height: 1; flex-shrink: 0;
         }
         .reset-btn-small:hover { background: var(--secondary-background-color); }
+        /* Confirmation overlay */
+        .confirm-overlay {
+          display: none; position: absolute; inset: 0; z-index: 10;
+          background: rgba(0,0,0,0.45); border-radius: var(--ha-card-border-radius, 12px);
+          align-items: center; justify-content: center;
+        }
+        .confirm-overlay.visible { display: flex; }
+        .confirm-box {
+          background: var(--card-background-color, #fff);
+          border-radius: 10px; padding: 20px 22px; max-width: 280px; width: 90%;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+          display: flex; flex-direction: column; gap: 12px;
+        }
+        .confirm-title { font-weight: 600; font-size: 0.95em; }
+        .confirm-msg   { font-size: 0.85em; color: var(--secondary-text-color); line-height: 1.4; }
+        .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .confirm-yes {
+          background: var(--error-color, #db4437); color: #fff;
+          border: none; border-radius: 4px; padding: 7px 14px;
+          cursor: pointer; font-size: 0.85em; font-weight: 500;
+        }
+        .confirm-yes:hover { opacity: 0.85; }
+        .confirm-no {
+          background: none; border: 1px solid var(--divider-color, #ccc);
+          border-radius: 4px; padding: 7px 14px;
+          cursor: pointer; font-size: 0.85em;
+        }
+        .confirm-no:hover { background: var(--secondary-background-color); }
         .toggle-btn {
           background: none; border: 1px solid var(--divider-color, #ccc);
           border-radius: 4px; padding: 3px 8px; cursor: pointer;
@@ -781,7 +809,17 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
         .empty { color: var(--secondary-text-color); text-align: center; padding: 20px; }
         .card-body { padding: 12px 16px; }
       </style>
-      <ha-card>
+      <ha-card style="position:relative">
+        <div class="confirm-overlay" id="confirm-overlay">
+          <div class="confirm-box">
+            <div class="confirm-title">⚠️ Wartung zurücksetzen?</div>
+            <div class="confirm-msg" id="confirm-msg"></div>
+            <div class="confirm-actions">
+              <button class="confirm-no"  id="confirm-no">❌ Abbrechen</button>
+              <button class="confirm-yes" id="confirm-yes">🔄 Zurücksetzen</button>
+            </div>
+          </div>
+        </div>
         <div class="card-header-row">
           <span class="card-header-title">🔧 Nächste Wartungen${warnCount > 0 ? ` <span style="color:var(--warning-color,#ff9800);font-size:0.85em">(${warnCount} fällig)</span>` : ""}</span>
           <button class="toggle-btn" id="toggle-btn">${this._showAll ? "⚠️ Nur Warnungen" : `📋 Alle (${tasks.length})`}</button>
@@ -798,17 +836,44 @@ class BambuCompanionMaintenanceCard extends HTMLElement {
             this._render();
         });
 
+        // Confirmation overlay logic
+        const overlay   = this.shadowRoot.querySelector("#confirm-overlay");
+        const confirmMsg = this.shadowRoot.querySelector("#confirm-msg");
+        let _pendingSelect = null, _pendingButton = null, _pendingTaskName = null;
+
+        const showConfirm = (taskName, selectEid, buttonEid) => {
+            _pendingSelect   = selectEid;
+            _pendingButton   = buttonEid;
+            _pendingTaskName = taskName;
+            confirmMsg.textContent = `"${taskName}" wirklich auf 0 zurücksetzen? Diese Aktion kann nicht rückgängig gemacht werden.`;
+            overlay.classList.add("visible");
+        };
+        const hideConfirm = () => {
+            overlay.classList.remove("visible");
+            _pendingSelect = null;
+            _pendingButton = null;
+            _pendingTaskName = null;
+        };
+
+        this.shadowRoot.querySelector("#confirm-no")?.addEventListener("click", hideConfirm);
+        overlay.addEventListener("click", (e) => { if (e.target === overlay) hideConfirm(); });
+
+        this.shadowRoot.querySelector("#confirm-yes")?.addEventListener("click", async () => {
+            const selectEid  = _pendingSelect;
+            const buttonEid  = _pendingButton;
+            const taskName   = _pendingTaskName;
+            hideConfirm();
+            try {
+                await this._hass.callService("select", "select_option", { entity_id: selectEid, option: taskName });
+                await this._hass.callService("button", "press", { entity_id: buttonEid });
+            } catch (e) {
+                console.error("BambuCompanion: Fehler beim Zurücksetzen:", e);
+            }
+        });
+
         this.shadowRoot.querySelectorAll(".reset-btn, .reset-btn-small").forEach(btn => {
-            btn.addEventListener("click", async () => {
-                const selectEid = btn.dataset.select;
-                const buttonEid = btn.dataset.button;
-                const taskName = btn.dataset.taskName;
-                try {
-                    await this._hass.callService("select", "select_option", { entity_id: selectEid, option: taskName });
-                    await this._hass.callService("button", "press", { entity_id: buttonEid });
-                } catch (e) {
-                    console.error("BambuCompanion: Fehler beim Zurücksetzen:", e);
-                }
+            btn.addEventListener("click", () => {
+                showConfirm(btn.dataset.taskName, btn.dataset.select, btn.dataset.button);
             });
         });
     }
