@@ -82,6 +82,7 @@ CONF_TEXT_BTN_CAMERA = "text_btn_camera"
 CONF_ACTION_BTN_1_TITLE = "action_btn_1_title"
 CONF_ACTION_BTN_1_URI = "action_btn_1_uri"
 CONF_ACTION_BTN_2_CAMERA_TITLE = "action_btn_2_camera_title"
+CONF_ACTION_BTN_2_CAMERA_ENTITY = "action_btn_2_camera_entity"
 CONF_ACTION_BTN_2_FALLBACK_TITLE = "action_btn_2_fallback_title"
 CONF_ACTION_BTN_2_URI = "action_btn_2_uri"       # fallback URI (no camera)
 CONF_ACTION_BTN_3_MODE = "action_btn_3_mode"     # "off" | "mute_progress" | "custom"
