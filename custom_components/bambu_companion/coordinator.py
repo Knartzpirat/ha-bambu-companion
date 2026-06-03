@@ -98,6 +98,8 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Trays used during current print (snapshotted at start + tracked during print)
         self._trays_used_snapshot: list[dict] = []
         self._last_active_tray_key: str = ""
+        # Job type snapshotted at print start: "print" | "laser" | "cut"
+        self._job_type_snapshot: str = "print"
 
         # Accumulated per-session seconds for nozzle/laser tracking
         self._nozzle_session_start: datetime | None = None
@@ -714,9 +716,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._trays_used_snapshot = []
         self._last_active_tray_key = ""
         self._update_trays_used()
+        # Detect job type from installed tool module
+        tool_mod = get_entity_state(self.hass, self._entities, "tool_module") or ""
+        if tool_mod.startswith("laser"):
+            self._job_type_snapshot = "laser"
+        elif tool_mod == "cutter":
+            self._job_type_snapshot = "cut"
+        else:
+            self._job_type_snapshot = "print"
         _LOGGER.info(
-            "[%s] Print started: name='%s', start_time=%s, initial_tray=%s",
+            "[%s] Print started: name='%s', start_time=%s, job_type=%s, initial_tray=%s",
             self._serial, self._last_print_name, self._print_start_time,
+            self._job_type_snapshot,
             self._trays_used_snapshot[0] if self._trays_used_snapshot else None,
         )
         printer_name = self._printer_name
@@ -913,6 +924,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "current_layer": int(current_layer),
             "active_tray": active_tray_dict,
             "trays_used": trays_used,
+            "job_type": self._job_type_snapshot,
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,
         }
@@ -955,15 +967,23 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                 changed = True
 
         # Laser hours and jobs (H2D)
+        # tool_module entity (translation_key="tool_module") reports the installed tool:
+        # "none", "laser10" (10W), "laser40" (40W), "cutter"
         if self._features.get("laser"):
-            tool_state = get_entity_state(self.hass, self._entities, "tool_module_state")
+            tool_state = get_entity_state(self.hass, self._entities, "tool_module")
             was_lasering = getattr(self, "_was_lasering", False)
-            is_lasering = tool_state == "laser"
-            if is_lasering:
+            # Laser is "in a job" when the tool is a laser module AND the print is active/paused
+            is_lasering = (
+                print_status in ACTIVE_PRINT_STATUSES
+                and tool_state is not None
+                and tool_state.startswith("laser")
+            )
+            # Count hours only while actively printing (not paused)
+            if is_lasering and print_status == PRINT_STATUS_PRINTING:
                 self._store.increment_counter("laser_hours", interval_h)
                 changed = True
             if was_lasering and not is_lasering:
-                # Transition: laser job completed
+                # Transition: laser job completed (print finished/failed/cancelled)
                 self._store.increment_counter("laser_jobs", 1)
                 changed = True
             self._was_lasering = is_lasering

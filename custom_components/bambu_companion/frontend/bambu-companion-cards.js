@@ -1236,6 +1236,10 @@ class BambuCompanionHistoryCard extends HTMLElement {
             : (Object.keys(tray).length > 0 ? [tray] : []);
         const trayInfos = traysUsed.map(trayInfo);
 
+        // Job type: "print" (default) | "laser" | "cut"
+        const jobType = p.job_type || "print";
+        const isLaserOrCut = jobType === "laser" || jobType === "cut";
+
         // Primary tray (single-filament fields)
         const primary   = trayInfos[0] || {};
         const trayName  = primary.name  || "–";
@@ -1264,7 +1268,7 @@ class BambuCompanionHistoryCard extends HTMLElement {
           <div class="detail-item"><label>${label1}</label><span>${val1}</span></div>
           <div class="detail-item"><label>${label2}</label><span>${val2}</span></div>`;
 
-        // Multi-filament section HTML
+        // Multi-filament section HTML (hidden for laser/cut jobs – no filament used)
         const isMultiFilament = trayInfos.length > 1;
         const filamentSectionHtml = isMultiFilament
             ? `<div class="detail-item detail-full">
@@ -1291,14 +1295,16 @@ class BambuCompanionHistoryCard extends HTMLElement {
               <div class="modal-date">Beendet: ${dateEnd}</div>
               <span class="modal-badge ${ok ? "badge-ok" : "badge-fail"}">${ok ? "✅ Erfolgreich" : "❌ Fehlgeschlagen"} – ${progress}</span>
 
+              ${!isLaserOrCut ? `
               <div class="modal-section">
                 <div class="modal-section-title">🧵 Filament</div>
                 <div class="detail-grid">
                   ${filamentSectionHtml}
-                  ${row2("Verbrauch", filWeight, "Kosten", filCost)}
+                  ${row2("Verbrauch", filWeight, "Materialkosten", filCost)}
                 </div>
-              </div>
+              </div>` : ""}
 
+              ${!isLaserOrCut ? `
               <div class="modal-section">
                 <div class="modal-section-title">🔧 Düse & Bett</div>
                 <div class="detail-grid">
@@ -1306,12 +1312,12 @@ class BambuCompanionHistoryCard extends HTMLElement {
                   ${row2("Düsentemp.", nozzleTemp, "Betttyp", bedType)}
                   ${row2("Betttemp.", bedTemp, "Platte", plate)}
                 </div>
-              </div>
+              </div>` : ""}
 
               <div class="modal-section">
-                <div class="modal-section-title">📊 Druckdetails</div>
+                <div class="modal-section-title">📊 ${isLaserOrCut ? (jobType === "cut" ? "✂️ Job-Details" : "🔆 Job-Details") : "Druckdetails"}</div>
                 <div class="detail-grid">
-                  ${row2("Dauer", duration, "Schichten", layers)}
+                  ${row2("Dauer", duration, isLaserOrCut ? "Ebenen/Durchläufe" : "Schichten", layers)}
                   ${row2("Gestartet", dateStart, "Beendet", dateEnd)}
                 </div>
               </div>
@@ -1320,7 +1326,9 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 <div class="modal-section-title">⚡ Energie & Kosten</div>
                 <div class="detail-grid">
                   ${row2("Energie", energyKwh, "Energiekosten", energyCost)}
-                  ${row2("Filamentkosten", filCost, "Gesamt", totalCost)}
+                  ${!isLaserOrCut
+                    ? row2("Materialkosten", filCost, "Gesamt", totalCost)
+                    : row2("Gesamt", totalCost, "", "")}
                 </div>
               </div>
             </div>
