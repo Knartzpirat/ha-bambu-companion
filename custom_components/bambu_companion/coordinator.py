@@ -697,6 +697,31 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         key = f"{snap.get('ams')}:{snap.get('slot')}"
         if key != self._last_active_tray_key:
             self._last_active_tray_key = key
+
+            def _is_external(t: dict) -> bool:
+                try:
+                    if t.get("slot") is not None and int(t["slot"]) >= 254:
+                        return True
+                    if t.get("ams") is not None and int(t["ams"]) >= 254:
+                        return True
+                except (TypeError, ValueError):
+                    pass
+                return (t.get("name") or "").lower().startswith("external spool")
+
+            # If the newly active tray is a real AMS slot and ALL current snapshot
+            # entries are external spools, those were phantom entries captured at
+            # print-start from the previous job's leftover state. Discard them.
+            new_is_external = _is_external(snap)
+            if (not new_is_external
+                    and self._trays_used_snapshot
+                    and all(_is_external(t) for t in self._trays_used_snapshot)):
+                _LOGGER.debug(
+                    "[%s] Clearing %d phantom external spool entry/entries "
+                    "(AMS slot became active first time).",
+                    self._serial, len(self._trays_used_snapshot),
+                )
+                self._trays_used_snapshot = []
+
             # Replace existing entry for same (ams, slot) or append new one
             existing = next(
                 (i for i, t in enumerate(self._trays_used_snapshot)
