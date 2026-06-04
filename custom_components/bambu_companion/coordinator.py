@@ -99,6 +99,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         # Trays used during current print (snapshotted at start + tracked during print)
         self._trays_used_snapshot: list[dict] = []
         self._last_active_tray_key: str = ""
+        # Pre-print tray state — used as fallback for single-filament prints where
+        # active_tray never changes during printing, and as baseline to skip warmup phantoms.
+        self._pre_print_tray_snapshot: dict | None = None
         # Job type snapshotted at print start: "print" | "laser" | "cut"
         self._job_type_snapshot: str = "print"
 
@@ -691,38 +694,18 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         }
 
     def _update_trays_used(self) -> None:
-        """Called during printing to track all trays that are used. Deduplicates by (ams, slot)."""
+        """Called during printing to track all trays that are used. Deduplicates by (ams, slot).
+
+        `_last_active_tray_key` is pre-seeded in `_on_print_start()` with the
+        pre-print tray key, so the first poll that still sees the same slot (warmup
+        phase) is silently ignored — only genuine mid-print changes are recorded.
+        """
         snap = self._snapshot_active_tray()
         if snap is None:
             return
         key = f"{snap.get('ams')}:{snap.get('slot')}"
         if key != self._last_active_tray_key:
             self._last_active_tray_key = key
-
-            def _is_external(t: dict) -> bool:
-                try:
-                    if t.get("slot") is not None and int(t["slot"]) >= 254:
-                        return True
-                    if t.get("ams") is not None and int(t["ams"]) >= 254:
-                        return True
-                except (TypeError, ValueError):
-                    pass
-                return (t.get("name") or "").lower().startswith("external spool")
-
-            # If the newly active tray is a real AMS slot and ALL current snapshot
-            # entries are external spools, those were phantom entries captured at
-            # print-start from the previous job's leftover state. Discard them.
-            new_is_external = _is_external(snap)
-            if (not new_is_external
-                    and self._trays_used_snapshot
-                    and all(_is_external(t) for t in self._trays_used_snapshot)):
-                _LOGGER.debug(
-                    "[%s] Clearing %d phantom external spool entry/entries "
-                    "(AMS slot became active first time).",
-                    self._serial, len(self._trays_used_snapshot),
-                )
-                self._trays_used_snapshot = []
-
             # Replace existing entry for same (ams, slot) or append new one
             existing = next(
                 (i for i, t in enumerate(self._trays_used_snapshot)
@@ -738,10 +721,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         self._cancel_poweroff_task()  # new print started — abort any pending poweroff
         self._print_start_time = dt_util.now()
         self._last_print_name = get_entity_state(self.hass, self._entities, "subtask_name") or ""
-        # Snapshot the active tray at print start (before AMS can reset it)
+        # Capture the pre-print tray state as baseline.
+        # Pre-seed _last_active_tray_key with this key so that polling iterations
+        # during the warmup phase (where active_tray still shows the previous slot)
+        # are silently skipped and not added as phantom entries.
+        # Only genuine tray CHANGES observed during printing are recorded.
+        pre_snap = self._snapshot_active_tray()
+        self._pre_print_tray_snapshot = pre_snap
+        pre_key = f"{pre_snap.get('ams')}:{pre_snap.get('slot')}" if pre_snap else ""
         self._trays_used_snapshot = []
-        self._last_active_tray_key = ""
-        self._update_trays_used()
+        self._last_active_tray_key = pre_key
         # Detect job type from installed tool module
         tool_mod = get_entity_state(self.hass, self._entities, "tool_module") or ""
         if tool_mod.startswith("laser"):
@@ -751,10 +740,9 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         else:
             self._job_type_snapshot = "print"
         _LOGGER.info(
-            "[%s] Print started: name='%s', start_time=%s, job_type=%s, initial_tray=%s",
+            "[%s] Print started: name='%s', start_time=%s, job_type=%s, pre_print_tray=%s",
             self._serial, self._last_print_name, self._print_start_time,
-            self._job_type_snapshot,
-            self._trays_used_snapshot[0] if self._trays_used_snapshot else None,
+            self._job_type_snapshot, pre_key,
         )
         printer_name = self._printer_name
         await self._notify.notify_start(
@@ -853,14 +841,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             name = re.sub(r'\.gcode$', '', name, flags=re.IGNORECASE)
         plate, project_name = _extract_plate_info(gcode_file)
         # Use the tray snapshots captured DURING the print (not at print end, since the
-        # AMS resets to slot 0 after the print finishes). Fall back to current state only
-        # if no snapshot was taken (e.g. HA reloaded mid-print).
+        # AMS resets to slot 0 after the print finishes). Fall back to the pre-print
+        # snapshot (baseline captured at start) for single-filament prints where
+        # active_tray never changed during printing.
         if self._trays_used_snapshot:
             trays_used = list(self._trays_used_snapshot)
             active_tray_dict = trays_used[0]
         else:
-            # Fallback: read current active_tray (may be wrong slot after AMS reset)
-            snap = self._snapshot_active_tray()
+            # No mid-print tray change observed → single-filament, used the pre-print slot.
+            # Prefer the pre-print snapshot over reading active_tray NOW (AMS may have reset).
+            snap = self._pre_print_tray_snapshot or self._snapshot_active_tray()
             trays_used = [snap] if snap else []
             active_tray_dict = snap or {
                 "name": get_entity_state(self.hass, self._entities, "active_tray") or "",

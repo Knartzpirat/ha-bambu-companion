@@ -266,13 +266,24 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
                 mobile_options.append({"value": t, "label": t})
         mobile_options.sort(key=lambda x: x["label"])
 
-        # Detect camera entity for this printer via entity_registry
+        # Detect camera entity for this printer via entity_registry.
+        # Also checks sub-devices (AMS etc.) so that the camera is found even when
+        # ha-bambulab registers it on a device other than the root printer device.
+        # Disabled entities are intentionally included so the field can be pre-filled;
+        # the user may need to enable the entity separately in HA.
         bambu_device_id = self.config_entry.data.get(CONF_DEVICE_ID, "")
         camera_entity_id: str | None = None
         if bambu_device_id:
+            from homeassistant.helpers import device_registry as dr
+            dev_reg = dr.async_get(self.hass)
             registry = er.async_get(self.hass)
+            # Collect the root device + all its sub-devices
+            candidate_device_ids = {bambu_device_id}
+            for dev in dev_reg.devices.values():
+                if dev.via_device_id == bambu_device_id:
+                    candidate_device_ids.add(dev.id)
             for entry in registry.entities.values():
-                if entry.device_id == bambu_device_id and entry.domain == "camera":
+                if entry.device_id in candidate_device_ids and entry.domain == "camera":
                     camera_entity_id = entry.entity_id
                     break
 
@@ -302,7 +313,8 @@ class BambuPrintTrackerOptionsFlow(config_entries.OptionsFlow):
             default_btn2_uri = "open_homeassistant"
         else:
             default_btn2_uri = "camera" if camera_entity_id else "open_homeassistant"
-        default_btn2_camera_entity = current.get(CONF_ACTION_BTN_2_CAMERA_ENTITY, "")
+        # Auto-populate with the detected printer camera when the user hasn't saved one yet.
+        default_btn2_camera_entity = current.get(CONF_ACTION_BTN_2_CAMERA_ENTITY) or camera_entity_id or ""
         default_btn3_mode = current.get(CONF_ACTION_BTN_3_MODE) or "off"
 
         schema_fields: dict = {

@@ -123,10 +123,15 @@ def get_ams_tray_entities(hass: HomeAssistant, ams_device_id: str) -> dict[str, 
 
 
 def get_camera_entity(hass: HomeAssistant, device_id: str) -> str | None:
-    """Return the first non-disabled camera entity_id for a printer device, or None."""
+    """Return the first non-disabled camera entity_id for a printer device or its sub-devices."""
+    dev_reg = dr.async_get(hass)
     ent_reg = er.async_get(hass)
-    for entry in er.async_entries_for_device(ent_reg, device_id):
-        if entry.domain == "camera" and not entry.disabled_by:
+    candidate_device_ids = {device_id}
+    for dev in dev_reg.devices.values():
+        if dev.via_device_id == device_id:
+            candidate_device_ids.add(dev.id)
+    for entry in ent_reg.entities.values():
+        if entry.device_id in candidate_device_ids and entry.domain == "camera" and not entry.disabled_by:
             return entry.entity_id
     return None
 

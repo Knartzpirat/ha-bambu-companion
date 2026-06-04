@@ -149,13 +149,19 @@ class NotifyManager:
         return opts.get(CONF_NOTIFY_HA_EVENTS, DEFAULT_NOTIFY_HA_EVENTS)
 
     def _camera_entity_id(self) -> str | None:
-        """Return the camera entity_id for this printer's device, if any."""
+        """Return the camera entity_id for this printer's device (or its sub-devices), if any."""
         if not self._device_id:
             return None
         from homeassistant.helpers import entity_registry as er
+        from homeassistant.helpers import device_registry as dr
+        dev_reg = dr.async_get(self._hass)
         registry = er.async_get(self._hass)
+        candidate_device_ids = {self._device_id}
+        for dev in dev_reg.devices.values():
+            if dev.via_device_id == self._device_id:
+                candidate_device_ids.add(dev.id)
         for entry in registry.entities.values():
-            if entry.device_id == self._device_id and entry.domain == "camera":
+            if entry.device_id in candidate_device_ids and entry.domain == "camera":
                 return entry.entity_id
         return None
 
