@@ -248,6 +248,23 @@ class PrintHistoryStore:
         if slot_id in pool:
             pool[slot_id]["label"] = new_label
 
+    def delete_nozzle_slot(self, slot_id: str) -> None:
+        """Delete a slot from the shared pool. No-op if it is the last slot.
+
+        Any position whose active slot was the deleted one is redirected to
+        the numerically first remaining slot.
+        """
+        pool = self.get_nozzle_pool()
+        if slot_id not in pool or len(pool) <= 1:
+            return
+        del pool[slot_id]
+        remaining = sorted(pool.keys(), key=lambda x: int(x) if x.isdigit() else 0)
+        fallback = remaining[0]
+        active_root = self._data.setdefault("active_nozzle", {})
+        for pos, active in active_root.items():
+            if active == slot_id:
+                active_root[pos] = fallback
+
     # ------------------------------------------------------------------
     # Monthly stats
     # ------------------------------------------------------------------

@@ -13,6 +13,7 @@ from .entity_helper import device_info
 from .maintenance import get_applicable_tasks
 
 _ADD_NOZZLE_OPTION = "➕ Neue Düse hinzufügen"
+_DELETE_NOZZLE_OPTION = "🗑️ Aktive Düse löschen"
 
 
 async def async_setup_entry(
@@ -103,7 +104,10 @@ class BcNozzleSelect(SelectEntity):
     @property
     def options(self) -> list[str]:
         labels = self._coordinator.get_nozzle_slot_labels(self._position)
-        return labels + [_ADD_NOZZLE_OPTION]
+        opts = labels + [_ADD_NOZZLE_OPTION]
+        if len(labels) > 1:
+            opts.append(_DELETE_NOZZLE_OPTION)
+        return opts
 
     @property
     def current_option(self) -> str | None:
@@ -112,6 +116,8 @@ class BcNozzleSelect(SelectEntity):
     async def async_select_option(self, option: str) -> None:
         if option == _ADD_NOZZLE_OPTION:
             await self._coordinator.async_add_nozzle_slot(self._position)
+        elif option == _DELETE_NOZZLE_OPTION:
+            await self._coordinator.async_delete_active_nozzle_slot(self._position)
         else:
             await self._coordinator.async_select_nozzle_slot(self._position, option)
         self.async_write_ha_state()

@@ -122,6 +122,15 @@ def get_ams_tray_entities(hass: HomeAssistant, ams_device_id: str) -> dict[str, 
     return get_printer_entities(hass, ams_device_id)
 
 
+def get_camera_entity(hass: HomeAssistant, device_id: str) -> str | None:
+    """Return the first non-disabled camera entity_id for a printer device, or None."""
+    ent_reg = er.async_get(hass)
+    for entry in er.async_entries_for_device(ent_reg, device_id):
+        if entry.domain == "camera" and not entry.disabled_by:
+            return entry.entity_id
+    return None
+
+
 def get_entity_state(hass: HomeAssistant, entities: dict[str, str], key: str):
     """Safely get state value for a translation_key."""
     entity_id = entities.get(key)

@@ -47,6 +47,7 @@ from .const import (
 from .entity_helper import (
     get_ams_devices,
     get_ams_tray_entities,
+    get_camera_entity,
     get_entity_attribute,
     get_entity_float,
     get_entity_state,
@@ -888,9 +889,24 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
                             cover_image_data = f"data:{mime};base64,{b64}"
             except Exception:
                 _LOGGER.debug("[%s] Could not fetch cover image bytes", self._serial)
+
+        # Capture a camera snapshot at print end
+        camera_snapshot_data = ""
+        camera_entity_id = get_camera_entity(self.hass, self._device_id)
+        if camera_entity_id:
+            try:
+                from homeassistant.components.camera import async_get_image
+                cam_image = await async_get_image(self.hass, camera_entity_id, timeout=10)
+                if cam_image and cam_image.content:
+                    mime = cam_image.content_type or "image/jpeg"
+                    b64 = base64.b64encode(cam_image.content).decode("utf-8")
+                    camera_snapshot_data = f"data:{mime};base64,{b64}"
+            except Exception:
+                _LOGGER.debug("[%s] Could not capture camera snapshot from %s", self._serial, camera_entity_id)
+
         _LOGGER.info(
-            "[%s] _build_print_record: name=%r, cover_image_entity=%r, has_image=%s",
-            self._serial, name, cover_image_entity, bool(cover_image_data),
+            "[%s] _build_print_record: name=%r, cover_image_entity=%r, has_image=%s, has_camera=%s",
+            self._serial, name, cover_image_entity, bool(cover_image_data), bool(camera_snapshot_data),
         )
 
         # Energy calculation
@@ -952,6 +968,7 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
             "job_type": self._job_type_snapshot,
             "cover_image_entity": cover_image_entity,
             "cover_image_url": cover_image_data,
+            "camera_snapshot_url": camera_snapshot_data,
         }
         # Reset cached cover image after recording so next print starts fresh.
         self._last_cover_image_url = ""
@@ -1299,6 +1316,16 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         await self._store.async_save()
         await self.async_refresh()
         return new_label
+
+    async def async_delete_active_nozzle_slot(self, position: str) -> None:
+        """Delete the currently active nozzle slot (no-op when only one slot exists)."""
+        pool = self._store.get_nozzle_pool()
+        if len(pool) <= 1:
+            return
+        active_id = self._store.get_active_nozzle_slot(position)
+        self._store.delete_nozzle_slot(active_id)
+        await self._store.async_save()
+        await self.async_refresh()
 
     async def async_reset_active_nozzle_slot(self, position: str) -> None:
         """Reset hours of the currently active nozzle slot to 0."""
