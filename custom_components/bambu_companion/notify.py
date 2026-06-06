@@ -86,7 +86,7 @@ class NotifyManager:
         self._serial = serial
         self._options = options
         self._device_id = device_id
-        self._last_notified_progress: int = -1
+        self._last_notified_progress: int = 0
         self._muted_until: datetime | None = None
 
     def mute_progress(self, minutes: int) -> None:
@@ -270,13 +270,13 @@ class NotifyManager:
     def should_notify_progress(self, progress: int) -> bool:
         interval: int = int(self._options.get(CONF_NOTIFY_INTERVAL, 5))
         milestone = (progress // interval) * interval
-        if milestone > self._last_notified_progress and progress > 0:
+        if milestone > self._last_notified_progress and 0 < progress < 100:
             self._last_notified_progress = milestone
             return True
         return False
 
     def reset_progress_tracker(self) -> None:
-        self._last_notified_progress = -1
+        self._last_notified_progress = 0
 
     async def notify_start(self, variables: dict) -> None:
         title = _render(_get_text(self._options, CONF_TEXT_START_TITLE), variables)
