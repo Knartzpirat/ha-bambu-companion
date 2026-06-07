@@ -672,6 +672,20 @@ class BambuPrintTrackerCoordinator(DataUpdateCoordinator):
         if rl in ("none", "unknown", "empty", ""):
             if not tray_color and tray_slot is None:
                 return None
+        # Skip external spool entries that have no filament type loaded.
+        # When a filament is loaded on the external spool its 'type' attribute is set
+        # (e.g. "PLA"). Without filament the type is empty — this is a phantom entry
+        # caused by the AMS/printer briefly reporting the external port during warmup.
+        try:
+            _is_ext = (
+                (tray_slot is not None and int(tray_slot) >= 254)
+                or (tray_ams is not None and int(tray_ams) >= 254)
+                or rl.startswith("external spool")
+            )
+        except (TypeError, ValueError):
+            _is_ext = False
+        if _is_ext and not tray_type:
+            return None
         ams_model = ""
         if self._ams_device_ids and tray_ams is not None:
             ams_devices = get_ams_devices(self.hass, self._device_id)

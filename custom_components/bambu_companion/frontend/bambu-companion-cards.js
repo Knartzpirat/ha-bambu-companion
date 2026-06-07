@@ -997,8 +997,16 @@ class BambuCompanionHistoryCard extends HTMLElement {
                 : `<div class="thumb-ph" style="width:48px;height:48px;border-radius:4px;background:var(--divider-color);display:flex;align-items:center;justify-content:center;font-size:1.4em;">${ok ? "✅" : "❌"}</div>`;
             const thumbHtml = `<div class="thumb-wrap" data-idx="${idx}" style="width:48px;height:48px;flex-shrink:0;">${thumbInner}</div>`;
             // Build filament color swatches for the row (use trays_used if available)
+            // Filter out empty external spool entries (no filament type = not in use)
+            const notEmptyExt = t => {
+                const rl2 = (t.name || "").toLowerCase();
+                const isExt = (t.slot != null && parseInt(t.slot) >= 254)
+                           || (t.ams  != null && parseInt(t.ams)  >= 254)
+                           || rl2.startsWith("external spool");
+                return !isExt || !!(t.type && t.type !== "" && t.type.toLowerCase() !== "unknown");
+            };
             const rowTrays = (Array.isArray(p.trays_used) && p.trays_used.length > 0)
-                ? p.trays_used
+                ? p.trays_used.filter(notEmptyExt)
                 : (p.active_tray ? [p.active_tray] : []);
             const rowSwatches = rowTrays.map(t => {
                 const col = (typeof t.color === "string" ? t.color : "").replace(/^#/, "");
@@ -1288,8 +1296,16 @@ class BambuCompanionHistoryCard extends HTMLElement {
         };
 
         // Build filament list: prefer trays_used (multi-filament aware), fall back to active_tray
+        // Filter out empty external spool entries (external port with no filament type loaded)
+        const notEmptyExtDetail = t => {
+            const rl2 = (t.name || "").toLowerCase();
+            const isExt = (t.slot != null && parseInt(t.slot) >= 254)
+                       || (t.ams  != null && parseInt(t.ams)  >= 254)
+                       || rl2.startsWith("external spool");
+            return !isExt || !!(t.type && t.type !== "" && t.type.toLowerCase() !== "unknown");
+        };
         const traysUsed = (Array.isArray(p.trays_used) && p.trays_used.length > 0)
-            ? p.trays_used
+            ? p.trays_used.filter(notEmptyExtDetail)
             : (Object.keys(tray).length > 0 ? [tray] : []);
         const trayInfos = traysUsed.map(trayInfo);
 
